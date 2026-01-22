@@ -28,7 +28,7 @@ def render() -> None:
                     if any(x['name'] == new_name for x in data_list):
                         st.error("Item with this name already exists.")
                     else:
-                        data_list.append({"name": new_name, "description": new_desc, "weight": new_weight})
+                        data_list.append({"name": new_name, "description": new_desc, "weight": new_weight, "is_container": False})
                         save_data(target_file, data_list)
                         st.success(f"Created {new_name}")
                         st.rerun()
@@ -67,6 +67,7 @@ def render() -> None:
                     item["name"] = edit_name
                     item["description"] = edit_desc
                     item["weight"] = edit_weight
+                    # is_container is not editable here yet, defaults to False for DB items
                     
                     # We need to save the full 'data_list' which contains this 'item' object
                     save_data(target_file, data_list)

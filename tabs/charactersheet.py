@@ -4,7 +4,7 @@ import copy
 from utils.data_manager import load_data, save_data
 from constants import CHARACTERS_FILE, EQUIPMENT_FILE, PERKS_FILE
 from tabs.character_logic import get_default_character, sync_char_widgets, calculate_stats, roll_skill, migrate_character, SKILL_MAP
-from tabs.character_components import render_css, render_bars, render_database_manager, render_item_manager, render_character_statblock
+from tabs.character_components import render_css, render_bars, render_database_manager, render_inventory_management, render_character_statblock
 
 def render_character_sheet() -> None:
     st.header("📝 Character Sheet")
@@ -289,7 +289,7 @@ def render_character_sheet() -> None:
             
             with col_right:
                 st.markdown("**Perks & Traits**")
-                render_item_manager(char, "perks", "Perk")
+                render_inventory_management(char, "perks", "Perk")
                 
                 # --- PERK MANAGER ---
                 render_database_manager(
@@ -302,17 +302,12 @@ def render_character_sheet() -> None:
                 )
                 
                 st.markdown("**Inventory**")
-                render_item_manager(char, "inventory", "Equipment")
-                
-                # --- EQUIPMENT MANAGER ---
-                render_database_manager(
-                    label="Equipment",
-                    file_path=EQUIPMENT_FILE,
-                    char=char,
-                    char_key="inventory",
-                    session_key="c_inv_db",
-                    prefix="eq"
+                render_inventory_management(
+                    char, "inventory", "Equipment",
+                    max_load=char.get("carry_load", 0),
+                    current_load=char.get("current_weight", 0)
                 )
                 
                 st.markdown("**Caps**")
-                char["caps"] = st.number_input("Caps", min_value=0, key="c_caps")
+                # Caps are now derived from inventory items named "Caps"
+                st.text_input("Caps (Carried)", value=str(char.get("caps", 0)), disabled=True, help="Total quantity of 'Caps' items in carried inventory.")

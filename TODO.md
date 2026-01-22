@@ -15,7 +15,7 @@
 - [ ] **Persistent State**: Ensure scanner results persist when switching tabs without saving (currently relies on `st.session_state` but could be more robust).
 - [ ] **Mobile Layout**: Tune column widths for better mobile viewing.
 
-## Completed
+## Completed (All completed entries should be in UTC Brasilia time and reflect the time it being written)
 ### Features
 - [x] (2026-01-21 19:45) **Encounter Editor**: Allow manual editing (add/remove/quantity) of generated encounters and crafting from scratch.
 - [x] (2026-01-21 20:30) **Statblock Popouts**: Added modal dialogs and detached window support for viewing creature stats.
@@ -55,6 +55,7 @@
 - [x] (2026-01-21 20:45) **Library Mobile Layout**: Tuned column widths and removed full-width buttons in the Encounter Builder library for a more compact mobile view.
 - [x] (2026-01-21 20:50) **Library Alignment**: Fixed vertical alignment of buttons in the Encounter Builder library to be centered with item names.
 - [x] (2026-01-21 22:30) **Character Sheet UI**: Added custom styled HP/Stamina bars and optimized layout for compactness.
+- [x] (2026-01-22 15:23) **Inventory Nesting UI**: Refactored inventory display to use nested expanders for containers.
 
 
 

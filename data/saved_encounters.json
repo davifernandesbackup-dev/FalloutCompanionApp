@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "biome": "Old Vault",
+    "threats": {
+      "Robobrain": 1,
+      "Radroach": 11
+    },
+    "loot": {
+      "Bobby Pins": 19,
+      "Vault Suit": 1
+    },
+    "date": "2026-01-22 12:04"
+  }
+]

@@ -4,7 +4,6 @@
     "level": 1,
     "origin": "Vault Dweller",
     "xp": 0,
-    "caps": 0,
     "stats": {
       "STR": 5,
       "PER": 5,
@@ -37,9 +36,76 @@
     "ac": 10,
     "combat_sequence": 12,
     "action_points": 12,
+    "carry_load": 70,
+    "perks": [],
+    "inventory": [
+      {
+        "name": "a",
+        "description": "a {STR +2} {Carry Load +1}",
+        "weight": 1.0,
+        "equipped": false,
+        "active": true,
+        "quantity": 1,
+        "id": "ea550283-7d4e-4dc4-9e62-1d2e1027f182",
+        "parent_id": "1af4aaa0-65fe-4bef-9090-6cb428008e46",
+        "location": "carried",
+        "is_container": false
+      },
+      {
+        "name": "a",
+        "description": "a {STR +2}",
+        "weight": 1.0,
+        "equipped": false,
+        "active": true,
+        "quantity": 1,
+        "id": "8f8bd882-d2ea-4a0b-a386-cc0dd4613e0f",
+        "parent_id": null,
+        "location": "carried",
+        "is_container": false
+      }
+    ],
+    "current_weight": 2.0,
+    "caps": 0
+  },
+  {
+    "name": "New Character",
+    "level": 1,
+    "origin": "Vault Dweller",
+    "xp": 0,
+    "stats": {
+      "STR": 5,
+      "PER": 5,
+      "END": 5,
+      "CHA": 5,
+      "INT": 5,
+      "AGI": 5,
+      "LUC": 5
+    },
+    "skills": {
+      "Barter": 0,
+      "Breach": 0,
+      "Crafting": 0,
+      "Energy Weapons": 0,
+      "Explosives": 0,
+      "Guns": 0,
+      "Intimidation": 0,
+      "Medicine": 0,
+      "Melee Weapons": 0,
+      "Science": 0,
+      "Sneak": 0,
+      "Speech": 0,
+      "Survival": 0,
+      "Unarmed": 0
+    },
+    "hp_max": 10,
+    "hp_current": 10,
+    "stamina_max": 10,
+    "stamina_current": 10,
+    "ac": 10,
+    "combat_sequence": 0,
+    "action_points": 10,
     "carry_load": 50,
     "perks": [],
-    "inventory": [],
-    "current_weight": 0.0
+    "inventory": []
   }
 ]

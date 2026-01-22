@@ -1,6 +1,7 @@
 import streamlit as st
 import re
 import random
+import uuid
 
 SKILL_MAP = {
     "Barter": ["CHA"],
@@ -25,7 +26,6 @@ def get_default_character():
         "level": 1,
         "origin": "Vault Dweller",
         "xp": 0,
-        "caps": 0,
         "stats": {
             "STR": 5, "PER": 5, "END": 5, "CHA": 5, "INT": 5, "AGI": 5, "LUC": 5
         },
@@ -54,7 +54,6 @@ def sync_char_widgets():
     st.session_state["c_hp_curr"] = char.get("hp_current", 10)
     st.session_state["c_stamina_curr"] = char.get("stamina_current", 10)
     st.session_state["c_ac"] = char.get("ac", 10)
-    st.session_state["c_caps"] = char.get("caps", 0)
     st.session_state["c_perks"] = char.get("perks", [])
     st.session_state["c_inv"] = char.get("inventory", [])
     
@@ -108,6 +107,28 @@ def migrate_character(char):
                 new_perks.append({"name": line, "description": "", "active": True})
         char["perks"] = new_perks
 
+    # Migrate Container/ID System
+    inventory = char.get("inventory", [])
+    for item in inventory:
+        if "id" not in item: item["id"] = str(uuid.uuid4())
+        if "parent_id" not in item: item["parent_id"] = None
+        if "is_container" not in item: item["is_container"] = False
+        if "quantity" not in item: item["quantity"] = 1
+        if "location" not in item: item["location"] = "carried" # carried, stash
+
+    # Ensure Perks have IDs (required for edit dialog)
+    for perk in char.get("perks", []):
+        if "id" not in perk: perk["id"] = str(uuid.uuid4())
+
+    # Migrate Caps to Item
+    if "caps" in char:
+        caps_val = char.pop("caps")
+        if isinstance(caps_val, int) and caps_val > 0:
+            # Check if Caps item already exists
+            if not any(i["name"] == "Caps" for i in inventory):
+                inventory.append({"id": str(uuid.uuid4()), "name": "Caps", "description": "Currency", "weight": 0.0, "quantity": caps_val, "equipped": False, "location": "carried", "parent_id": None, "is_container": False})
+
+
 def calculate_stats(char):
     """Performs all auto-calculations for the character sheet."""
     
@@ -122,8 +143,13 @@ def calculate_stats(char):
 
     # Process Inventory
     for item in char.get("inventory", []):
-        if item.get("equipped", False):
-            full_text += f" {item.get('description', '')}"
+        # Only apply modifiers if item is Carried (root)
+        # Containers apply automatically if carried. Items must be equipped.
+        is_carried_root = (item.get("location") == "carried" and item.get("parent_id") is None)
+        
+        if is_carried_root:
+            if item.get("is_container", False) or item.get("equipped", False):
+                full_text += f" {item.get('description', '')} "
 
     matches = re.findall(r"\{([a-zA-Z0-9\s]+?)\s*([+\-*/])\s*(\d+(?:\.\d+)?)\}", full_text)
     for stat, operator, value in matches:
@@ -169,15 +195,66 @@ def calculate_stats(char):
         effective_skills[key] = int(get_effective_value(derived_base, key))
 
     # Calculate Current Weight
-    current_weight = 0.0
-    for item in char.get("inventory", []):
-        current_weight += float(item.get("weight", 0))
+    inventory = char.get("inventory", [])
     
-    # Caps Weight (50 caps = 1 Load)
-    caps = char.get("caps", 0)
-    current_weight += caps / 50.0
+    # Build Tree for recursive weight
+    item_map = {item["id"]: item for item in inventory}
+    children_map = {}
+    for item in inventory:
+        pid = item.get("parent_id")
+        if pid:
+            if pid not in children_map: children_map[pid] = []
+            children_map[pid].append(item)
 
+    def get_total_weight(item_id):
+        item = item_map.get(item_id)
+        if not item: return 0.0
+        # Self weight
+        w = float(item.get("weight", 0.0)) * item.get("quantity", 1)
+        # Children weight
+        for child in children_map.get(item_id, []):
+            w += get_total_weight(child["id"])
+        return w
+
+    current_weight = 0.0
+    carried_caps = 0
+
+    for item in inventory:
+        # Only count weight for root items in "carried"
+        if item.get("parent_id") is None and item.get("location") == "carried":
+            current_weight += get_total_weight(item["id"])
+        
+        # Count caps (anywhere in carried hierarchy)
+        # We need to check if the item is effectively carried
+        if item.get("name") == "Caps":
+            # Traverse up to check if root is carried
+            curr = item
+            is_carried = False
+            while True:
+                if curr.get("parent_id") is None:
+                    if curr.get("location") == "carried":
+                        is_carried = True
+                    break
+                curr = item_map.get(curr.get("parent_id"))
+                if not curr: break # Orphaned
+            
+            if is_carried:
+                carried_caps += item.get("quantity", 0)
+                # Caps weight: 50 caps = 1 Load
+                # Note: If caps are inside a container, their weight is added via get_total_weight recursion above?
+                # Wait, get_total_weight adds weight of children. 
+                # If Caps have weight 0 in DB, we need to add their calculated weight.
+                # But usually Caps item has 0 weight in definition.
+                # So we add caps weight globally or per stack?
+                # Let's add global caps weight to current_weight for simplicity, 
+                # OR we assume the Caps item has 0 weight and we add (total_caps / 50) at the end.
+                # The prompt says "caps... are not equipment... cant be equipped".
+                # Let's add the calculated weight here.
+    
+    current_weight += carried_caps / 50.0
+    
     char["current_weight"] = round(current_weight, 1)
+    char["caps"] = carried_caps # Update display value
 
     # 4. Derived Stats
     base_carry_load = effective_stats.get("STR", 5) * 10

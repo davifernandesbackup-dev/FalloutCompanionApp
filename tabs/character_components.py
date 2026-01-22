@@ -1,8 +1,9 @@
 import streamlit as st
 import re
+import uuid
 from utils.data_manager import load_data, save_data
 from tabs.character_logic import get_default_character, calculate_stats, SKILL_MAP
-from constants import EQUIPMENT_FILE
+from constants import EQUIPMENT_FILE, PERKS_FILE
 
 def render_css():
     st.markdown("""
@@ -66,6 +67,7 @@ def render_css():
         }
         .hp-fill { background-color: #ff3333; box-shadow: 0 0 10px #ff0000; }
         .stamina-fill { background-color: #ccff00; box-shadow: 0 0 10px #ccff00; }
+        .load-fill { background-color: #00b300; box-shadow: 0 0 10px #00ff00; }
         .roll-btn {
             padding: 0px 5px;
             font-size: 0.8em;
@@ -226,7 +228,7 @@ def render_bars(char, effective_health_max, effective_stamina_max):
         char["stamina_current"] = col_stamina_current.number_input("Curr SP", min_value=0, max_value=effective_stamina_max, step=1, key="c_stamina_curr", label_visibility="collapsed")
 
 @st.dialog("Edit Item")
-def edit_item_dialog(item, item_id, callback):
+def edit_item_dialog(item, item_id, all_items, callback):
     """Dialog to edit an item's name, description, weight, and modifiers."""
     # Generate a unique key for this dialog session based on item ID
     dialog_id = f"edit_dialog_{item_id}"
@@ -254,15 +256,18 @@ def edit_item_dialog(item, item_id, callback):
         st.session_state[f"{dialog_id}_mods"] = mod_strings
         st.session_state[f"{dialog_id}_initialized"] = True
         st.session_state[sig_key] = current_sig
+        st.session_state[f"{dialog_id}_qty"] = item.get("quantity", 1)
+        st.session_state[f"{dialog_id}_is_cont"] = item.get("is_container", False)
+        st.session_state[f"{dialog_id}_loc"] = item.get("location", "carried")
+        st.session_state[f"{dialog_id}_pid"] = item.get("parent_id", None)
 
     # UI Inputs
-    new_name = st.text_input("Name", key=f"{dialog_id}_name_input", value=st.session_state[f"{dialog_id}_name"])
+    c_name, c_qty = st.columns([3, 1])
+    new_name = c_name.text_input("Name", key=f"{dialog_id}_name_input", value=st.session_state[f"{dialog_id}_name"])
+    new_qty = c_qty.number_input("Qty", min_value=1, step=1, key=f"{dialog_id}_qty_input", value=st.session_state[f"{dialog_id}_qty"])
     
     # Show Weight input if the item has a weight key (Equipment)
-    if "weight" in item:
-        new_weight = st.number_input("Load", min_value=0.0, step=0.1, key=f"{dialog_id}_weight_input", value=st.session_state[f"{dialog_id}_weight"])
-    else:
-        new_weight = 0.0
+    new_weight = st.number_input("Load (Per Unit)", min_value=0.0, step=0.1, key=f"{dialog_id}_weight_input", value=st.session_state[f"{dialog_id}_weight"])
 
     new_desc = st.text_input("Description", key=f"{dialog_id}_desc_input", value=st.session_state[f"{dialog_id}_desc"])
     
@@ -287,6 +292,46 @@ def edit_item_dialog(item, item_id, callback):
 
     st.divider()
     
+    # Container & Location Logic
+    c_cont, c_loc = st.columns(2)
+    is_container = c_cont.checkbox("Is Container?", value=st.session_state[f"{dialog_id}_is_cont"], key=f"{dialog_id}_chk_cont")
+    
+    # Build Move To Options
+    # Options: "Carried (Root)", "Stash (Root)", and any valid container
+    # Prevent moving into itself or its children to avoid cycles
+    
+    def get_descendants(pid, items_list):
+        desc = []
+        children = [i for i in items_list if i.get("parent_id") == pid]
+        for child in children:
+            desc.append(child["id"])
+            desc.extend(get_descendants(child["id"], items_list))
+        return desc
+
+    invalid_targets = [item["id"]] + get_descendants(item["id"], all_items)
+    potential_containers = [i for i in all_items if i.get("is_container") and i["id"] not in invalid_targets]
+    
+    loc_options = ["Carried", "Stash"] + [f"Container: {i['name']}" for i in potential_containers]
+    
+    # Determine current selection index
+    current_pid = st.session_state[f"{dialog_id}_pid"]
+    current_loc = st.session_state[f"{dialog_id}_loc"]
+    
+    default_idx = 0
+    if current_pid:
+        # Find container name
+        parent = next((i for i in all_items if i["id"] == current_pid), None)
+        if parent:
+            try:
+                default_idx = loc_options.index(f"Container: {parent['name']}")
+            except ValueError: pass
+    elif current_loc == "stash":
+        default_idx = 1
+        
+    move_selection = c_loc.selectbox("Location / Container", loc_options, index=default_idx, key=f"{dialog_id}_move_sel")
+
+    st.divider()
+    
     if st.button("💾 Save Changes", type="primary"):
         # Reconstruct description
         final_desc = new_desc
@@ -296,9 +341,26 @@ def edit_item_dialog(item, item_id, callback):
         # Update item
         item["name"] = new_name
         item["description"] = final_desc.strip()
-        if "weight" in item:
-            item["weight"] = new_weight
-            
+        item["weight"] = new_weight
+        item["quantity"] = new_qty
+        item["is_container"] = is_container
+        
+        # Update Location
+        if move_selection == "Carried":
+            item["parent_id"] = None
+            item["location"] = "carried"
+        elif move_selection == "Stash":
+            item["parent_id"] = None
+            item["location"] = "stash"
+        else:
+            # Extract container name and find ID
+            cont_name = move_selection.replace("Container: ", "")
+            parent = next((i for i in potential_containers if i["name"] == cont_name), None)
+            if parent:
+                item["parent_id"] = parent["id"]
+                # Location is irrelevant if parent_id is set, but good to keep clean
+                item["location"] = "carried" 
+
         # Cleanup session state
         del st.session_state[f"{dialog_id}_initialized"]
         for key in list(st.session_state.keys()):
@@ -329,6 +391,97 @@ def render_modifier_builder(key_prefix, mod_list_key):
         if mod_list_key not in st.session_state: st.session_state[mod_list_key] = []
         st.session_state[mod_list_key].append(f"{{{stat_sel} {operator_map[op_sel]}{val_fmt}}}")
 
+@st.dialog("Add Item")
+def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, callback=None):
+    """Dialog to add items from database or custom."""
+    data_list = load_data(file_path)
+    if not isinstance(data_list, list):
+        data_list = []
+    
+    data_list.sort(key=lambda x: x.get("name", ""))
+    names = [e.get("name", "Unknown") for e in data_list]
+    
+    st.markdown(f"**Add {label}**")
+    
+    # Database Selection
+    selected_item = st.selectbox(f"Search Database:", [""] + names, key=f"{prefix}_select_dlg")
+    
+    if st.button(f"Add Selected to {label}", key=f"{prefix}_btn_add_dlg", use_container_width=True):
+        if selected_item:
+            entry = next((e for e in data_list if e["name"] == selected_item), None)
+            
+            new_item = {
+                "name": selected_item,
+                "description": entry.get("description", "") if entry else "",
+                "weight": entry.get("weight", 0.0) if entry else 0.0,
+                "equipped": False if label == "Equipment" else True,
+                "active": True,
+                "quantity": 1,
+                "id": str(uuid.uuid4()),
+                "parent_id": None,
+                "location": "carried",
+                "is_container": False
+            }
+            
+            if char_key not in char or not isinstance(char[char_key], list):
+                char[char_key] = []
+            
+            char[char_key].append(new_item)
+            st.session_state[session_key] = char[char_key]
+            if callback: callback()
+            st.rerun()
+
+    st.divider()
+    st.caption(f"Or Create Custom {label}")
+    
+    c1, c2 = st.columns([2, 1])
+    new_name = c1.text_input("Name", key=f"{prefix}_new_name_dlg")
+    new_weight = 0.0
+    if label == "Equipment":
+        new_weight = c2.number_input("Weight", min_value=0.0, step=0.1, key=f"{prefix}_new_weight_dlg")
+    
+    new_desc = st.text_input("Description", key=f"{prefix}_new_desc_dlg")
+    
+    # Modifier Builder
+    mod_key = f"{prefix}_modifiers_dlg"
+    if mod_key not in st.session_state: st.session_state[mod_key] = []
+    render_modifier_builder(prefix + "_dlg", mod_key)
+
+    if st.session_state[mod_key]:
+        st.markdown(" ".join([f"`{m}`" for m in st.session_state[mod_key]]))
+        if st.button("Clear Modifiers", key=f"{prefix}_btn_clear_mods_dlg"):
+            st.session_state[mod_key] = []
+            st.rerun()
+    
+    if st.button("Create & Add", type="primary", use_container_width=True, key=f"{prefix}_btn_create_dlg"):
+        if new_name:
+            final_desc = new_desc + (" " + " ".join(st.session_state[mod_key]) if st.session_state[mod_key] else "")
+            item_data = {
+                "name": new_name,
+                "description": final_desc.strip(),
+                "weight": new_weight if label == "Equipment" else 0.0,
+                "equipped": False if label == "Equipment" else True,
+                "active": True,
+                "quantity": 1,
+                "id": str(uuid.uuid4()),
+                "parent_id": None,
+                "location": "carried",
+                "is_container": False
+            }
+            if char_key not in char or not isinstance(char[char_key], list):
+                char[char_key] = []
+            char[char_key].append(item_data)
+            st.session_state[mod_key] = []
+            
+            # Clear input fields to prevent data leaking to next item
+            st.session_state[f"{prefix}_new_name_dlg"] = ""
+            st.session_state[f"{prefix}_new_desc_dlg"] = ""
+            if label == "Equipment":
+                st.session_state[f"{prefix}_new_weight_dlg"] = 0.0
+
+            if callback: callback()
+            st.rerun()
+
 def render_database_manager(label, file_path, char, char_key, session_key, prefix):
     with st.expander(f"➕ Add {label}"):
         data_list = load_data(file_path)
@@ -350,7 +503,12 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
                     "description": entry.get("description", "") if entry else "",
                     "weight": entry.get("weight", 0.0) if entry else 0.0,
                     "equipped": False if label == "Equipment" else True,
-                    "active": True
+                    "active": True,
+                    "quantity": 1,
+                    "id": str(uuid.uuid4()),
+                    "parent_id": None,
+                    "location": "carried",
+                    "is_container": False
                 }
                 
                 if char_key not in char or not isinstance(char[char_key], list):
@@ -390,7 +548,12 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
                 "description": final_desc.strip(),
                 "weight": new_weight if label == "Equipment" else 0.0,
                 "equipped": False if label == "Equipment" else True,
-                "active": True
+                "active": True,
+                "quantity": 1,
+                "id": str(uuid.uuid4()),
+                "parent_id": None,
+                "location": "carried",
+                "is_container": False
             }
 
         if c_local.button("Add to Character Only", key=f"{prefix}_btn_add_local"):
@@ -401,6 +564,12 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
                 char[char_key].append(item_data)
                 st.session_state[mod_key] = []
                 st.success(f"Added {new_name} to Character")
+                
+                # Clear inputs
+                st.session_state[f"{prefix}_new_name"] = ""
+                st.session_state[f"{prefix}_new_desc"] = ""
+                if label == "Equipment":
+                    st.session_state[f"{prefix}_new_weight"] = 0.0
                 st.rerun()
 
         if c_db.button("Save to DB & Add", key=f"{prefix}_btn_save_db"):
@@ -422,49 +591,167 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
                     st.warning(f"Item {new_name} already in database (Added to Character only)")
                 
                 st.session_state[mod_key] = []
+                # Clear inputs
+                st.session_state[f"{prefix}_new_name"] = ""
+                st.session_state[f"{prefix}_new_desc"] = ""
+                if label == "Equipment":
+                    st.session_state[f"{prefix}_new_weight"] = 0.0
                 st.rerun()
 
-def render_item_manager(char, key, label):
-    """Renders a list of items (Perks or Inventory) with Edit/Delete/Toggle controls."""
+def render_inventory_management(char, key, label, max_load=None, current_load=None):
+    """Renders the inventory with Carried/Stash sections and nesting."""
     items = char.get(key, [])
     if not isinstance(items, list):
         items = []
         char[key] = items
 
-    # Column Headers
-    h1, h2, h3 = st.columns([1, 4, 2])
-    h1.caption("Active")
-    h2.caption(f"{label} Details")
-    h3.caption("Actions")
-    
-    for i, item in enumerate(items):
-        c1, c2, c3 = st.columns([1, 4, 2], vertical_alignment="center")
-        
-        # Toggle (Equipped/Active)
-        is_active = item.get("equipped", item.get("active", True))
-        new_active = c1.checkbox("##", value=is_active, key=f"{key}_act_{i}", label_visibility="collapsed")
-        
-        if new_active != is_active:
-            if "equipped" in item: item["equipped"] = new_active
-            else: item["active"] = new_active
-            st.rerun()
-
-        # Details
-        with c2:
-            st.markdown(f"**{item.get('name', 'Unnamed')}**")
-            if item.get("description"):
-                st.caption(item["description"])
-            if "weight" in item and item["weight"] > 0:
-                st.caption(f"Load: {item['weight']}")
+    # Separate logic for Perks (simple list) vs Inventory (nested)
+    if label == "Perk":
+        # Simple list for perks
+        for i, item in enumerate(items):
+            c1, c2, c3 = st.columns([0.5, 4, 1.5], vertical_alignment="center")
+            is_active = item.get("active", True)
+            if c1.checkbox("##", value=is_active, key=f"{key}_act_{i}", label_visibility="collapsed"):
+                item["active"] = True
+            else:
+                item["active"] = False
             
-        # Actions
-        with c3:
-            ca, cb = st.columns(2)
-            if ca.button("✏️", key=f"{key}_edit_{i}"):
-                edit_item_dialog(item, f"{key}_{i}", lambda: None)
-            if cb.button("🗑️", key=f"{key}_del_{i}"):
-                items.pop(i)
-                st.rerun()
+            with c2:
+                st.markdown(f"**{item.get('name')}**")
+                if item.get("description"): st.caption(item["description"])
+            
+            with c3:
+                ca, cb = st.columns(2)
+                if ca.button("✏️", key=f"{key}_edit_{i}"):
+                    edit_item_dialog(item, item.get("id", str(i)), items, lambda: None)
+                if cb.button("🗑️", key=f"{key}_del_{i}"):
+                    items.pop(i)
+                    st.rerun()
+        return
+
+    # --- INVENTORY TREE LOGIC ---
+    
+    # Build Tree
+    tree = {}
+    for item in items:
+        pid = item.get("parent_id")
+        if pid not in tree: tree[pid] = []
+        tree[pid].append(item)
+
+    def render_tree_node(item_list):
+        for item in item_list:
+            is_container = item.get("is_container", False)
+            
+            if is_container:
+                # --- CONTAINER (EXPANDER) ---
+                qty_str = f" (x{item.get('quantity', 1)})" if item.get('quantity', 1) > 1 else ""
+                label = f"📦 {item.get('name')}{qty_str}"
+                
+                with st.expander(label):
+                    # Container Actions & Details
+                    c_desc, c_act = st.columns([3, 1])
+                    with c_desc:
+                        desc_parts = []
+                        if float(item.get("weight", 0)) > 0: desc_parts.append(f"{float(item['weight'])} Load")
+                        if item.get("description"): desc_parts.append(item["description"])
+                        if desc_parts:
+                            st.caption(" | ".join(desc_parts))
+
+                    with c_act:
+                        c_ed, c_del = st.columns(2)
+                        if c_ed.button("✏️", key=f"inv_ed_{item['id']}"):
+                            edit_item_dialog(item, item['id'], items, lambda: None)
+                        if c_del.button("🗑️", key=f"inv_del_{item['id']}"):
+                            items.remove(item)
+                            st.rerun()
+                    
+                    # Render Children
+                    if item["id"] in tree:
+                        render_tree_node(tree[item["id"]])
+            else:
+                # --- ITEM (STANDARD ROW) ---
+                c_chk, c_name, c_act = st.columns([0.5, 4, 1.5], vertical_alignment="top")
+                
+                # Checkbox
+                is_caps = item.get("name") == "Caps"
+                can_equip = (item.get("parent_id") is None and item.get("location") == "carried" and not is_caps)
+                
+                with c_chk:
+                    if can_equip:
+                        is_equipped = item.get("equipped", False)
+                        if st.checkbox("Eq", value=is_equipped, key=f"inv_eq_{item['id']}", label_visibility="collapsed"):
+                            item["equipped"] = True
+                        else:
+                            item["equipped"] = False
+                
+                # Name & Details
+                with c_name:
+                    qty_str = f" (x{item.get('quantity', 1)})" if item.get('quantity', 1) > 1 else ""
+                    st.markdown(f"**{item.get('name')}{qty_str}**")
+                    
+                    desc_parts = []
+                    if float(item.get("weight", 0)) > 0: desc_parts.append(f"{float(item['weight'])} Load")
+                    if item.get("description"): desc_parts.append(item["description"])
+                    if desc_parts:
+                        st.caption(" | ".join(desc_parts))
+                
+                # Actions
+                with c_act:
+                    ca, cb = st.columns(2)
+                    if ca.button("✏️", key=f"inv_ed_{item['id']}"):
+                        edit_item_dialog(item, item['id'], items, lambda: None)
+                    if cb.button("🗑️", key=f"inv_del_{item['id']}"):
+                        items.remove(item)
+                        st.rerun()
+                    with st.popover("⚙️", use_container_width=True):
+                        if st.button("Edit", key=f"inv_ed_{item['id']}", use_container_width=True):
+                            edit_item_dialog(item, item['id'], items, lambda: None)
+                        if st.button("Delete", key=f"inv_del_{item['id']}", type="primary", use_container_width=True):
+                            items.remove(item)
+                            st.rerun()
+
+    # --- RENDER UI ---
+    if label == "Equipment":
+        # Header with Load Bar and Add Button
+        c_load, c_add = st.columns([3, 1], vertical_alignment="bottom")
+        with c_load:
+            if max_load is not None and current_load is not None:
+                pct = min(1.0, current_load / max_load) if max_load > 0 else 1.0
+                st.markdown(f"**Load: {current_load} / {max_load}**")
+                st.markdown(f"""
+                <div class="custom-bar-bg" style="height: 12px; margin-bottom: 5px;">
+                    <div class="custom-bar-fill load-fill" style="width: {pct*100}%;"></div>
+                </div>
+                """, unsafe_allow_html=True)
+        with c_add:
+            if st.button("➕ Add Item", use_container_width=True, key="btn_open_add_item"):
+                add_db_item_dialog("Equipment", EQUIPMENT_FILE, char, key, "c_inv_db", "eq")
+
+        # Tabs for Carried vs Stash
+        tab_carried, tab_stash = st.tabs(["🎒 Carried", "📦 Stash"])
+        
+        with tab_carried:
+            carried_roots = [i for i in items if i.get("parent_id") is None and i.get("location") == "carried"]
+            if carried_roots:
+                render_tree_node(carried_roots)
+            else:
+                st.caption("Nothing carried.")
+                
+        with tab_stash:
+            stash_roots = [i for i in items if i.get("parent_id") is None and i.get("location") == "stash"]
+            if stash_roots:
+                render_tree_node(stash_roots)
+            else:
+                st.caption("Stash is empty.")
+    else:
+        # Fallback for non-equipment (if any) or legacy view
+        st.markdown("### 🎒 Carried")
+        carried_roots = [i for i in items if i.get("parent_id") is None and i.get("location") == "carried"]
+        if carried_roots: render_tree_node(carried_roots)
+        
+        st.markdown("### 📦 Stash")
+        stash_roots = [i for i in items if i.get("parent_id") is None and i.get("location") == "stash"]
+        if stash_roots: render_tree_node(stash_roots)
 
 def update_stat_callback(target_dict, key, widget_key, save_callback=None):
     """Callback to update character data without forcing a double rerun."""
@@ -590,86 +877,107 @@ def render_character_statblock(char, save_callback=None):
         if not inventory:
             st.caption("Inventory is empty.")
         
-        for i, item in enumerate(inventory):
-            c_chk, c_lbl, c_edit, c_del = st.columns([0.15, 0.65, 0.1, 0.1])
-            is_equipped = item.get("equipped", False)
-            eq_key = f"sb_eq_{unique_id}_{i}"
-            
-            # Use callback for checkbox
-            new_equipped = c_chk.checkbox("Eq", value=is_equipped, key=eq_key, label_visibility="collapsed", on_change=update_stat_callback, args=(item, "equipped", eq_key, save_callback))
-            
-            style = "color: #00ff00; font-weight: bold;" if new_equipped else "color: #00b300; opacity: 0.8;"
-            desc = f" <span style='font-size:0.8em; font-style:italic; opacity:0.7;'>({item.get('description', '')})</span>" if item.get('description') else ""
-            weight_str = f" <span style='font-size:0.8em; color:#8b949e;'>[{item.get('weight', 0)} Load]</span>"
-            c_lbl.markdown(f"<span style='{style}'>{item.get('name', 'Unknown')}</span>{weight_str}{desc}", unsafe_allow_html=True)
-            
-            if c_edit.button("✏️", key=f"sb_edit_{unique_id}_{i}"):
-                edit_item_dialog(item, f"sb_{unique_id}_{i}", save_callback)
-            
-            if c_del.button("🗑️", key=f"sb_del_{unique_id}_{i}"):
-                inventory.pop(i)
-                if save_callback: save_callback()
-                st.rerun()
+        # Load Bar & Add Button
+        c_load, c_add = st.columns([3, 1], vertical_alignment="bottom")
+        with c_load:
+            max_load = char.get("carry_load", 0)
+            curr_load = char.get("current_weight", 0)
+            pct = min(1.0, curr_load / max_load) if max_load > 0 else 1.0
+            st.markdown(f"**Load: {curr_load} / {max_load}**")
+            st.markdown(f"""
+            <div class="custom-bar-bg" style="height: 12px; margin-bottom: 5px;">
+                <div class="custom-bar-fill load-fill" style="width: {pct*100}%;"></div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with c_add:
+            if st.button("➕ Add Item", use_container_width=True, key=f"sb_btn_add_{unique_id}"):
+                add_db_item_dialog("Equipment", EQUIPMENT_FILE, char, "inventory", f"sb_inv_sync_{unique_id}", f"sb_eq_{unique_id}", callback=save_callback)
 
-        # Add Equipment Section
-        with st.expander("➕ Add Equipment"):
-            eq_data = load_data(EQUIPMENT_FILE)
-            if not isinstance(eq_data, list): eq_data = []
-            eq_names = sorted([e.get("name", "Unknown") for e in eq_data])
-            
-            tab_db, tab_cust = st.tabs(["Database", "Custom"])
-            
-            with tab_db:
-                sel_item = st.selectbox("Select Item", [""] + eq_names, key=f"sb_eq_sel_{unique_id}")
-                if st.button("Add Selected", key=f"sb_btn_add_db_{unique_id}"):
-                    if sel_item:
-                        entry = next((e for e in eq_data if e["name"] == sel_item), None)
-                        new_entry = {"name": sel_item, "description": entry.get("description", "") if entry else "", "weight": entry.get("weight", 0.0) if entry else 0.0, "equipped": False}
-                        inventory.append(new_entry)
-                        if save_callback: save_callback()
-                        st.rerun()
-            
-            with tab_cust:
-                c1, c2 = st.columns([2, 1])
-                c_name = c1.text_input("Name", key=f"sb_cust_name_{unique_id}")
-                c_weight = c2.number_input("Weight", min_value=0.0, step=0.1, key=f"sb_cust_weight_{unique_id}")
-                c_desc = st.text_input("Description", key=f"sb_cust_desc_{unique_id}")
+        # Statblock Inventory View (Simplified Tree)
+        # Only showing Carried items for statblock usually, but let's show all for management
+        
+        # We reuse the tree logic but simplified for statblock
+        tree = {}
+        for item in inventory:
+            pid = item.get("parent_id")
+            if pid not in tree: tree[pid] = []
+            tree[pid].append(item)
+
+        def render_sb_node(item_list):
+            for item in item_list:
+                is_container = item.get("is_container", False)
                 
-                # Modifier Builder
-                mod_key = f"sb_cust_mods_{unique_id}"
-                render_modifier_builder(f"sb_cust_{unique_id}", mod_key)
-                
-                if mod_key in st.session_state and st.session_state[mod_key]:
-                    st.markdown(" ".join([f"`{m}`" for m in st.session_state[mod_key]]))
-                    if st.button("Clear Modifiers", key=f"sb_btn_clear_mods_{unique_id}"):
-                        st.session_state[mod_key] = []
-                        st.rerun()
+                if is_container:
+                    # Container (Expander)
+                    qty_str = f" (x{item.get('quantity', 1)})" if item.get('quantity', 1) > 1 else ""
+                    weight_val = float(item.get('weight', 0))
+                    weight_str = f" | {weight_val} Load" if weight_val > 0 else ""
+                    desc_str = f" | {item.get('description')}" if item.get("description") else ""
+                    label = f"📦 {item.get('name')}{qty_str}{weight_str}{desc_str}"
+                    
+                    c_exp, c_act = st.columns([0.9, 0.1], vertical_alignment="top")
+                    
+                    with c_act:
+                        with st.popover("⚙️", use_container_width=True):
+                            if st.button("Edit", key=f"sb_ed_{item['id']}", use_container_width=True):
+                                edit_item_dialog(item, item['id'], inventory, save_callback)
+                            if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
+                                inventory.remove(item)
+                                if save_callback: save_callback()
+                                st.rerun()
 
-                c_local, c_db = st.columns(2)
-                
-                def create_custom_item():
-                    final_desc = c_desc + (" " + " ".join(st.session_state[mod_key]) if mod_key in st.session_state and st.session_state[mod_key] else "")
-                    return {"name": c_name, "description": final_desc.strip(), "weight": c_weight, "equipped": False}
-
-                if c_local.button("Add to Character", key=f"sb_btn_add_cust_local_{unique_id}"):
-                    if c_name:
-                        inventory.append(create_custom_item())
-                        st.session_state[mod_key] = []
-                        if save_callback: save_callback()
-                        st.rerun()
-
-                if c_db.button("Add to Character & DB", key=f"sb_btn_add_cust_db_{unique_id}"):
-                    if c_name:
-                        new_item = create_custom_item()
-                        inventory.append(new_item)
+                    with c_exp:
+                        with st.expander(label, expanded=True):
+                            if item["id"] in tree:
+                                render_sb_node(tree[item["id"]])
+                else:
+                    # Item (Row)
+                    c_chk, c_lbl, c_act = st.columns([0.05, 0.85, 0.1], vertical_alignment="top")
+                    
+                    # Equip Checkbox
+                    is_caps = item.get("name") == "Caps"
+                    can_equip = (item.get("parent_id") is None and item.get("location") == "carried" and not is_caps)
+                    
+                    with c_chk:
+                        if can_equip:
+                            is_equipped = item.get("equipped", False)
+                            st.checkbox("Eq", value=is_equipped, key=f"sb_eq_{item['id']}", label_visibility="collapsed", on_change=update_stat_callback, args=(item, "equipped", f"sb_eq_{item['id']}", save_callback))
+                    
+                    with c_lbl:
+                        style = "color: #00ff00; font-weight: bold;" if item.get("equipped") else "color: #e6fffa; opacity: 0.9;"
+                        qty_str = f" (x{item.get('quantity', 1)})" if item.get('quantity', 1) > 1 else ""
                         
-                        if not any(e['name'] == c_name for e in eq_data):
-                            eq_data.append({"name": c_name, "description": new_item["description"], "weight": c_weight})
-                            save_data(EQUIPMENT_FILE, eq_data)
-                            st.toast(f"Added {c_name} to Database")
-                        else:
-                            st.toast(f"{c_name} already in Database (Added to Character only)")
+                        desc_parts = []
+                        if float(item.get("weight", 0)) > 0: desc_parts.append(f"{float(item['weight'])} Load")
+                        if item.get("description"): desc_parts.append(item["description"])
+                        
+                        desc_html = f"<br><span style='font-size:0.8em; color:#8b949e;'>{' | '.join(desc_parts)}</span>" if desc_parts else ""
+                        
+                        st.markdown(f"<span style='{style}'>{item.get('name')}{qty_str}</span>{desc_html}", unsafe_allow_html=True)
+                    
+                    with c_act:
+                        with st.popover("⚙️", use_container_width=True):
+                            if st.button("Edit", key=f"sb_ed_{item['id']}", use_container_width=True):
+                                edit_item_dialog(item, item['id'], inventory, save_callback)
+                            if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
+                                inventory.remove(item)
+                                if save_callback: save_callback()
+                                st.rerun()
 
-                        st.session_state[mod_key] = []
-                        if save_callback: save_callback()
-                        st.rerun()
+        # Tabs for Carried vs Stash
+        tab_carried, tab_stash = st.tabs(["🎒 Carried", "📦 Stash"])
+        
+        with tab_carried:
+            carried = [i for i in inventory if i.get("parent_id") is None and i.get("location") == "carried"]
+            if carried:
+                render_sb_node(carried)
+            else:
+                st.caption("Nothing carried.")
+        
+        with tab_stash:
+            stash = [i for i in inventory if i.get("parent_id") is None and i.get("location") == "stash"]
+            if stash:
+                render_sb_node(stash)
+            else:
+                st.caption("Stash is empty.")
