@@ -2,6 +2,23 @@ import streamlit as st
 import re
 import random
 
+SKILL_MAP = {
+    "Barter": ["CHA"],
+    "Breach": ["PER", "INT"],
+    "Crafting": ["INT"],
+    "Energy Weapons": ["PER"],
+    "Explosives": ["PER"],
+    "Guns": ["AGI"],
+    "Intimidation": ["STR", "CHA"],
+    "Medicine": ["PER", "INT"],
+    "Melee Weapons": ["STR"],
+    "Science": ["INT"],
+    "Sneak": ["AGI"],
+    "Speech": ["CHA"],
+    "Survival": ["END"],
+    "Unarmed": ["STR"]
+}
+
 def get_default_character():
     return {
         "name": "New Character",
@@ -130,7 +147,39 @@ def calculate_stats(char):
     for key, value in char["stats"].items():
         effective_stats[key] = get_effective_value(value, key)
 
-    # 3. Derived Stats
+    # 3. Effective Skills
+    # Luck Bonus: Floor(Mod/2) if positive, else -1
+    eff_luc = effective_stats.get("LUC", 5)
+    luc_mod = eff_luc - 5
+    luck_bonus = int(luc_mod // 2) if luc_mod >= 0 else -1
+
+    effective_skills = {}
+    for key, value in char.get("skills", {}).items():
+        # Calculate Stat Bonus (Max of associated stats - 5)
+        stat_bonus = 0
+        if key in SKILL_MAP:
+            stat_mods = [effective_stats.get(s, 5) - 5 for s in SKILL_MAP[key]]
+            # For skills with multiple stats, use the one with the highest modifier
+            stat_bonus = int(max(stat_mods))
+        
+        # Base = Ranks (value) + Stat Bonus + Luck Bonus
+        derived_base = value + stat_bonus + luck_bonus
+        
+        # Apply external modifiers (Perks/Items) to the derived base
+        effective_skills[key] = int(get_effective_value(derived_base, key))
+
+    # Calculate Current Weight
+    current_weight = 0.0
+    for item in char.get("inventory", []):
+        current_weight += float(item.get("weight", 0))
+    
+    # Caps Weight (50 caps = 1 Load)
+    caps = char.get("caps", 0)
+    current_weight += caps / 50.0
+
+    char["current_weight"] = round(current_weight, 1)
+
+    # 4. Derived Stats
     base_carry_load = effective_stats.get("STR", 5) * 10
     char["carry_load"] = int(get_effective_value(base_carry_load, "Carry Load"))
     
@@ -151,7 +200,7 @@ def calculate_stats(char):
     effective_armor_class = int(get_effective_value(10, "Armor Class"))
     char["ac"] = effective_armor_class
 
-    return effective_health_max, effective_stamina_max, effective_armor_class, effective_stats
+    return effective_health_max, effective_stamina_max, effective_armor_class, effective_stats, effective_skills
 
 def roll_skill(stat_val, skill_val, name):
     """Rolls d100 against Stat + Skill."""

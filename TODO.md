@@ -21,11 +21,16 @@
 - [x] (2026-01-21 20:30) **Statblock Popouts**: Added modal dialogs and detached window support for viewing creature stats.
 - [x] (2026-01-21 21:30) **Character Sheet**: Added a dedicated player character sheet tab with S.P.E.C.I.A.L. stats, skills, and inventory management.
 - [x] (2026-01-21 22:15) **Derived Stats**: Implemented automatic calculation for Level, Carry Weight, Combat Sequence, and Action Points in the Character Sheet.
-- [x] (2026-01-22 00:00) **Equipment Manager**: Added a database-backed equipment selector to the Character Sheet for adding custom items to inventory.
-- [x] (2026-01-22 00:00) **Dynamic Modifiers**: Implemented a parsing system for Perks/Inventory to modify stats (e.g., `{STR +1}`) with non-stacking logic applied to base values.
-- [x] (2026-01-22 00:00) **Stat Updates**: Replaced Carry Weight with Carry Load (`STR * 10`) and updated the skill list to the new standard.
-- [x] (2026-01-22 01:30) **Item Management**: Converted Inventory and Perks to interactive objects with Equip/Edit/Delete controls.
-- [x] (2026-01-22 01:30) **Data Migration**: Added auto-migration for legacy character data to the new object structure.
+- [x] (2026-01-22 11:15) **Equipment Manager**: Added a database-backed equipment selector to the Character Sheet for adding custom items to inventory.
+- [x] (2026-01-22 11:15) **Dynamic Modifiers**: Implemented a parsing system for Perks/Inventory to modify stats (e.g., `{STR +1}`) with non-stacking logic applied to base values.
+- [x] (2026-01-22 11:15) **Stat Updates**: Replaced Carry Weight with Carry Load (`STR * 10`) and updated the skill list to the new standard.
+- [x] (2026-01-22 11:15) **Item Management**: Converted Inventory and Perks to interactive objects with Equip/Edit/Delete controls.
+- [x] (2026-01-22 11:15) **Data Migration**: Added auto-migration for legacy character data to the new object structure.
+- [x] (2026-01-22 11:15) **General Database Editor**: Created a unified, modular editor for Encounters, Bestiary, Items, and Characters.
+- [x] (2026-01-22 11:15) **Character Statblock**: Implemented an interactive, CSS-styled statblock view for characters with `st.fragment` for smooth updates.
+- [x] (2026-01-22 11:15) **Skill Logic & Grouping**: Implemented complex skill derivation (associated stats, Luck bonus) and grouped display by governing stat.
+- [x] (2026-01-22 11:15) **Load System**: Updated weight to Load (1 decimal) and added Caps weight calculation.
+- [x] (2026-01-22 11:15) **Modifier Builder**: Added a UI tool for generating stat modifiers (e.g., `{STR +1}`) in item/perk editors.
 
 ### Refactoring
 - [x] (2026-01-21 19:27) **Centralize Data Loading**: `load_data` is defined in both `bestiary.py` and `encounters.py`. It should be moved to a shared utility (e.g., `tabs/utils/data_manager.py`) to avoid duplication and manage caching better.

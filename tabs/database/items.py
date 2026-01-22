@@ -18,16 +18,17 @@ def render() -> None:
     # --- ADD NEW ITEM ---
     with st.expander("➕ Create New Item", expanded=False):
         with st.form("new_item_form"):
-            c1, c2 = st.columns([1, 2])
+            c1, c2, c3 = st.columns([1.5, 0.8, 2])
             new_name = c1.text_input("Name")
-            new_desc = c2.text_input("Description / Stats")
+            new_weight = c2.number_input("Weight", min_value=0.0, step=0.1, value=0.0)
+            new_desc = c3.text_input("Description / Stats")
             
             if st.form_submit_button("Create"):
                 if new_name:
                     if any(x['name'] == new_name for x in data_list):
                         st.error("Item with this name already exists.")
                     else:
-                        data_list.append({"name": new_name, "description": new_desc})
+                        data_list.append({"name": new_name, "description": new_desc, "weight": new_weight})
                         save_data(target_file, data_list)
                         st.success(f"Created {new_name}")
                         st.rerun()
@@ -48,10 +49,11 @@ def render() -> None:
     
     for i, item in filtered_list:
         with st.expander(f"**{item.get('name')}**"):
-            c_edit, c_del = st.columns([3, 1])
+            c_edit, c_del = st.columns([4, 1])
             
             with c_edit:
                 edit_name = st.text_input("Name", value=item.get("name", ""), key=f"item_name_{i}")
+                edit_weight = st.number_input("Weight", value=float(item.get("weight", 0.0)), step=0.1, key=f"item_weight_{i}")
                 edit_desc = st.text_area("Description", value=item.get("description", ""), key=f"item_desc_{i}")
                 
                 if st.button("Save Changes", key=f"save_item_{i}"):
@@ -64,6 +66,7 @@ def render() -> None:
                     # Better approach: Update the object in place
                     item["name"] = edit_name
                     item["description"] = edit_desc
+                    item["weight"] = edit_weight
                     
                     # We need to save the full 'data_list' which contains this 'item' object
                     save_data(target_file, data_list)
