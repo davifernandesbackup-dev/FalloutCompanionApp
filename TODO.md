@@ -20,6 +20,7 @@
 - [x] (2026-01-21 19:45) **Encounter Editor**: Allow manual editing (add/remove/quantity) of generated encounters and crafting from scratch.
 - [x] (2026-01-21 20:30) **Statblock Popouts**: Added modal dialogs and detached window support for viewing creature stats.
 - [x] (2026-01-21 21:30) **Character Sheet**: Added a dedicated player character sheet tab with S.P.E.C.I.A.L. stats, skills, and inventory management.
+- [x] (2026-01-21 22:15) **Derived Stats**: Implemented automatic calculation for Level, Carry Weight, Combat Sequence, and Action Points in the Character Sheet.
 
 ### Refactoring
 - [x] (2026-01-21 19:27) **Centralize Data Loading**: `load_data` is defined in both `bestiary.py` and `encounters.py`. It should be moved to a shared utility (e.g., `tabs/utils/data_manager.py`) to avoid duplication and manage caching better.
@@ -28,10 +29,12 @@
 - [x] (2026-01-21 19:27) **Constants**: Move file paths (`data/*.json`) to a central configuration file or constants module.
 - [x] (2026-01-21 19:27) **File Hierarchy Refactor**: Moved `utils` package and `constants.py` out of `tabs/` to the root level for better project structure.
 - [x] (2026-01-21 19:35) **Type Hinting**: Add Python type hints to functions (e.g., `def generate_pool(items: list, target_budget: int) -> dict:`) for better maintainability.
+- [x] (2026-01-21 22:45) **Documentation**: Updated README.md with project structure and added requirements.txt for deployment.
 
 ### Bug Fixes / Robustness
 - [x] (2026-01-21 19:27) **UI Fix**: Fixed `render_statblock` to correctly nest "Raw Data" and other elements inside the passed container.
 - [x] (2026-01-21 22:00) **Character Sheet State**: Fixed an issue where the character sheet could get stuck in edit mode with a default character due to session state persistence.
+- [x] (2026-01-21 22:40) **Input Sync**: Fixed synchronization issues with character sheet inputs and session state to ensure reliable updates.
 
 ### UI/UX
 - [x] (2026-01-21 19:27) **Navigation Refactor**: Switched from top-level tabs to a sidebar for better navigation hierarchy.
@@ -39,6 +42,7 @@
 - [x] (2026-01-21 20:30) **Statblock Redesign**: Updated statblock visualization with custom HTML/CSS to match the Fallout terminal aesthetic.
 - [x] (2026-01-21 20:45) **Library Mobile Layout**: Tuned column widths and removed full-width buttons in the Encounter Builder library for a more compact mobile view.
 - [x] (2026-01-21 20:50) **Library Alignment**: Fixed vertical alignment of buttons in the Encounter Builder library to be centered with item names.
+- [x] (2026-01-21 22:30) **Character Sheet UI**: Added custom styled HP/Stamina bars and optimized layout for compactness.
 
 
 
