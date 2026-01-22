@@ -1,99 +1,15 @@
 import streamlit as st
+import re
 import copy
 from utils.data_manager import load_data, save_data
-from constants import CHARACTERS_FILE
-
-def get_default_character():
-    return {
-        "name": "New Character",
-        "level": 1,
-        "origin": "Vault Dweller",
-        "xp": 0,
-        "caps": 0,
-        "stats": {
-            "STR": 5, "PER": 5, "END": 5, "CHA": 5, "INT": 5, "AGI": 5, "LUC": 5
-        },
-        "skills": {
-            "Athletics": 0, "Barter": 0, "Big Guns": 0, "Energy Weapons": 0, 
-            "Explosives": 0, "Lockpick": 0, "Medicine": 0, "Melee Weapons": 0, 
-            "Pilot": 0, "Repair": 0, "Science": 0, "Small Guns": 0, 
-            "Sneak": 0, "Speech": 0, "Survival": 0, "Throwing": 0, "Unarmed": 0
-        },
-        "hp_max": 10, "hp_current": 10, "stamina_max": 10, "stamina_current": 10,
-        "ac": 10, "combat_sequence": 0, "action_points": 10,
-        "carry_weight": 150, "perks": "", "inventory": ""
-    }
-
-def sync_char_widgets():
-    """Syncs session state widgets with the current character sheet data."""
-    if "char_sheet" not in st.session_state:
-        return
-    char = st.session_state.char_sheet
-    
-    # Basic Info
-    st.session_state["c_name"] = char.get("name", "")
-    st.session_state["c_origin"] = char.get("origin", "")
-    st.session_state["c_level"] = char.get("level", 1)
-    st.session_state["c_xp"] = char.get("xp", 0)
-    st.session_state["c_hp_curr"] = char.get("hp_current", 10)
-    st.session_state["c_hp_max"] = char.get("hp_max", 10)
-    st.session_state["c_stamina_curr"] = char.get("stamina_current", 10)
-    st.session_state["c_stamina_max"] = char.get("stamina_max", 10)
-    st.session_state["c_ac"] = char.get("ac", 10)
-    st.session_state["c_caps"] = char.get("caps", 0)
-    st.session_state["c_perks"] = char.get("perks", "")
-    st.session_state["c_inv"] = char.get("inventory", "")
-    
-    for k, v in char.get("stats", {}).items():
-        st.session_state[f"stat_{k}"] = v
-    for k, v in char.get("skills", {}).items():
-        st.session_state[f"skill_{k}"] = v
+from constants import CHARACTERS_FILE, EQUIPMENT_FILE, PERKS_FILE
+from tabs.character_logic import get_default_character, sync_char_widgets, calculate_stats, roll_skill, migrate_character
+from tabs.character_components import render_css, render_bars, render_database_manager, render_item_manager, render_character_statblock
 
 def render_character_sheet() -> None:
     st.header("📝 Character Sheet")
 
-    # --- CSS STYLING ---
-    st.markdown("""
-    <style>
-        .section-header {
-            border-bottom: 2px solid #00b300;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            font-size: 1.2em;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #00ff00;
-            text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
-        }
-        .stat-input input {
-            text-align: center;
-            font-weight: bold;
-            color: #00ff00 !important;
-        }
-        /* Compact Inputs */
-        div[data-testid="stNumberInput"] input, div[data-testid="stTextInput"] input {
-            padding-top: 0px;
-            padding-bottom: 0px;
-            height: 2.2rem;
-        }
-        /* Custom Progress Bar */
-        .custom-bar-bg {
-            background-color: #161b22;
-            border: 2px solid #00b300;
-            border-radius: 5px;
-            width: 100%;
-            height: 25px; /* Thicker */
-            margin-bottom: 5px;
-            overflow: hidden;
-        }
-        .custom-bar-fill {
-            height: 100%;
-            transition: width 0.5s ease-in-out;
-        }
-        .hp-fill { background-color: #ff3333; box-shadow: 0 0 10px #ff0000; }
-        .stamina-fill { background-color: #ccff00; box-shadow: 0 0 10px #ccff00; }
-    </style>
-    """, unsafe_allow_html=True)
+    render_css()
 
     # --- DATA LOADING ---
     saved_chars = load_data(CHARACTERS_FILE)
@@ -136,16 +52,16 @@ def render_character_sheet() -> None:
         if not saved_chars:
             st.info("No saved characters found.")
         else:
-            for idx, char in enumerate(saved_chars):
-                c1, c2 = st.columns([4, 1])
-                name_display = char.get("name", "Unnamed")
-                lvl_display = char.get("level", 1)
-                c1.markdown(f"**{name_display}** (Level {lvl_display})")
+            for index, char_entry in enumerate(saved_chars):
+                col_char_info, col_char_load = st.columns([4, 1])
+                name_display = char_entry.get("name", "Unnamed")
+                lvl_display = char_entry.get("level", 1)
+                col_char_info.markdown(f"**{name_display}** (Level {lvl_display})")
                 
-                if c2.button("Load", key=f"load_char_{idx}", use_container_width=True):
-                    st.session_state.char_sheet = copy.deepcopy(char)
+                if col_char_load.button("Load", key=f"load_char_{index}", use_container_width=True):
+                    st.session_state.char_sheet = copy.deepcopy(char_entry)
                     sync_char_widgets()
-                    st.session_state.active_char_idx = idx
+                    st.session_state.active_char_idx = index
                     st.session_state.char_sheet_mode = "EDIT"
                     st.rerun()
                 st.markdown("---")
@@ -153,13 +69,16 @@ def render_character_sheet() -> None:
     # --- VIEW: EDIT SHEET ---
     elif st.session_state.char_sheet_mode == "EDIT":
         # Toolbar
-        c_back, c_save, c_del = st.columns([1, 2, 1])
+        col_back, col_mode, col_save, col_delete = st.columns([1, 1, 1.5, 1])
         
-        if c_back.button("⬅️ Back"):
+        if col_back.button("⬅️ Back"):
             st.session_state.char_sheet_mode = "SELECT"
             st.rerun()
-            
-        if c_save.button("💾 Save Changes", type="primary", use_container_width=True):
+        
+        # View Mode Toggle
+        view_mode = col_mode.radio("View Mode", ["Edit", "Statblock"], horizontal=True, label_visibility="collapsed")
+        
+        if col_save.button("💾 Save Changes", type="primary", use_container_width=True):
             if st.session_state.active_char_idx is not None and 0 <= st.session_state.active_char_idx < len(saved_chars):
                 saved_chars[st.session_state.active_char_idx] = st.session_state.char_sheet
                 save_data(CHARACTERS_FILE, saved_chars)
@@ -167,7 +86,7 @@ def render_character_sheet() -> None:
             else:
                 st.error("Error saving character.")
 
-        if c_del.button("🗑️ Delete"):
+        if col_delete.button("🗑️ Delete"):
             if st.session_state.active_char_idx is not None:
                 saved_chars.pop(st.session_state.active_char_idx)
                 save_data(CHARACTERS_FILE, saved_chars)
@@ -175,23 +94,32 @@ def render_character_sheet() -> None:
                 st.rerun()
     
         char = st.session_state.char_sheet
+        
+        # --- MIGRATION CHECK ---
+        migrate_character(char)
+
+        # --- STATBLOCK VIEW ---
+        if view_mode == "Statblock":
+            calculate_stats(char) # Ensure stats are up to date
+            render_character_statblock(char)
+            return
 
         # --- MAIN LAYOUT ---
         with st.container():
             # --- AUTO-CALCULATIONS (PRE-RENDER) ---
             # Level = 1 + (XP // 1000)
-            curr_xp = st.session_state.get("c_xp", char.get("xp", 0))
-            new_level = 1 + int(curr_xp / 1000)
+            current_xp = st.session_state.get("c_xp", char.get("xp", 0))
+            new_level = 1 + int(current_xp / 1000)
             char["level"] = new_level
             st.session_state["c_level"] = new_level
 
             # ROW 1: BASIC INFO
-            c1, c2, c3, c4 = st.columns(4)
-            char["name"] = c1.text_input("Name", value=char.get("name", ""), key="c_name")
-            char["origin"] = c2.text_input("Origin", value=char.get("origin", ""), key="c_origin")
+            col_name, col_origin, col_level, col_experience = st.columns(4)
+            char["name"] = col_name.text_input("Name", key="c_name")
+            char["origin"] = col_origin.text_input("Origin", key="c_origin")
             # Level is derived from XP, so we disable manual input or just show it
-            char["level"] = c3.number_input("Level", min_value=1, value=char.get("level", 1), key="c_level", disabled=True, help="Derived from XP (1000 XP per level)")
-            char["xp"] = c4.number_input("XP", min_value=0, value=char.get("xp", 0), key="c_xp")
+            col_level.text_input("Level", value=str(char.get("level", 1)), disabled=True, help="Derived from XP (1000 XP per level)")
+            char["xp"] = col_experience.number_input("XP", min_value=0, key="c_xp")
 
             # ROW 2: S.P.E.C.I.A.L.
             st.markdown('<div class="section-header">S.P.E.C.I.A.L.</div>', unsafe_allow_html=True)
@@ -199,71 +127,93 @@ def render_character_sheet() -> None:
             stats_keys = ["STR", "PER", "END", "CHA", "INT", "AGI", "LUC"]
             
             if "stats" not in char: char["stats"] = {}
-            for i, key in enumerate(stats_keys):
-                with cols[i]:
-                    char["stats"][key] = st.number_input(key, min_value=1, max_value=10, value=char["stats"].get(key, 5), key=f"stat_{key}")
+            for index, key in enumerate(stats_keys):
+                with cols[index]:
+                    char["stats"][key] = st.number_input(key, min_value=1, max_value=10, key=f"stat_{key}")
 
-            # --- AUTO-CALCULATIONS ---
-            # Carry Weight = 150 + (STR * 10)
-            char["carry_weight"] = 150 + (char["stats"].get("STR", 5) * 10)
-            # Combat Sequence = PER + AGI
-            char["combat_sequence"] = char["stats"].get("PER", 5) + char["stats"].get("AGI", 5)
-            # Action Points = AGI + 5 (Derived from (AGI-5) + 10)
-            char["action_points"] = char["stats"].get("AGI", 5) + 5
+            # --- LOGIC: CALCULATE STATS ---
+            effective_health_max, effective_stamina_max, effective_armor_class, effective_stats = calculate_stats(char)
+            
+            # Sync Current HP/SP from Session State to Char (to handle lag before widget render)
+            if "c_hp_curr" in st.session_state:
+                char["hp_current"] = st.session_state["c_hp_curr"]
+            if "c_stamina_curr" in st.session_state:
+                char["stamina_current"] = st.session_state["c_stamina_curr"]
+
+            # Cap HP
+            if char.get("hp_current", 10) > effective_health_max:
+                char["hp_current"] = effective_health_max
+                if "c_hp_curr" in st.session_state:
+                    st.session_state["c_hp_curr"] = effective_health_max
+            
+            elif char.get("hp_current", 10) < 0:
+                char["hp_current"] = 0
+                if "c_hp_curr" in st.session_state:
+                    st.session_state["c_hp_curr"] = 0
+
+            if char.get("stamina_current", 10) > effective_stamina_max:
+                char["stamina_current"] = effective_stamina_max
+                if "c_stamina_curr" in st.session_state:
+                    st.session_state["c_stamina_curr"] = effective_stamina_max
+            
+            elif char.get("stamina_current", 10) < 0:
+                char["stamina_current"] = 0
+                if "c_stamina_curr" in st.session_state:
+                    st.session_state["c_stamina_curr"] = 0
 
             # ROW 3: DERIVED STATS
             st.markdown('<div class="section-header">Status</div>', unsafe_allow_html=True)
             
             # Bars Row
-            bar_col1, bar_col2 = st.columns(2)
+            col_health_bar, col_stamina_bar = st.columns(2)
             
-            with bar_col1:
+            with col_health_bar:
                 st.markdown("**Health Points**")
-                hp_curr = char.get("hp_current", 10)
-                hp_max = char.get("hp_max", 10)
-                hp_pct = max(0.0, min(1.0, hp_curr / hp_max)) if hp_max > 0 else 0.0
+                health_current = char.get("hp_current", 10)
+                # Use Effective Max for bar calculation
+                health_percent = max(0.0, min(1.0, health_current / effective_health_max)) if effective_health_max > 0 else 0.0
                 
                 # Custom HP Bar (Red)
                 st.markdown(f"""
                 <div class="custom-bar-bg">
-                    <div class="custom-bar-fill hp-fill" style="width: {hp_pct*100}%;"></div>
+                    <div class="custom-bar-fill hp-fill" style="width: {health_percent*100}%;"></div>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                bc1, bc2 = st.columns(2)
-                char["hp_current"] = bc1.number_input("Curr HP", value=hp_curr, key="c_hp_curr", label_visibility="collapsed")
-                char["hp_max"] = bc2.number_input("Max HP", value=hp_max, key="c_hp_max", label_visibility="collapsed")
+                col_health_max, col_health_current = st.columns(2)
+                col_health_max.text_input("Max HP", value=str(effective_health_max), disabled=True, key="c_hp_max_disp", label_visibility="collapsed")
+                char["hp_current"] = col_health_current.number_input("Curr HP", max_value=effective_health_max, step=1, key="c_hp_curr", label_visibility="collapsed")
 
-            with bar_col2:
+            with col_stamina_bar:
                 st.markdown("**Stamina**")
-                stam_curr = char.get("stamina_current", 10)
-                stam_max = char.get("stamina_max", 10)
-                stam_pct = max(0.0, min(1.0, stam_curr / stam_max)) if stam_max > 0 else 0.0
+                stamina_current = char.get("stamina_current", 10)
+                # Use Effective Max for bar calculation
+                stamina_percent = max(0.0, min(1.0, stamina_current / effective_stamina_max)) if effective_stamina_max > 0 else 0.0
                 
                 # Custom Stamina Bar (Yellow-Green)
                 st.markdown(f"""
                 <div class="custom-bar-bg">
-                    <div class="custom-bar-fill stamina-fill" style="width: {stam_pct*100}%;"></div>
+                    <div class="custom-bar-fill stamina-fill" style="width: {stamina_percent*100}%;"></div>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                bc3, bc4 = st.columns(2)
-                char["stamina_current"] = bc3.number_input("Curr SP", value=stam_curr, key="c_stamina_curr", label_visibility="collapsed")
-                char["stamina_max"] = bc4.number_input("Max SP", value=stam_max, key="c_stamina_max", label_visibility="collapsed")
+                col_stamina_max, col_stamina_current = st.columns(2)
+                col_stamina_max.text_input("Max SP", value=str(effective_stamina_max), disabled=True, key="c_stamina_max_disp", label_visibility="collapsed")
+                char["stamina_current"] = col_stamina_current.number_input("Curr SP", max_value=effective_stamina_max, step=1, key="c_stamina_curr", label_visibility="collapsed")
 
             st.divider()
 
             # Stats Row
-            dc1, dc2, dc3, dc4 = st.columns(4)
-            with dc1:
-                char["ac"] = st.number_input("Armor Class", value=char.get("ac", 10), key="c_ac")
-            with dc2:
-                st.number_input("Combat Seq.", value=char.get("combat_sequence", 0), disabled=True, help="Derived: PER + AGI")
-            with dc3:
-                st.number_input("Action Points", value=char.get("action_points", 10), disabled=True, help="Derived: AGI + 5")
-            with dc4:
-                st.number_input("Carry Wgt.", value=char.get("carry_weight", 200), disabled=True, help="Derived: 150 + (STR * 10)")
-
+            col_armor_class, col_combat_sequence, col_action_points, col_carry_load = st.columns(4)
+            with col_armor_class:
+                st.text_input("Armor Class", value=str(effective_armor_class), disabled=True, help="Base 10 + Modifiers")
+            with col_combat_sequence:
+                st.text_input("Combat Seq.", value=str(char.get("combat_sequence", 0)), disabled=True, help="Derived: PER + AGI")
+            with col_action_points:
+                st.text_input("Action Points", value=str(char.get("action_points", 10)), disabled=True, help="Derived: AGI + 5")
+            with col_carry_load:
+                st.text_input("Carry Load", value=str(char.get("carry_load", 50)), disabled=True, help="Derived: STR * 10")
+            
             # ROW 4: SKILLS & INVENTORY
             st.markdown('<div class="section-header">Data</div>', unsafe_allow_html=True)
             col_left, col_right = st.columns([1, 2])
@@ -276,16 +226,102 @@ def render_character_sheet() -> None:
                 for skill in default_skills:
                     if skill not in char["skills"]:
                         char["skills"][skill] = 0
-                        
-                for skill, val in char["skills"].items():
-                    char["skills"][skill] = st.number_input(skill, value=val, step=1, key=f"skill_{skill}")
+                
+                # Iterate over sorted default keys to ensure only valid skills are shown
+                for skill in sorted(default_skills.keys()):
+                    skill_value = char["skills"].get(skill, 0)
+                    char["skills"][skill] = st.number_input(skill, step=1, key=f"skill_{skill}")
             
+            # Prepare target options for modifiers (used in Perk/Equipment creators)
+            mod_categories = {
+                "S.P.E.C.I.A.L.": ["STR", "PER", "END", "CHA", "INT", "AGI", "LUC"],
+                "Skills": sorted(get_default_character()["skills"].keys()),
+                "Derived Stats": ["Max HP", "Max SP", "Armor Class", "Carry Load", "Combat Sequence", "Action Points"]
+            }
+            operator_map = {"Add": "+", "Subtract": "-", "Multiply": "*", "Divide": "/"}
+
             with col_right:
                 st.markdown("**Perks & Traits**")
-                char["perks"] = st.text_area("Perks", value=char.get("perks", ""), height=200, key="c_perks")
+                render_item_manager(char, "perks", "Perk")
+                
+                # --- PERK MANAGER ---
+                with st.expander("➕ Add Perk"):
+                    perk_data = load_data(PERKS_FILE)
+                    if not isinstance(perk_data, list):
+                        perk_data = []
+                    
+                    # Sort by name
+                    perk_data.sort(key=lambda x: x.get("name", ""))
+                    
+                    perk_names = [p.get("name", "Unknown") for p in perk_data]
+                    selected_perk = st.selectbox("Database Perk:", [""] + perk_names, key="perk_select")
+                    
+                    if st.button("Add to Perks", key="btn_add_perk"):
+                        if selected_perk:
+                            # Find perk data
+                            perk_entry = next((p for p in perk_data if p["name"] == selected_perk), None)
+                            description = f" ({perk_entry['description']})" if perk_entry and perk_entry.get("description") else ""
+                            line_item = f"- {selected_perk}{description}"
+                            
+                            current_perks = st.session_state.get("c_perks", "")
+                            if current_perks:
+                                new_perks = current_perks + "\n" + line_item
+                            else:
+                                new_perks = line_item
+                            
+                            st.session_state["c_perks"] = new_perks
+                            char["perks"] = new_perks 
+                            st.rerun()
+
+                    st.markdown("---")
+                    st.caption("Create New Perk")
+                    new_perk_name = st.text_input("Name", key="new_pk_name")
+                    new_perk_description = st.text_input("Description", key="new_pk_desc")
+                    
+                    # Modifier Builder
+                    if "new_perk_modifiers" not in st.session_state: st.session_state.new_perk_modifiers = []
+                    
+                    col_perk_category, col_perk_stat, col_perk_operator, col_perk_value, col_perk_button = st.columns([1.5, 1.5, 1.2, 1, 0.8])
+                    
+                    perk_category_selected = col_perk_category.selectbox("Category", list(mod_categories.keys()), key="pk_mod_cat")
+                    perk_modifier_target = col_perk_stat.selectbox("Stat", mod_categories[perk_category_selected], key="pk_mod_target")
+                    perk_operator_selected = col_perk_operator.selectbox("Op", list(operator_map.keys()), key="pk_mod_op")
+                    perk_modifier_value = col_perk_value.number_input("Val", value=1.0, step=0.5, key="pk_mod_val")
+                    
+                    if col_perk_button.button("Add", key="btn_add_pk_mod"):
+                        value_formatted = int(perk_modifier_value) if perk_modifier_value.is_integer() else perk_modifier_value
+                        st.session_state.new_perk_modifiers.append(f"{{{perk_modifier_target} {operator_map[perk_operator_selected]}{value_formatted}}}")
+                    
+                    if st.session_state.new_perk_modifiers:
+                        st.markdown(" ".join([f"`{m}`" for m in st.session_state.new_perk_modifiers]))
+                        if st.button("Clear Modifiers", key="btn_clear_pk_mods"):
+                            st.session_state.new_perk_modifiers = []
+                            st.rerun()
+                    
+                    if st.button("Save to Database", key="btn_save_perk"):
+                        if new_perk_name:
+                            final_description = new_perk_description + (" " + " ".join(st.session_state.new_perk_modifiers) if st.session_state.new_perk_modifiers else "")
+                            if not any(p['name'] == new_perk_name for p in perk_data):
+                                perk_data.append({"name": new_perk_name, "description": final_description.strip()})
+                                save_data(PERKS_FILE, perk_data)
+                                st.success(f"Created {new_perk_name}")
+                                st.session_state.new_perk_modifiers = []
+                                st.rerun()
+                            else:
+                                st.warning("Perk already exists.")
                 
                 st.markdown("**Inventory**")
-                char["inventory"] = st.text_area("Inventory", value=char.get("inventory", ""), height=300, key="c_inv")
+                render_item_manager(char, "inventory", "Equipment")
+                
+                # --- EQUIPMENT MANAGER ---
+                render_database_manager(
+                    label="Equipment",
+                    file_path=EQUIPMENT_FILE,
+                    char=char,
+                    char_key="inventory",
+                    session_key="c_inv_db",
+                    prefix="eq"
+                )
                 
                 st.markdown("**Caps**")
-                char["caps"] = st.number_input("Caps", min_value=0, value=char.get("caps", 0), key="c_caps")
+                char["caps"] = st.number_input("Caps", min_value=0, key="c_caps")

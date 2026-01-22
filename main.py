@@ -1,5 +1,5 @@
 import streamlit as st
-from tabs import utilities, encounters, bestiary, charactersheet
+from tabs import utilities, encounters, bestiary, charactersheet, database_editor
 from utils.data_manager import load_data
 from constants import BESTIARY_FILE
 
@@ -63,7 +63,7 @@ st.title("📟 Wasteland Assistant")
 with st.sidebar:
     st.title("Pip-Boy 3000")
     st.divider()
-    app_mode = st.radio("Select Module", ["☢️ Scanner", "📖 Bestiary", "🛠️ Utilities", "📝 Character Sheet"])
+    app_mode = st.radio("Select Module", ["☢️ Scanner", "📖 Bestiary", "🛠️ Utilities", "📝 Character Sheet", "🗃️ Database Editor"])
     st.divider()
 
 if app_mode == "☢️ Scanner":
@@ -74,3 +74,5 @@ elif app_mode == "🛠️ Utilities":
     utilities.render()
 elif app_mode == "📝 Character Sheet":
     charactersheet.render_character_sheet()
+elif app_mode == "🗃️ Database Editor":
+    database_editor.render()

@@ -21,6 +21,11 @@
 - [x] (2026-01-21 20:30) **Statblock Popouts**: Added modal dialogs and detached window support for viewing creature stats.
 - [x] (2026-01-21 21:30) **Character Sheet**: Added a dedicated player character sheet tab with S.P.E.C.I.A.L. stats, skills, and inventory management.
 - [x] (2026-01-21 22:15) **Derived Stats**: Implemented automatic calculation for Level, Carry Weight, Combat Sequence, and Action Points in the Character Sheet.
+- [x] (2026-01-22 00:00) **Equipment Manager**: Added a database-backed equipment selector to the Character Sheet for adding custom items to inventory.
+- [x] (2026-01-22 00:00) **Dynamic Modifiers**: Implemented a parsing system for Perks/Inventory to modify stats (e.g., `{STR +1}`) with non-stacking logic applied to base values.
+- [x] (2026-01-22 00:00) **Stat Updates**: Replaced Carry Weight with Carry Load (`STR * 10`) and updated the skill list to the new standard.
+- [x] (2026-01-22 01:30) **Item Management**: Converted Inventory and Perks to interactive objects with Equip/Edit/Delete controls.
+- [x] (2026-01-22 01:30) **Data Migration**: Added auto-migration for legacy character data to the new object structure.
 
 ### Refactoring
 - [x] (2026-01-21 19:27) **Centralize Data Loading**: `load_data` is defined in both `bestiary.py` and `encounters.py`. It should be moved to a shared utility (e.g., `tabs/utils/data_manager.py`) to avoid duplication and manage caching better.
@@ -35,6 +40,8 @@
 - [x] (2026-01-21 19:27) **UI Fix**: Fixed `render_statblock` to correctly nest "Raw Data" and other elements inside the passed container.
 - [x] (2026-01-21 22:00) **Character Sheet State**: Fixed an issue where the character sheet could get stuck in edit mode with a default character due to session state persistence.
 - [x] (2026-01-21 22:40) **Input Sync**: Fixed synchronization issues with character sheet inputs and session state to ensure reliable updates.
+- [x] (2026-01-22 00:00) **Character Sheet Polish**: Fixed widget warnings by removing redundant default values and enforced integer precision for HP/SP/AC inputs.
+- [x] (2026-01-22 01:30) **Component Extraction**: Extracted character sheet logic and UI components into `tabs/character_logic.py` and `tabs/character_components.py`.
 
 ### UI/UX
 - [x] (2026-01-21 19:27) **Navigation Refactor**: Switched from top-level tabs to a sidebar for better navigation hierarchy.
