@@ -3,7 +3,7 @@
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.34%2B-ff4b4b)
 
-**Wasteland Assistant** is a work-in-progress companion application for the *Fallout 2d20 System* tabletop RPG, designed to simplify encounter generation, creature management, and character sheets.
+**Wasteland Assistant** is a work-in-progress companion application for *XP to Level 3's Fallout Homebrew TTRPG 2.1*, designed to simplify encounter generation, creature management, and character sheets.
 
 > **Disclaimer:** This program was developed with the assistance of AI coding tools. It may contain errors, bugs, or code patterns that do not meet professional software engineering standards.
 
@@ -60,7 +60,7 @@ FalloutApp/
 
 ## 🇧🇷 Português
 
-O **Wasteland Assistant** é uma aplicação (ainda em desenvolvimento) auxiliar para o RPG de mesa *Fallout 2d20 System*, projetada para simplificar a geração de encontros, gestão de criaturas e fichas de personagens.
+O **Wasteland Assistant** é uma aplicação (ainda em desenvolvimento) auxiliar para o *XP to Level 3's Fallout Homebrew TTRPG 2.1*, projetada para simplificar a geração de encontros, gestão de criaturas e fichas de personagens.
 
 > **Aviso:** Este programa foi desenvolvido com a assistência de ferramentas de IA. Pode conter erros, bugs ou padrões de código que não atendem aos padrões profissionais de engenharia de software.
 
