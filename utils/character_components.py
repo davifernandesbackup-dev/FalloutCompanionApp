@@ -2,7 +2,8 @@ import streamlit as st
 import re
 import uuid
 from utils.data_manager import load_data, save_data
-from tabs.character_logic import get_default_character, calculate_stats, SKILL_MAP
+from utils.character_logic import get_default_character, calculate_stats, SKILL_MAP
+from utils.item_components import render_item_form, render_modifier_builder, parse_modifiers, join_modifiers
 from constants import EQUIPMENT_FILE, PERKS_FILE
 
 def render_css():
@@ -227,6 +228,54 @@ def render_bars(char, effective_health_max, effective_stamina_max):
         col_stamina_max.text_input("Max SP", value=str(effective_stamina_max), disabled=True, label_visibility="collapsed")
         char["stamina_current"] = col_stamina_current.number_input("Curr SP", min_value=0, max_value=effective_stamina_max, step=1, key="c_stamina_curr", label_visibility="collapsed")
 
+@st.dialog("Manage Caps")
+def caps_manager_dialog(char, save_callback=None):
+    """Dialog to add or remove caps from inventory."""
+    st.markdown("Add or remove caps from your inventory.")
+    
+    # Find existing caps
+    inventory = char.get("inventory", [])
+    caps_item = next((i for i in inventory if i.get("name") == "Cap" and i.get("location") == "carried" and i.get("parent_id") is None), None)
+    
+    current_caps = caps_item.get("quantity", 0) if caps_item else 0
+    st.metric("Current Caps", current_caps)
+    
+    amount = st.number_input("Amount", min_value=1, value=10, step=1, key="caps_dlg_amount")
+    
+    col_add, col_remove = st.columns(2)
+    
+    if col_add.button("➕ Add Caps", use_container_width=True, key="caps_dlg_add"):
+        if not caps_item:
+            caps_item = {
+                "id": str(uuid.uuid4()),
+                "name": "Cap",
+                "description": "Currency",
+                "weight": 0.02,
+                "quantity": 0,
+                "equipped": False,
+                "location": "carried",
+                "parent_id": None,
+                "is_container": False,
+                "item_type": "Currency"
+            }
+            inventory.append(caps_item)
+        
+        # Ensure properties are correct even if item existed
+        caps_item["weight"] = 0.02
+        caps_item["item_type"] = "Currency"
+        caps_item["quantity"] = caps_item.get("quantity", 0) + amount
+        if save_callback: save_callback()
+        st.rerun()
+        
+    if col_remove.button("➖ Remove Caps", use_container_width=True, key="caps_dlg_remove"):
+        if caps_item:
+            new_qty = max(0, caps_item.get("quantity", 0) - amount)
+            caps_item["quantity"] = new_qty
+            if new_qty == 0:
+                inventory.remove(caps_item)
+            if save_callback: save_callback()
+            st.rerun()
+
 @st.dialog("Edit Item")
 def edit_item_dialog(item, item_id, all_items, callback):
     """Dialog to edit an item's name, description, weight, and modifiers."""
@@ -240,15 +289,7 @@ def edit_item_dialog(item, item_id, all_items, callback):
     # Initialize session state for this item if not already done
     if f"{dialog_id}_initialized" not in st.session_state or st.session_state.get(sig_key) != current_sig:
         desc = item.get("description", "")
-        
-        # Extract modifiers using regex
-        pattern = r"\{([a-zA-Z0-9\s]+?)\s*([+\-*/])\s*(\d+(?:\.\d+)?)\}"
-        mods = re.findall(pattern, desc)
-        mod_strings = [f"{{{m[0]} {m[1]}{m[2]}}}" for m in mods]
-        
-        # Clean description (remove modifiers)
-        clean_desc = re.sub(pattern, "", desc).strip()
-        clean_desc = re.sub(r"\s+", " ", clean_desc)
+        clean_desc, mod_strings = parse_modifiers(desc)
         
         st.session_state[f"{dialog_id}_name"] = item.get("name", "")
         st.session_state[f"{dialog_id}_desc"] = clean_desc
@@ -260,35 +301,25 @@ def edit_item_dialog(item, item_id, all_items, callback):
         st.session_state[f"{dialog_id}_is_cont"] = item.get("is_container", False)
         st.session_state[f"{dialog_id}_loc"] = item.get("location", "carried")
         st.session_state[f"{dialog_id}_pid"] = item.get("parent_id", None)
+        st.session_state[f"{dialog_id}_type"] = item.get("item_type", "Misc")
+        st.session_state[f"{dialog_id}_subtype"] = item.get("sub_type", None)
+        st.session_state[f"{dialog_id}_range_normal"] = int(item.get("range_normal", 0))
+        st.session_state[f"{dialog_id}_range_long"] = int(item.get("range_long", 0))
 
-    # UI Inputs
-    c_name, c_qty = st.columns([3, 1])
-    new_name = c_name.text_input("Name", key=f"{dialog_id}_name_input", value=st.session_state[f"{dialog_id}_name"])
-    new_qty = c_qty.number_input("Qty", min_value=1, step=1, key=f"{dialog_id}_qty_input", value=st.session_state[f"{dialog_id}_qty"])
-    
-    # Show Weight input if the item has a weight key (Equipment)
-    new_weight = st.number_input("Load (Per Unit)", min_value=0.0, step=0.1, key=f"{dialog_id}_weight_input", value=st.session_state[f"{dialog_id}_weight"])
-
-    new_desc = st.text_input("Description", key=f"{dialog_id}_desc_input", value=st.session_state[f"{dialog_id}_desc"])
-    
-    st.markdown("**Modifiers**")
-    
-    # Add new modifiers (Builder first to ensure list updates immediately)
+    # Prepare values for form
+    current_values = {
+        "name": st.session_state[f"{dialog_id}_name"],
+        "quantity": st.session_state[f"{dialog_id}_qty"],
+        "weight": st.session_state[f"{dialog_id}_weight"],
+        "item_type": st.session_state[f"{dialog_id}_type"],
+        "sub_type": st.session_state[f"{dialog_id}_subtype"],
+        "range_normal": st.session_state[f"{dialog_id}_range_normal"],
+        "range_long": st.session_state[f"{dialog_id}_range_long"],
+        "description": st.session_state[f"{dialog_id}_desc"]
+    }
     mods_key = f"{dialog_id}_mods"
-    render_modifier_builder(dialog_id, mods_key)
     
-    # List existing modifiers with delete option
-    if st.session_state[mods_key]:
-        for i, mod in enumerate(st.session_state[mods_key]):
-            row = st.empty()
-            with row.container():
-                c1, c2 = st.columns([4, 1])
-                c1.code(mod)
-                if c2.button("🗑️", key=f"{dialog_id}_del_mod_{i}"):
-                    st.session_state[mods_key].pop(i)
-                    row.empty()
-    else:
-        st.caption("No modifiers.")
+    form_result = render_item_form(dialog_id, current_values, mods_key, show_quantity=True)
 
     st.divider()
     
@@ -334,16 +365,18 @@ def edit_item_dialog(item, item_id, all_items, callback):
     
     if st.button("💾 Save Changes", type="primary"):
         # Reconstruct description
-        final_desc = new_desc
-        if st.session_state[mods_key]:
-            final_desc += " " + " ".join(st.session_state[mods_key])
+        final_desc = join_modifiers(form_result["description"], st.session_state[mods_key])
         
         # Update item
-        item["name"] = new_name
-        item["description"] = final_desc.strip()
-        item["weight"] = new_weight
-        item["quantity"] = new_qty
+        item["name"] = form_result["name"]
+        item["description"] = final_desc
+        item["weight"] = form_result["weight"]
+        item["quantity"] = form_result["quantity"]
         item["is_container"] = is_container
+        item["item_type"] = form_result["item_type"]
+        item["sub_type"] = form_result["sub_type"]
+        item["range_normal"] = form_result["range_normal"]
+        item["range_long"] = form_result["range_long"]
         
         # Update Location
         if move_selection == "Carried":
@@ -370,26 +403,6 @@ def edit_item_dialog(item, item_id, all_items, callback):
         if callback:
             callback()
         st.rerun()
-
-def render_modifier_builder(key_prefix, mod_list_key):
-    """Renders the UI for adding stat modifiers."""
-    mod_categories = {
-        "S.P.E.C.I.A.L.": ["STR", "PER", "END", "CHA", "INT", "AGI", "LUC"],
-        "Skills": sorted(get_default_character()["skills"].keys()),
-        "Derived Stats": ["Max HP", "Max SP", "Armor Class", "Carry Load", "Combat Sequence", "Action Points"]
-    }
-    operator_map = {"Add": "+", "Subtract": "-", "Multiply": "*", "Divide": "/"}
-
-    c_cat, c_stat, c_op, c_val, c_btn = st.columns([1.5, 1.5, 1.2, 1, 0.8])
-    cat_sel = c_cat.selectbox("Category", list(mod_categories.keys()), key=f"{key_prefix}_mod_cat")
-    stat_sel = c_stat.selectbox("Stat", mod_categories[cat_sel], key=f"{key_prefix}_mod_target")
-    op_sel = c_op.selectbox("Op", list(operator_map.keys()), key=f"{key_prefix}_mod_op")
-    val_in = c_val.number_input("Val", value=1.0, step=0.5, key=f"{key_prefix}_mod_val")
-    
-    if c_btn.button("Add", key=f"{key_prefix}_btn_add_mod"):
-        val_fmt = int(val_in) if val_in.is_integer() else val_in
-        if mod_list_key not in st.session_state: st.session_state[mod_list_key] = []
-        st.session_state[mod_list_key].append(f"{{{stat_sel} {operator_map[op_sel]}{val_fmt}}}")
 
 @st.dialog("Add Item")
 def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, callback=None):
@@ -434,39 +447,34 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
     st.divider()
     st.caption(f"Or Create Custom {label}")
     
-    c1, c2 = st.columns([2, 1])
-    new_name = c1.text_input("Name", key=f"{prefix}_new_name_dlg")
-    new_weight = 0.0
-    if label == "Equipment":
-        new_weight = c2.number_input("Weight", min_value=0.0, step=0.1, key=f"{prefix}_new_weight_dlg")
+    # Initialize defaults for custom item form
+    if f"{prefix}_new_name_dlg" not in st.session_state: st.session_state[f"{prefix}_new_name_dlg"] = ""
     
-    new_desc = st.text_input("Description", key=f"{prefix}_new_desc_dlg")
-    
-    # Modifier Builder
     mod_key = f"{prefix}_modifiers_dlg"
     if mod_key not in st.session_state: st.session_state[mod_key] = []
-    render_modifier_builder(prefix + "_dlg", mod_key)
-
-    if st.session_state[mod_key]:
-        st.markdown(" ".join([f"`{m}`" for m in st.session_state[mod_key]]))
-        if st.button("Clear Modifiers", key=f"{prefix}_btn_clear_mods_dlg"):
-            st.session_state[mod_key] = []
-            st.rerun()
     
+    # Use render_item_form but we need to manage the values manually since it's not bound to an existing item
+    # We can pass empty dict and let it use keys
+    form_result = render_item_form(prefix + "_dlg", {}, mod_key, show_quantity=False)
+
     if st.button("Create & Add", type="primary", use_container_width=True, key=f"{prefix}_btn_create_dlg"):
-        if new_name:
-            final_desc = new_desc + (" " + " ".join(st.session_state[mod_key]) if st.session_state[mod_key] else "")
+        if form_result["name"]:
+            final_desc = join_modifiers(form_result["description"], st.session_state[mod_key])
             item_data = {
-                "name": new_name,
-                "description": final_desc.strip(),
-                "weight": new_weight if label == "Equipment" else 0.0,
+                "name": form_result["name"],
+                "description": final_desc,
+                "weight": form_result["weight"] if label == "Equipment" else 0.0,
                 "equipped": False if label == "Equipment" else True,
                 "active": True,
                 "quantity": 1,
                 "id": str(uuid.uuid4()),
                 "parent_id": None,
                 "location": "carried",
-                "is_container": False
+                "is_container": False,
+                "item_type": form_result["item_type"],
+                "sub_type": form_result["sub_type"],
+                "range_normal": form_result["range_normal"],
+                "range_long": form_result["range_long"]
             }
             if char_key not in char or not isinstance(char[char_key], list):
                 char[char_key] = []
@@ -474,10 +482,12 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
             st.session_state[mod_key] = []
             
             # Clear input fields to prevent data leaking to next item
-            st.session_state[f"{prefix}_new_name_dlg"] = ""
-            st.session_state[f"{prefix}_new_desc_dlg"] = ""
+            st.session_state[f"{prefix}_dlg_name"] = ""
+            st.session_state[f"{prefix}_dlg_desc"] = ""
             if label == "Equipment":
-                st.session_state[f"{prefix}_new_weight_dlg"] = 0.0
+                st.session_state[f"{prefix}_dlg_weight"] = 0.0
+                st.session_state[f"{prefix}_dlg_rn"] = 0
+                st.session_state[f"{prefix}_dlg_rl"] = 0
 
             if callback: callback()
             st.rerun()
@@ -521,59 +531,52 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
 
         st.markdown("---")
         st.caption(f"Create New {label}")
-        c1, c2 = st.columns([2, 1])
-        new_name = c1.text_input("Name", key=f"{prefix}_new_name")
-        new_weight = 0.0
-        if label == "Equipment":
-            new_weight = c2.number_input("Weight", min_value=0.0, step=0.1, key=f"{prefix}_new_weight")
-        new_desc = st.text_input("Description", key=f"{prefix}_new_desc")
         
         # Modifier Builder
         mod_key = f"{prefix}_modifiers"
         if mod_key not in st.session_state: st.session_state[mod_key] = []
-        render_modifier_builder(prefix, mod_key)
-
-        if st.session_state[mod_key]:
-            st.markdown(" ".join([f"`{m}`" for m in st.session_state[mod_key]]))
-            if st.button("Clear Modifiers", key=f"{prefix}_btn_clear_mods"):
-                st.session_state[mod_key] = []
-                st.rerun()
+        
+        form_result = render_item_form(prefix, {}, mod_key, show_quantity=False)
         
         c_local, c_db = st.columns(2)
         
         def get_new_item_data():
-            final_desc = new_desc + (" " + " ".join(st.session_state[mod_key]) if st.session_state[mod_key] else "")
+            final_desc = join_modifiers(form_result["description"], st.session_state[mod_key])
             return {
-                "name": new_name,
-                "description": final_desc.strip(),
-                "weight": new_weight if label == "Equipment" else 0.0,
+                "name": form_result["name"],
+                "description": final_desc,
+                "weight": form_result["weight"] if label == "Equipment" else 0.0,
                 "equipped": False if label == "Equipment" else True,
                 "active": True,
                 "quantity": 1,
                 "id": str(uuid.uuid4()),
                 "parent_id": None,
                 "location": "carried",
-                "is_container": False
+                "is_container": False,
+                "item_type": form_result["item_type"],
+                "sub_type": form_result["sub_type"],
+                "range_normal": form_result["range_normal"],
+                "range_long": form_result["range_long"]
             }
 
         if c_local.button("Add to Character Only", key=f"{prefix}_btn_add_local"):
-            if new_name:
+            if form_result["name"]:
                 item_data = get_new_item_data()
                 if char_key not in char or not isinstance(char[char_key], list):
                     char[char_key] = []
                 char[char_key].append(item_data)
                 st.session_state[mod_key] = []
-                st.success(f"Added {new_name} to Character")
+                st.success(f"Added {form_result['name']} to Character")
                 
                 # Clear inputs
-                st.session_state[f"{prefix}_new_name"] = ""
-                st.session_state[f"{prefix}_new_desc"] = ""
+                st.session_state[f"{prefix}_name"] = ""
+                st.session_state[f"{prefix}_desc"] = ""
                 if label == "Equipment":
-                    st.session_state[f"{prefix}_new_weight"] = 0.0
+                    st.session_state[f"{prefix}_weight"] = 0.0
                 st.rerun()
 
         if c_db.button("Save to DB & Add", key=f"{prefix}_btn_save_db"):
-            if new_name:
+            if form_result["name"]:
                 item_data = get_new_item_data()
                 
                 # Add to Char
@@ -583,19 +586,19 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
 
                 # Add to DB
                 db_entry = {k: v for k, v in item_data.items() if k not in ["equipped", "active"]}
-                if not any(e['name'] == new_name for e in data_list):
+                if not any(e['name'] == form_result["name"] for e in data_list):
                     data_list.append(db_entry)
                     save_data(file_path, data_list)
-                    st.success(f"Added {new_name} to Database & Character")
+                    st.success(f"Added {form_result['name']} to Database & Character")
                 else:
-                    st.warning(f"Item {new_name} already in database (Added to Character only)")
+                    st.warning(f"Item {form_result['name']} already in database (Added to Character only)")
                 
                 st.session_state[mod_key] = []
                 # Clear inputs
-                st.session_state[f"{prefix}_new_name"] = ""
-                st.session_state[f"{prefix}_new_desc"] = ""
+                st.session_state[f"{prefix}_name"] = ""
+                st.session_state[f"{prefix}_desc"] = ""
                 if label == "Equipment":
-                    st.session_state[f"{prefix}_new_weight"] = 0.0
+                    st.session_state[f"{prefix}_weight"] = 0.0
                 st.rerun()
 
 def render_inventory_management(char, key, label, max_load=None, current_load=None):
@@ -604,6 +607,22 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
     if not isinstance(items, list):
         items = []
         char[key] = items
+
+    # --- FILTER & SORT UI ---
+    if label == "Equipment":
+        c_filter, c_sort = st.columns(2)
+        filter_types = c_filter.multiselect("Filter by Type", ["Weapon", "Apparel", "Aid", "Misc", "Currency"], key=f"inv_filter_{key}")
+        sort_option = c_sort.selectbox("Sort by", ["Name (A-Z)", "Weight (Low-High)", "Weight (High-Low)", "Type"], key=f"inv_sort_{key}")
+        
+        # Apply Filter
+        if filter_types:
+            items_to_show = [i for i in items if i.get("item_type", "Misc") in filter_types]
+        else:
+            items_to_show = items
+    else:
+        items_to_show = items
+        filter_types = []
+        sort_option = None
 
     # Separate logic for Perks (simple list) vs Inventory (nested)
     if label == "Perk":
@@ -673,7 +692,7 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                 c_chk, c_name, c_act = st.columns([0.5, 4, 1.5], vertical_alignment="top")
                 
                 # Checkbox
-                is_caps = item.get("name") == "Caps"
+                is_caps = item.get("name") == "Cap"
                 can_equip = (item.get("parent_id") is None and item.get("location") == "carried" and not is_caps)
                 
                 with c_chk:
@@ -690,6 +709,16 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                     st.markdown(f"**{item.get('name')}{qty_str}**")
                     
                     desc_parts = []
+                    # Type Info
+                    i_type = item.get("item_type", "Misc")
+                    if i_type == "Weapon":
+                        sub = item.get("sub_type", "")
+                        if sub: desc_parts.append(sub)
+                        if sub in ["Guns", "Energy Weapons"]:
+                            desc_parts.append(f"Rng: {item.get('range_normal',0)}/{item.get('range_long',0)}")
+                    elif i_type != "Misc":
+                        desc_parts.append(i_type)
+
                     if float(item.get("weight", 0)) > 0: desc_parts.append(f"{float(item['weight'])} Load")
                     if item.get("description"): desc_parts.append(item["description"])
                     if desc_parts:
@@ -731,14 +760,15 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
         tab_carried, tab_stash = st.tabs(["🎒 Carried", "📦 Stash"])
         
         with tab_carried:
-            carried_roots = [i for i in items if i.get("parent_id") is None and i.get("location") == "carried"]
+            # Filter roots based on filter_types if applied
+            carried_roots = [i for i in items_to_show if i.get("parent_id") is None and i.get("location") == "carried"]
             if carried_roots:
                 render_tree_node(carried_roots)
             else:
                 st.caption("Nothing carried.")
                 
         with tab_stash:
-            stash_roots = [i for i in items if i.get("parent_id") is None and i.get("location") == "stash"]
+            stash_roots = [i for i in items_to_show if i.get("parent_id") is None and i.get("location") == "stash"]
             if stash_roots:
                 render_tree_node(stash_roots)
             else:
@@ -822,11 +852,11 @@ def render_character_statblock(char, save_callback=None):
         # INTERACTIVE STATS ROW
         st.markdown('<div class="derived-row" style="margin-bottom: 5px;">Status</div>', unsafe_allow_html=True)
         c1, c2, c3, c4 = st.columns(4)
-        
+
         unique_id = char.get("name", "char")
         
         with c1:
-            st.caption(f"HP (Max {char.get('hp_max', 0)})")
+            st.caption(f"HP (Max {char.get('hp_max', 0)})", help=f"Healing Rate: {char.get('healing_rate', 0)} (Endurance + Level)")
             hp_key = f"sb_hp_{unique_id}"
             st.number_input(
                 "HP", value=char.get("hp_current", 0), min_value=0, max_value=char.get("hp_max", 999), 
@@ -854,15 +884,53 @@ def render_character_statblock(char, save_callback=None):
         
         with c4:
             st.caption("Caps")
-            caps_key = f"sb_caps_{unique_id}"
-            st.number_input("Caps", value=char.get("caps", 0), min_value=0, step=10, key=caps_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "caps", caps_key, save_callback))
+            if st.button(f"🪙 {char.get('caps', 0)}", key=f"sb_caps_btn_{unique_id}", use_container_width=True, help="Manage Caps"):
+                caps_manager_dialog(char, save_callback)
+
+        # CONDITIONS ROW
+        st.markdown('<div class="derived-row" style="margin-bottom: 5px; margin-top: 10px;">Conditions</div>', unsafe_allow_html=True)
+        cond1, cond2, cond3, cond4 = st.columns(4)
+        
+        with cond1:
+            st.caption("Fatigue", help="-1 penalty to d20 rolls per level.")
+            f_key = f"sb_fatigue_{unique_id}"
+            st.number_input("Fatigue", value=char.get("fatigue", 0), min_value=0, key=f_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "fatigue", f_key, save_callback))
+        with cond2:
+            st.caption("Exhaustion", help="-1 penalty to d20 rolls per level. Requires rest to remove.")
+            e_key = f"sb_exhaustion_{unique_id}"
+            st.number_input("Exhaustion", value=char.get("exhaustion", 0), min_value=0, key=e_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "exhaustion", e_key, save_callback))
+        with cond3:
+            st.caption("Hunger", help="-1 penalty to d20 rolls per level. Requires food to remove.")
+            h_key = f"sb_hunger_{unique_id}"
+            st.number_input("Hunger", value=char.get("hunger", 0), min_value=0, key=h_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "hunger", h_key, save_callback))
+        with cond4:
+            st.caption("Dehydration", help="-1 penalty to d20 rolls per level. Requires water to remove.")
+            d_key = f"sb_dehydration_{unique_id}"
+            st.number_input("Dehydration", value=char.get("dehydration", 0), min_value=0, key=d_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "dehydration", d_key, save_callback))
+
+        # TACTICAL STATS ROW
+        st.markdown('<div class="derived-row" style="margin-bottom: 5px; margin-top: 10px;">Tactical</div>', unsafe_allow_html=True)
+        tac1, tac2, tac3 = st.columns(3)
+        with tac1:
+            st.caption("Group Sneak", help="Average of all players sneak skill rounded down.")
+            gs_key = f"sb_gs_{unique_id}"
+            st.number_input("Grp Sneak", value=char.get("group_sneak", 0), step=1, key=gs_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "group_sneak", gs_key, save_callback))
+        with tac2:
+            st.caption("Party Nerve", help="Sum of all players CHA mod, halved, rounded down.")
+            pn_key = f"sb_pn_{unique_id}"
+            st.number_input("Pty Nerve", value=char.get("party_nerve", 0), step=1, key=pn_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "party_nerve", pn_key, save_callback))
+        with tac3:
+            st.caption("Rad DC", help="12 - Endurance Mod")
+            st.text_input("Rad DC", value=str(char.get("radiation_dc", 0)), disabled=True, label_visibility="collapsed")
 
         # DERIVED STATS (Read Only)
         derived_html = (
             f'<div class="derived-row" style="margin-top: 10px;">'
             f'<span>AC: {char.get("ac", 10)}</span>'
-            f'<span>SEQ: {char.get("combat_sequence", 0)}</span>'
+            f'<span title="10 + Perception Modifier">SEQ: {char.get("combat_sequence", 0)}</span>'
             f'<span>AP: {char.get("action_points", 0)}</span>'
+            f'<span title="12 + Perception Modifier">Pas. Sense: {char.get("passive_sense", 0)}</span>'
+            f'<span title="Endurance + Level">Heal Rate: {char.get("healing_rate", 0)}</span>'
             f'<span>Load: {char.get("current_weight", 0)} / {char.get("carry_load", 0)}</span>'
             f'</div>'
         )
@@ -936,7 +1004,7 @@ def render_character_statblock(char, save_callback=None):
                     c_chk, c_lbl, c_act = st.columns([0.05, 0.85, 0.1], vertical_alignment="top")
                     
                     # Equip Checkbox
-                    is_caps = item.get("name") == "Caps"
+                    is_caps = item.get("name") == "Cap"
                     can_equip = (item.get("parent_id") is None and item.get("location") == "carried" and not is_caps)
                     
                     with c_chk:
@@ -949,6 +1017,14 @@ def render_character_statblock(char, save_callback=None):
                         qty_str = f" (x{item.get('quantity', 1)})" if item.get('quantity', 1) > 1 else ""
                         
                         desc_parts = []
+                        # Type Info
+                        i_type = item.get("item_type", "Misc")
+                        if i_type == "Weapon":
+                            sub = item.get("sub_type", "")
+                            if sub: desc_parts.append(sub)
+                            if sub in ["Guns", "Energy Weapons"]:
+                                desc_parts.append(f"Rng: {item.get('range_normal',0)}/{item.get('range_long',0)}")
+                        
                         if float(item.get("weight", 0)) > 0: desc_parts.append(f"{float(item['weight'])} Load")
                         if item.get("description"): desc_parts.append(item["description"])
                         

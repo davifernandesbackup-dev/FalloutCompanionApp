@@ -56,6 +56,12 @@
 - [x] (2026-01-21 20:50) **Library Alignment**: Fixed vertical alignment of buttons in the Encounter Builder library to be centered with item names.
 - [x] (2026-01-21 22:30) **Character Sheet UI**: Added custom styled HP/Stamina bars and optimized layout for compactness.
 - [x] (2026-01-22 15:23) **Inventory Nesting UI**: Refactored inventory display to use nested expanders for containers.
+- [x] (2026-01-22 16:37) **Inventory UI Overhaul**: Implemented tabbed views for Carried/Stash, visual load meters, and dialog-based item management.
+- [x] (2026-01-22 16:37) **Item Properties**: Added Item Types, Weapon Subtypes, and Range statistics with filtering and sorting capabilities.
+- [x] (2026-01-22 16:37) **Refactoring**: Moved character logic and UI components to `utils/` and centralized item form rendering.
+- [x] (2026-01-22 16:37) **Caps System**: Added a dedicated Caps Manager dialog and standardized Currency item properties.
+- [x] (2026-01-22 16:37) **Extended Stats**: Implemented Healing Rate, Radiation DC, Passive Sense, and condition trackers (Fatigue, Hunger, Dehydration).
+- [x] (2026-01-22 16:37) **UI Polish**: Widened modal dialogs and optimized item builder layouts for better usability.
 
 
 

@@ -37,7 +37,9 @@ def get_default_character():
         },
         "hp_max": 10, "hp_current": 10, "stamina_max": 10, "stamina_current": 10,
         "ac": 10, "combat_sequence": 0, "action_points": 10, 
-        "carry_load": 50, "perks": [], "inventory": []
+        "carry_load": 50, "perks": [], "inventory": [],
+        "fatigue": 0, "exhaustion": 0, "hunger": 0, "dehydration": 0,
+        "group_sneak": 0, "party_nerve": 0
     }
 
 def sync_char_widgets():
@@ -56,6 +58,12 @@ def sync_char_widgets():
     st.session_state["c_ac"] = char.get("ac", 10)
     st.session_state["c_perks"] = char.get("perks", [])
     st.session_state["c_inv"] = char.get("inventory", [])
+    st.session_state["c_fatigue"] = char.get("fatigue", 0)
+    st.session_state["c_exhaustion"] = char.get("exhaustion", 0)
+    st.session_state["c_hunger"] = char.get("hunger", 0)
+    st.session_state["c_dehydration"] = char.get("dehydration", 0)
+    st.session_state["c_group_sneak"] = char.get("group_sneak", 0)
+    st.session_state["c_party_nerve"] = char.get("party_nerve", 0)
     
     for stat_key, stat_value in char.get("stats", {}).items():
         st.session_state[f"stat_{stat_key}"] = stat_value
@@ -125,9 +133,17 @@ def migrate_character(char):
         caps_val = char.pop("caps")
         if isinstance(caps_val, int) and caps_val > 0:
             # Check if Caps item already exists
-            if not any(i["name"] == "Caps" for i in inventory):
-                inventory.append({"id": str(uuid.uuid4()), "name": "Caps", "description": "Currency", "weight": 0.0, "quantity": caps_val, "equipped": False, "location": "carried", "parent_id": None, "is_container": False})
+            if not any(i["name"] == "Cap" for i in inventory):
+                inventory.append({"id": str(uuid.uuid4()), "name": "Cap", "description": "Currency", "weight": 0.02, "quantity": caps_val, "equipped": False, "location": "carried", "parent_id": None, "is_container": False, "item_type": "Currency"})
 
+    # Enforce Cap Properties (Weight 0.02, Type Currency) and Rename Caps -> Cap
+    for item in inventory:
+        if item.get("name") == "Caps":
+            item["name"] = "Cap"
+        
+        if item.get("name") == "Cap":
+            item["weight"] = 0.02
+            item["item_type"] = "Currency"
 
 def calculate_stats(char):
     """Performs all auto-calculations for the character sheet."""
@@ -226,7 +242,7 @@ def calculate_stats(char):
         
         # Count caps (anywhere in carried hierarchy)
         # We need to check if the item is effectively carried
-        if item.get("name") == "Caps":
+        if item.get("name") == "Cap":
             # Traverse up to check if root is carried
             curr = item
             is_carried = False
@@ -240,18 +256,6 @@ def calculate_stats(char):
             
             if is_carried:
                 carried_caps += item.get("quantity", 0)
-                # Caps weight: 50 caps = 1 Load
-                # Note: If caps are inside a container, their weight is added via get_total_weight recursion above?
-                # Wait, get_total_weight adds weight of children. 
-                # If Caps have weight 0 in DB, we need to add their calculated weight.
-                # But usually Caps item has 0 weight in definition.
-                # So we add caps weight globally or per stack?
-                # Let's add global caps weight to current_weight for simplicity, 
-                # OR we assume the Caps item has 0 weight and we add (total_caps / 50) at the end.
-                # The prompt says "caps... are not equipment... cant be equipped".
-                # Let's add the calculated weight here.
-    
-    current_weight += carried_caps / 50.0
     
     char["current_weight"] = round(current_weight, 1)
     char["caps"] = carried_caps # Update display value
@@ -260,8 +264,8 @@ def calculate_stats(char):
     base_carry_load = effective_stats.get("STR", 5) * 10
     char["carry_load"] = int(get_effective_value(base_carry_load, "Carry Load"))
     
-    base_combat_sequence = effective_stats.get("PER", 5) + effective_stats.get("AGI", 5)
-    char["combat_sequence"] = int(get_effective_value(base_combat_sequence, "Combat Sequence"))
+    base_combat_sequence = effective_stats.get("PER", 5) + 5
+    char["combat_sequence"] = int(get_effective_value(base_combat_sequence, "Combat Sequence")) # 10 + PER Mod (PER - 5) = 5 + PER
     
     base_action_points = effective_stats.get("AGI", 5) + 5
     char["action_points"] = int(get_effective_value(base_action_points, "Action Points"))
@@ -276,6 +280,18 @@ def calculate_stats(char):
     
     effective_armor_class = int(get_effective_value(10, "Armor Class"))
     char["ac"] = effective_armor_class
+
+    # Healing Rate: END + Level
+    base_healing_rate = effective_stats.get("END", 5) + char.get("level", 1)
+    char["healing_rate"] = int(get_effective_value(base_healing_rate, "Healing Rate"))
+
+    # Radiation DC: 12 - (END - 5)
+    base_rad_dc = 12 - (effective_stats.get("END", 5) - 5)
+    char["radiation_dc"] = int(get_effective_value(base_rad_dc, "Radiation DC"))
+
+    # Passive Sense: 12 + (PER - 5)
+    base_passive_sense = 12 + (effective_stats.get("PER", 5) - 5)
+    char["passive_sense"] = int(get_effective_value(base_passive_sense, "Passive Sense"))
 
     return effective_health_max, effective_stamina_max, effective_armor_class, effective_stats, effective_skills
 

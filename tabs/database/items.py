@@ -1,6 +1,7 @@
 import streamlit as st
 from utils.data_manager import load_data, save_data
 from constants import EQUIPMENT_FILE, PERKS_FILE
+from utils.item_components import render_item_form, parse_modifiers, join_modifiers
 
 def render() -> None:
     st.subheader("🎒 Item Database (Equipment & Perks)")
@@ -17,23 +18,34 @@ def render() -> None:
 
     # --- ADD NEW ITEM ---
     with st.expander("➕ Create New Item", expanded=False):
-        with st.form("new_item_form"):
-            c1, c2, c3 = st.columns([1.5, 0.8, 2])
-            new_name = c1.text_input("Name")
-            new_weight = c2.number_input("Weight", min_value=0.0, step=0.1, value=0.0)
-            new_desc = c3.text_input("Description / Stats")
-            
-            if st.form_submit_button("Create"):
-                if new_name:
-                    if any(x['name'] == new_name for x in data_list):
-                        st.error("Item with this name already exists.")
-                    else:
-                        data_list.append({"name": new_name, "description": new_desc, "weight": new_weight, "is_container": False})
-                        save_data(target_file, data_list)
-                        st.success(f"Created {new_name}")
-                        st.rerun()
+        mod_key = "new_db_item_mods"
+        if mod_key not in st.session_state: st.session_state[mod_key] = []
+        
+        form_result = render_item_form("new_db_item", {}, mod_key, show_quantity=False)
+        
+        if st.button("Create Item", key="btn_create_db_item"):
+            if form_result["name"]:
+                if any(x['name'] == form_result["name"] for x in data_list):
+                    st.error("Item with this name already exists.")
                 else:
-                    st.warning("Name is required.")
+                    final_desc = join_modifiers(form_result["description"], st.session_state[mod_key])
+                    new_item = {
+                        "name": form_result["name"], 
+                        "description": final_desc, 
+                        "weight": form_result["weight"], 
+                        "is_container": False,
+                        "item_type": form_result["item_type"],
+                        "sub_type": form_result["sub_type"],
+                        "range_normal": form_result["range_normal"],
+                        "range_long": form_result["range_long"]
+                    }
+                    data_list.append(new_item)
+                    save_data(target_file, data_list)
+                    st.session_state[mod_key] = [] # Clear modifiers
+                    st.success(f"Created {form_result['name']}")
+                    st.rerun()
+            else:
+                st.warning("Name is required.")
 
     st.divider()
     
@@ -49,33 +61,53 @@ def render() -> None:
     
     for i, item in filtered_list:
         with st.expander(f"**{item.get('name')}**"):
-            c_edit, c_del = st.columns([4, 1])
+            mod_key = f"db_item_mods_{i}"
+            # Initialize modifiers from description if not already in session state
+            if mod_key not in st.session_state:
+                clean_desc, mod_strings = parse_modifiers(item.get("description", ""))
+                st.session_state[mod_key] = mod_strings
+                # We also need to ensure the form sees the clean description initially
+                # But render_item_form takes 'current_values'.
+                # We can construct a temporary dict with the clean description for the form
+                # However, if the user has already edited the description in the form, we want that value.
+                # Since render_item_form uses widgets with keys, Streamlit handles the state.
+                # We just need to pass the initial value correctly ONCE.
+                # But render_item_form takes 'value=' arguments.
+                # If we pass clean_desc every time, it might overwrite user input if not careful?
+                # No, Streamlit widgets ignore 'value' if key is in session state.
+                # So passing clean_desc is fine as long as the key matches.
+                # But we need to make sure we don't pass the raw description with modifiers to the text input.
+                pass
             
-            with c_edit:
-                edit_name = st.text_input("Name", value=item.get("name", ""), key=f"item_name_{i}")
-                edit_weight = st.number_input("Weight", value=float(item.get("weight", 0.0)), step=0.1, key=f"item_weight_{i}")
-                edit_desc = st.text_area("Description", value=item.get("description", ""), key=f"item_desc_{i}")
-                
-                if st.button("Save Changes", key=f"save_item_{i}"):
-                    # Update in original list
-                    # We need to find the item in the original list if we filtered, 
-                    # but here 'i' is the index from the sorted/filtered loop if we aren't careful.
-                    # Actually, let's just update the object reference since lists are mutable.
-                    # However, to save, we need to ensure the list structure is intact.
+            # Prepare values, ensuring description is clean for display
+            clean_desc, _ = parse_modifiers(item.get("description", ""))
+            # We create a copy to avoid modifying the actual item in the list during render
+            display_values = item.copy()
+            display_values["description"] = clean_desc
+            
+            form_result = render_item_form(f"db_item_{i}", display_values, mod_key, show_quantity=False)
+            
+            c_save, c_del = st.columns([1, 1])
+            
+            with c_save:
+                if st.button("Save Changes", key=f"save_item_{i}", use_container_width=True):
+                    final_desc = join_modifiers(form_result["description"], st.session_state[mod_key])
                     
-                    # Better approach: Update the object in place
-                    item["name"] = edit_name
-                    item["description"] = edit_desc
-                    item["weight"] = edit_weight
+                    item["name"] = form_result["name"]
+                    item["description"] = final_desc
+                    item["weight"] = form_result["weight"]
+                    item["item_type"] = form_result["item_type"]
+                    item["sub_type"] = form_result["sub_type"]
+                    item["range_normal"] = form_result["range_normal"]
+                    item["range_long"] = form_result["range_long"]
                     # is_container is not editable here yet, defaults to False for DB items
                     
                     # We need to save the full 'data_list' which contains this 'item' object
                     save_data(target_file, data_list)
                     st.success("Saved!")
-            
+                
             with c_del:
-                st.markdown("<br>", unsafe_allow_html=True) # Spacer
-                if st.button("🗑️ Delete", key=f"del_item_{i}", type="primary"):
+                if st.button("🗑️ Delete", key=f"del_item_{i}", type="primary", use_container_width=True):
                     # Remove from main list
                     data_list.remove(item)
                     save_data(target_file, data_list)

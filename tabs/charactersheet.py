@@ -3,8 +3,8 @@ import re
 import copy
 from utils.data_manager import load_data, save_data
 from constants import CHARACTERS_FILE, EQUIPMENT_FILE, PERKS_FILE
-from tabs.character_logic import get_default_character, sync_char_widgets, calculate_stats, roll_skill, migrate_character, SKILL_MAP
-from tabs.character_components import render_css, render_bars, render_database_manager, render_inventory_management, render_character_statblock
+from utils.character_logic import get_default_character, sync_char_widgets, calculate_stats, roll_skill, migrate_character, SKILL_MAP
+from utils.character_components import render_css, render_bars, render_database_manager, render_inventory_management, render_character_statblock, caps_manager_dialog
 
 def render_character_sheet() -> None:
     st.header("📝 Character Sheet")
@@ -233,15 +233,36 @@ def render_character_sheet() -> None:
             st.divider()
 
             # Stats Row
-            col_armor_class, col_combat_sequence, col_action_points, col_carry_load = st.columns(4)
+            col_armor_class, col_combat_sequence, col_action_points, col_carry_load, col_healing, col_passive = st.columns(6)
             with col_armor_class:
                 st.text_input("Armor Class", value=str(effective_armor_class), disabled=True, help="Base 10 + Modifiers")
             with col_combat_sequence:
-                st.text_input("Combat Seq.", value=str(char.get("combat_sequence", 0)), disabled=True, help="Derived: PER + AGI")
+                st.text_input("Combat Seq.", value=str(char.get("combat_sequence", 0)), disabled=True, help="10 + Perception Modifier")
             with col_action_points:
                 st.text_input("Action Points", value=str(char.get("action_points", 10)), disabled=True, help="Derived: AGI + 5")
             with col_carry_load:
                 st.text_input("Carry Load", value=str(char.get("carry_load", 50)), disabled=True, help="Derived: STR * 10")
+            with col_healing:
+                st.text_input("Healing Rate", value=str(char.get("healing_rate", 0)), disabled=True, help="Endurance + Level")
+            with col_passive:
+                st.text_input("Pas. Sense", value=str(char.get("passive_sense", 0)), disabled=True, help="12 + Perception Mod")
+
+            # Conditions & Tactical Row
+            st.caption("Conditions & Tactical")
+            c_cond1, c_cond2, c_cond3, c_cond4, c_tac1, c_tac2, c_tac3 = st.columns(7)
+            
+            with c_cond1: char["fatigue"] = st.number_input("Fatigue", value=char.get("fatigue", 0), min_value=0, key="c_fatigue", help="-1 penalty to d20 rolls per level.")
+            with c_cond2: char["exhaustion"] = st.number_input("Exhaustion", value=char.get("exhaustion", 0), min_value=0, key="c_exhaustion", help="-1 penalty to d20 rolls per level. Requires rest.")
+            with c_cond3: char["hunger"] = st.number_input("Hunger", value=char.get("hunger", 0), min_value=0, key="c_hunger", help="-1 penalty to d20 rolls per level. Requires food.")
+            with c_cond4: char["dehydration"] = st.number_input("Dehydration", value=char.get("dehydration", 0), min_value=0, key="c_dehydration", help="-1 penalty to d20 rolls per level. Requires water.")
+            
+            with c_tac1: char["group_sneak"] = st.number_input("Grp Sneak", value=char.get("group_sneak", 0), step=1, key="c_group_sneak", help="Average of all players sneak skill rounded down.")
+            with c_tac2: char["party_nerve"] = st.number_input("Pty Nerve", value=char.get("party_nerve", 0), step=1, key="c_party_nerve", help="Sum of all players CHA mod, halved, rounded down.")
+            
+            with c_tac3: 
+                st.text_input("Rad DC", value=str(char.get("radiation_dc", 0)), disabled=True, help="12 - Endurance Mod")
+
+            st.divider()
             
             # ROW 4: SKILLS & INVENTORY
             st.markdown('<div class="section-header">Data</div>', unsafe_allow_html=True)
@@ -310,4 +331,7 @@ def render_character_sheet() -> None:
                 
                 st.markdown("**Caps**")
                 # Caps are now derived from inventory items named "Caps"
-                st.text_input("Caps (Carried)", value=str(char.get("caps", 0)), disabled=True, help="Total quantity of 'Caps' items in carried inventory.")
+                c_caps_disp, c_caps_btn = st.columns([3, 1])
+                c_caps_disp.text_input("Caps (Carried)", value=str(char.get("caps", 0)), disabled=True, label_visibility="collapsed", help="Total quantity of 'Caps' items in carried inventory.")
+                if c_caps_btn.button("🪙 Manage", key="edit_btn_caps", use_container_width=True):
+                    caps_manager_dialog(char)

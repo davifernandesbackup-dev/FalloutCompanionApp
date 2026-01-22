@@ -3,7 +3,7 @@
     "name": "New Character",
     "level": 1,
     "origin": "Vault Dweller",
-    "xp": 0,
+    "xp": 1000,
     "stats": {
       "STR": 5,
       "PER": 5,
@@ -34,9 +34,9 @@
     "stamina_max": 12,
     "stamina_current": 11,
     "ac": 10,
-    "combat_sequence": 12,
+    "combat_sequence": 10,
     "action_points": 12,
-    "carry_load": 70,
+    "carry_load": 50,
     "perks": [],
     "inventory": [
       {
@@ -52,20 +52,44 @@
         "is_container": false
       },
       {
-        "name": "a",
-        "description": "a {STR +2}",
-        "weight": 1.0,
+        "id": "4e3717ae-e3d3-47f7-a878-0ffcfd78db36",
+        "name": "Cap",
+        "description": "Currency",
+        "weight": 0.02,
+        "quantity": 2,
         "equipped": false,
-        "active": true,
-        "quantity": 1,
-        "id": "8f8bd882-d2ea-4a0b-a386-cc0dd4613e0f",
+        "location": "stash",
         "parent_id": null,
+        "is_container": false,
+        "item_type": "Currency",
+        "sub_type": null,
+        "range_normal": 0,
+        "range_long": 0
+      },
+      {
+        "id": "cc7fedd3-1991-443e-a876-1f75841f2921",
+        "name": "Cap",
+        "description": "Currency",
+        "weight": 0.02,
+        "quantity": 10,
+        "equipped": false,
         "location": "carried",
-        "is_container": false
+        "parent_id": null,
+        "is_container": false,
+        "item_type": "Currency"
       }
     ],
-    "current_weight": 2.0,
-    "caps": 0
+    "current_weight": 0.2,
+    "healing_rate": 11,
+    "radiation_dc": 7,
+    "passive_sense": 12,
+    "fatigue": 0,
+    "exhaustion": 0,
+    "hunger": 0,
+    "dehydration": 0,
+    "group_sneak": 0,
+    "party_nerve": 0,
+    "caps": 10
   },
   {
     "name": "New Character",
