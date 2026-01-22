@@ -1,0 +1,86 @@
+{
+  "Urban Ruins": [
+    {
+      "name": "Bottle Caps",
+      "count": "2d20",
+      "weight": 50,
+      "cost": 1
+    },
+    {
+      "name": "Pre-War Money",
+      "count": "1d10",
+      "weight": 30,
+      "cost": 2
+    },
+    {
+      "name": "RadAway",
+      "count": "1",
+      "weight": 10,
+      "cost": 10
+    },
+    {
+      "name": "Stimpak",
+      "count": "1",
+      "weight": 5,
+      "cost": 15
+    },
+    {
+      "name": "Ammo Box",
+      "count": "1",
+      "weight": 15,
+      "cost": 10
+    }
+  ],
+  "Wasteland Wilds": [
+    {
+      "name": "Strange Meat",
+      "count": "1d4",
+      "weight": 40,
+      "cost": 3
+    },
+    {
+      "name": "Dirty Water",
+      "count": "1d2",
+      "weight": 30,
+      "cost": 1
+    },
+    {
+      "name": "Hubflower",
+      "count": "1d3",
+      "weight": 20,
+      "cost": 4
+    },
+    {
+      "name": "Animal Hide",
+      "count": "1",
+      "weight": 10,
+      "cost": 5
+    }
+  ],
+  "Old Vault": [
+    {
+      "name": "Vault Suit",
+      "count": "1",
+      "weight": 10,
+      "cost": 20
+    },
+    {
+      "name": "Stimpak",
+      "count": "1d4",
+      "weight": 30,
+      "cost": 15
+    },
+    {
+      "name": "Bobby Pins",
+      "count": "1d6",
+      "weight": 40,
+      "cost": 1
+    },
+    {
+      "name": "Fusion Core",
+      "count": "1",
+      "weight": 2,
+      "cost": 50
+    }
+  ]
+}

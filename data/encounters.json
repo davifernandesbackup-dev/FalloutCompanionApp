@@ -1,0 +1,86 @@
+{
+  "Urban Ruins": [
+    {
+      "name": "Feral Ghoul",
+      "count": "1d6",
+      "weight": 40,
+      "cost": 8
+    },
+    {
+      "name": "Raider Scavenger",
+      "count": "1d4",
+      "weight": 30,
+      "cost": 10
+    },
+    {
+      "name": "Super Mutant Patrol",
+      "count": "1d3",
+      "weight": 10,
+      "cost": 40
+    },
+    {
+      "name": "Frag Grenade Mine",
+      "count": "1",
+      "weight": 10,
+      "cost": 5
+    },
+    {
+      "name": "Deathclaw",
+      "count": "1",
+      "weight": 1,
+      "cost": 150
+    },
+    {
+      "name": "Rat",
+      "count": "1d6",
+      "weight": 30,
+      "cost": 2
+    }
+  ],
+  "Wasteland Wilds": [
+    {
+      "name": "Mole Rat",
+      "count": "2d4",
+      "weight": 50,
+      "cost": 5
+    },
+    {
+      "name": "Radscorpion",
+      "count": "1d2",
+      "weight": 20,
+      "cost": 40
+    },
+    {
+      "name": "Yao Guai",
+      "count": "1",
+      "weight": 5,
+      "cost": 75
+    },
+    {
+      "name": "Traveling Merchant",
+      "count": "1",
+      "weight": 10,
+      "cost": 20
+    }
+  ],
+  "Old Vault": [
+    {
+      "name": "Robobrain",
+      "count": "1",
+      "weight": 20,
+      "cost": 30
+    },
+    {
+      "name": "Radroach",
+      "count": "1d8",
+      "weight": 50,
+      "cost": 2
+    },
+    {
+      "name": "Glowing One",
+      "count": "1",
+      "weight": 5,
+      "cost": 80
+    }
+  ]
+}

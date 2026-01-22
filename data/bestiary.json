@@ -1,0 +1,24 @@
+{
+  "Feral Ghoul": {
+    "level": 2,
+    "type": "Normal",
+    "stats": { "str": 6, "per": 4, "end": 6, "cha": 1, "int": 2, "agi": 6, "luc": 4 },
+    "hp": 9,
+    "defense": 1,
+    "skills": ["Athletics 2", "Melee 2"],
+    "attacks": [
+      { "name": "Claws", "damage": "3 $CD$", "effect": "Radioactive" }
+    ]
+  },
+  "Raider Scavenger": {
+    "level": 1,
+    "type": "Normal",
+    "stats": { "str": 5, "per": 5, "end": 5, "cha": 3, "int": 4, "agi": 6, "luc": 3 },
+    "hp": 8,
+    "defense": 1,
+    "skills": ["Small Guns 2", "Survival 1"],
+    "attacks": [
+      { "name": "Pipe Pistol", "damage": "3 $CD$", "effect": "Range C" }
+    ]
+  }
+}
