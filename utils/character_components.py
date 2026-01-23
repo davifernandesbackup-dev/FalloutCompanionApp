@@ -674,15 +674,23 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
     
     # Use render_item_form but we need to manage the values manually since it's not bound to an existing item
     # We can pass empty dict and let it use keys
-    form_result = render_item_form(prefix + "_dlg", {}, mod_key, show_quantity=False, show_load=show_load)
+    render_item_form(prefix + "_dlg", {}, mod_key, show_quantity=False, show_load=show_load)
 
-    if st.button("Create & Add", type="primary", use_container_width=True, key=f"{prefix}_btn_create_dlg"):
-        if form_result["name"]:
-            final_desc = join_modifiers(form_result["description"], st.session_state[mod_key])
+    def create_custom_callback():
+        name = st.session_state.get(f"{prefix}_dlg_name", "")
+        if name:
+            desc = st.session_state.get(f"{prefix}_dlg_desc", "")
+            weight = st.session_state.get(f"{prefix}_dlg_weight", 0.0) if show_load else 0.0
+            item_type = st.session_state.get(f"{prefix}_dlg_type", "Misc")
+            sub_type = st.session_state.get(f"{prefix}_dlg_sub", None)
+            range_normal = st.session_state.get(f"{prefix}_dlg_rn", 0)
+            range_long = st.session_state.get(f"{prefix}_dlg_rl", 0)
+            
+            final_desc = join_modifiers(desc, st.session_state[mod_key])
             item_data = {
-                "name": form_result["name"],
+                "name": name,
                 "description": final_desc,
-                "weight": form_result["weight"] if show_load else 0.0,
+                "weight": weight,
                 "equipped": False if label == "Equipment" else True,
                 "active": True,
                 "quantity": 1,
@@ -690,10 +698,10 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
                 "parent_id": None,
                 "location": "carried",
                 "is_container": False,
-                "item_type": form_result["item_type"],
-                "sub_type": form_result["sub_type"],
-                "range_normal": form_result["range_normal"],
-                "range_long": form_result["range_long"]
+                "item_type": item_type,
+                "sub_type": sub_type,
+                "range_normal": range_normal,
+                "range_long": range_long
             }
             if char_key not in char or not isinstance(char[char_key], list):
                 char[char_key] = []
@@ -709,7 +717,8 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
                 st.session_state[f"{prefix}_dlg_rl"] = 0
 
             if callback: callback()
-            st.rerun()
+
+    st.button("Create & Add", type="primary", use_container_width=True, key=f"{prefix}_btn_create_dlg", on_click=create_custom_callback)
 
 def render_database_manager(label, file_path, char, char_key, session_key, prefix):
     show_load = (label == "Equipment")
@@ -756,16 +765,32 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
         mod_key = f"{prefix}_modifiers"
         if mod_key not in st.session_state: st.session_state[mod_key] = []
         
-        form_result = render_item_form(prefix, {}, mod_key, show_quantity=False, show_load=show_load)
+        render_item_form(prefix, {}, mod_key, show_quantity=False, show_load=show_load)
         
         c_local, c_db = st.columns(2)
         
-        def get_new_item_data():
-            final_desc = join_modifiers(form_result["description"], st.session_state[mod_key])
-            return {
-                "name": form_result["name"],
+        def clear_inputs():
+            st.session_state[f"{prefix}_name"] = ""
+            st.session_state[f"{prefix}_desc"] = ""
+            if show_load:
+                st.session_state[f"{prefix}_weight"] = 0.0
+            st.session_state[mod_key] = []
+
+        def get_item_data_from_state():
+            name = st.session_state.get(f"{prefix}_name", "")
+            desc = st.session_state.get(f"{prefix}_desc", "")
+            weight = st.session_state.get(f"{prefix}_weight", 0.0) if show_load else 0.0
+            item_type = st.session_state.get(f"{prefix}_type", "Misc")
+            sub_type = st.session_state.get(f"{prefix}_sub", None)
+            range_normal = st.session_state.get(f"{prefix}_rn", 0)
+            range_long = st.session_state.get(f"{prefix}_rl", 0)
+            
+            final_desc = join_modifiers(desc, st.session_state[mod_key])
+            
+            return name, {
+                "name": name,
                 "description": final_desc,
-                "weight": form_result["weight"] if show_load else 0.0,
+                "weight": weight,
                 "equipped": False if label == "Equipment" else True,
                 "active": True,
                 "quantity": 1,
@@ -773,32 +798,24 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
                 "parent_id": None,
                 "location": "carried",
                 "is_container": False,
-                "item_type": form_result["item_type"],
-                "sub_type": form_result["sub_type"],
-                "range_normal": form_result["range_normal"],
-                "range_long": form_result["range_long"]
+                "item_type": item_type,
+                "sub_type": sub_type,
+                "range_normal": range_normal,
+                "range_long": range_long
             }
 
-        if c_local.button("Add to Character Only", key=f"{prefix}_btn_add_local"):
-            if form_result["name"]:
-                item_data = get_new_item_data()
+        def add_local_callback():
+            name, item_data = get_item_data_from_state()
+            if name:
                 if char_key not in char or not isinstance(char[char_key], list):
                     char[char_key] = []
                 char[char_key].append(item_data)
-                st.session_state[mod_key] = []
-                st.success(f"Added {form_result['name']} to Character")
-                
-                # Clear inputs
-                st.session_state[f"{prefix}_name"] = ""
-                st.session_state[f"{prefix}_desc"] = ""
-                if label == "Equipment":
-                    st.session_state[f"{prefix}_weight"] = 0.0
-                st.rerun()
+                st.toast(f"Added {name} to Character")
+                clear_inputs()
 
-        if c_db.button("Save to DB & Add", key=f"{prefix}_btn_save_db"):
-            if form_result["name"]:
-                item_data = get_new_item_data()
-                
+        def save_db_callback():
+            name, item_data = get_item_data_from_state()
+            if name:
                 # Add to Char
                 if char_key not in char or not isinstance(char[char_key], list):
                     char[char_key] = []
@@ -806,20 +823,17 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
 
                 # Add to DB
                 db_entry = {k: v for k, v in item_data.items() if k not in ["equipped", "active"]}
-                if not any(e['name'] == form_result["name"] for e in data_list):
+                if not any(e['name'] == name for e in data_list):
                     data_list.append(db_entry)
                     save_data(file_path, data_list)
-                    st.success(f"Added {form_result['name']} to Database & Character")
+                    st.toast(f"Added {name} to Database & Character")
                 else:
-                    st.warning(f"Item {form_result['name']} already in database (Added to Character only)")
+                    st.toast(f"Item {name} already in database (Added to Character only)")
                 
-                st.session_state[mod_key] = []
-                # Clear inputs
-                st.session_state[f"{prefix}_name"] = ""
-                st.session_state[f"{prefix}_desc"] = ""
-                if label == "Equipment":
-                    st.session_state[f"{prefix}_weight"] = 0.0
-                st.rerun()
+                clear_inputs()
+
+        c_local.button("Add to Character Only", key=f"{prefix}_btn_add_local", on_click=add_local_callback)
+        c_db.button("Save to DB & Add", key=f"{prefix}_btn_save_db", on_click=save_db_callback)
 
 def render_inventory_management(char, key, label, max_load=None, current_load=None):
     """Renders the inventory with Carried/Stash sections and nesting."""
