@@ -70,16 +70,28 @@ def render_css(compact=True):
             box-shadow: 0 0 5px rgba(0, 255, 0, 0.2);
         }
 
-        .custom-bar-bg {
-            background-color: rgba(13, 17, 23, 0.9);
-            border: 2px solid #00b300;
-            border-radius: 6px;
+        .stat-bar-container {
             width: 100%;
-            height: 25px;
-            margin-bottom: 5px;
+            background-color: #0d1117;
+            border: 1px solid #00b300;
+            border-radius: 4px;
+            height: 28px;
+            position: relative;
             overflow: hidden;
-            box-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
         }
+        .stat-bar-text {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 1px 1px 2px black;
+            pointer-events: none;
+        }
+        
         .custom-bar-fill {
             height: 100%;
             transition: width 0.5s ease-in-out;
@@ -88,6 +100,12 @@ def render_css(compact=True):
         .stamina-fill { background-color: #ccff00; box-shadow: 0 0 10px #ccff00; }
         .load-fill { background-color: #00b300; box-shadow: 0 0 10px #00ff00; }
         .xp-fill { background-color: #0066cc; box-shadow: 0 0 10px #003366; }
+        
+        .stat-bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
         .roll-btn {
             padding: 0px 5px;
             font-size: 0.8em;
@@ -457,7 +475,7 @@ def crafting_manager_dialog(char, save_callback=None):
                     st.rerun()
 
 @st.dialog("Edit Item")
-def edit_item_dialog(item, item_id, all_items, callback):
+def edit_item_dialog(item, item_id, all_items, callback, show_load=True):
     """Dialog to edit an item's name, description, weight, and modifiers."""
     # Generate a unique key for this dialog session based on item ID
     dialog_id = f"edit_dialog_{item_id}"
@@ -499,7 +517,7 @@ def edit_item_dialog(item, item_id, all_items, callback):
     }
     mods_key = f"{dialog_id}_mods"
     
-    form_result = render_item_form(dialog_id, current_values, mods_key, show_quantity=True)
+    form_result = render_item_form(dialog_id, current_values, mods_key, show_quantity=True, show_load=show_load)
 
     st.divider()
     
@@ -606,6 +624,7 @@ def edit_item_dialog(item, item_id, all_items, callback):
 @st.dialog("Add Item")
 def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, callback=None):
     """Dialog to add items from database or custom."""
+    show_load = (label == "Equipment")
     data_list = load_data(file_path)
     if not isinstance(data_list, list):
         data_list = []
@@ -655,7 +674,7 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
     
     # Use render_item_form but we need to manage the values manually since it's not bound to an existing item
     # We can pass empty dict and let it use keys
-    form_result = render_item_form(prefix + "_dlg", {}, mod_key, show_quantity=False)
+    form_result = render_item_form(prefix + "_dlg", {}, mod_key, show_quantity=False, show_load=show_load)
 
     if st.button("Create & Add", type="primary", use_container_width=True, key=f"{prefix}_btn_create_dlg"):
         if form_result["name"]:
@@ -663,7 +682,7 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
             item_data = {
                 "name": form_result["name"],
                 "description": final_desc,
-                "weight": form_result["weight"] if label == "Equipment" else 0.0,
+                "weight": form_result["weight"] if show_load else 0.0,
                 "equipped": False if label == "Equipment" else True,
                 "active": True,
                 "quantity": 1,
@@ -693,6 +712,7 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
             st.rerun()
 
 def render_database_manager(label, file_path, char, char_key, session_key, prefix):
+    show_load = (label == "Equipment")
     with st.expander(f"➕ Add {label}"):
         data_list = load_data(file_path)
         if not isinstance(data_list, list):
@@ -736,7 +756,7 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
         mod_key = f"{prefix}_modifiers"
         if mod_key not in st.session_state: st.session_state[mod_key] = []
         
-        form_result = render_item_form(prefix, {}, mod_key, show_quantity=False)
+        form_result = render_item_form(prefix, {}, mod_key, show_quantity=False, show_load=show_load)
         
         c_local, c_db = st.columns(2)
         
@@ -745,7 +765,7 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
             return {
                 "name": form_result["name"],
                 "description": final_desc,
-                "weight": form_result["weight"] if label == "Equipment" else 0.0,
+                "weight": form_result["weight"] if show_load else 0.0,
                 "equipped": False if label == "Equipment" else True,
                 "active": True,
                 "quantity": 1,
@@ -812,7 +832,7 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
     if label == "Equipment":
         c_filter, c_sort = st.columns(2)
         filter_types = c_filter.multiselect("Filter by Type", ["Weapon", "Apparel", "Aid", "Misc", "Currency"], key=f"inv_filter_{key}")
-        sort_option = c_sort.selectbox("Sort by", ["Name (A-Z)", "Weight (Low-High)", "Weight (High-Low)", "Type"], key=f"inv_sort_{key}")
+        sort_option = c_sort.selectbox("Sort by", ["Name (A-Z)", "Load (Low-High)", "Load (High-Low)", "Type"], key=f"inv_sort_{key}")
         
         # Apply Filter
         if filter_types:
@@ -842,7 +862,7 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
             with c3:
                 ca, cb = st.columns(2)
                 if ca.button("✏️", key=f"{key}_edit_{i}"):
-                    edit_item_dialog(item, item.get("id", str(i)), items, lambda: None)
+                    edit_item_dialog(item, item.get("id", str(i)), items, lambda: None, show_load=False)
                 if cb.button("🗑️", key=f"{key}_del_{i}"):
                     items.pop(i)
                     st.rerun()
@@ -879,7 +899,7 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                     with c_act:
                         c_ed, c_del = st.columns(2)
                         if c_ed.button("✏️", key=f"inv_ed_{item['id']}"):
-                            edit_item_dialog(item, item['id'], items, lambda: None)
+                            edit_item_dialog(item, item['id'], items, lambda: None, show_load=True)
                         if c_del.button("🗑️", key=f"inv_del_{item['id']}"):
                             items.remove(item)
                             st.rerun()
@@ -928,13 +948,13 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                 with c_act:
                     ca, cb = st.columns(2)
                     if ca.button("✏️", key=f"inv_ed_{item['id']}"):
-                        edit_item_dialog(item, item['id'], items, lambda: None)
+                        edit_item_dialog(item, item['id'], items, lambda: None, show_load=True)
                     if cb.button("🗑️", key=f"inv_del_{item['id']}"):
                         items.remove(item)
                         st.rerun()
                     with st.popover("⚙️", use_container_width=True):
                         if st.button("Edit", key=f"inv_ed_{item['id']}", use_container_width=True):
-                            edit_item_dialog(item, item['id'], items, lambda: None)
+                            edit_item_dialog(item, item['id'], items, lambda: None, show_load=True)
                         if st.button("Delete", key=f"inv_del_{item['id']}", type="primary", use_container_width=True):
                             items.remove(item)
                             st.rerun()
@@ -1064,26 +1084,9 @@ def render_character_statblock(char, save_callback=None):
             overflow: hidden;
             top: -8px;
         }
-        .stat-bar-fill {
-            height: 100%;
-            transition: width 0.3s ease;
-        }
         .hp-fill { background-color: rgba(255, 50, 50, 0.7); }
         .sp-fill { background-color: rgba(200, 255, 50, 0.7); }
         .xp-fill { background-color: rgba(50, 100, 255, 0.7); }
-        
-        .stat-bar-text {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85em;
-            font-weight: bold;
-            color: #ffffff;
-            text-shadow: 1px 1px 2px black;
-            pointer-events: none;
-        }
         
         .stat-label-sm {
             font-size: 0.7em;
@@ -1154,7 +1157,7 @@ def render_character_statblock(char, save_callback=None):
         header_html = (
         f'<div class="statblock-header">'
         f'<span class="statblock-title">{char.get("name", "Unnamed")}</span>'
-        f'<span class="statblock-meta">Lvl {char.get("level", 1)} {char.get("origin", "Wastelander")}</span>'
+        f'<span class="statblock-meta">Lvl {char.get("level", 1)} {char.get("background", "Wastelander")}</span>'
         f'</div>'
         )
         st.markdown(header_html + special_html, unsafe_allow_html=True)
@@ -1303,7 +1306,7 @@ def render_character_statblock(char, save_callback=None):
         
         # Load Bar (Full Width)
         max_load = char.get("carry_load", 0)
-        curr_load = char.get("current_weight", 0)
+        curr_load = char.get("current_load", 0)
         pct = min(1.0, curr_load / max_load) if max_load > 0 else 1.0
         st.markdown(f"""
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-weight: bold;">
@@ -1352,7 +1355,7 @@ def render_character_statblock(char, save_callback=None):
                     with c_act:
                         with st.popover("⚙️", use_container_width=True):
                             if st.button("Edit", key=f"sb_ed_{item['id']}", use_container_width=True):
-                                edit_item_dialog(item, item['id'], inventory, save_callback)
+                                edit_item_dialog(item, item['id'], inventory, save_callback, show_load=True)
                             if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
                                 inventory.remove(item)
                                 if save_callback: save_callback()
@@ -1403,7 +1406,7 @@ def render_character_statblock(char, save_callback=None):
                     with c_act:
                         with st.popover("⚙️", use_container_width=True):
                             if st.button("Edit", key=f"sb_ed_{item['id']}", use_container_width=True):
-                                edit_item_dialog(item, item['id'], inventory, save_callback)
+                                edit_item_dialog(item, item['id'], inventory, save_callback, show_load=True)
                             if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
                                 inventory.remove(item)
                                 if save_callback: save_callback()

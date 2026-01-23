@@ -90,8 +90,9 @@ def render() -> None:
     with st.expander("➕ Create New Item", expanded=False):
         mod_key = "new_db_item_mods"
         if mod_key not in st.session_state: st.session_state[mod_key] = []
+        show_load = (db_type == "Equipment")
         
-        form_result = render_item_form("new_db_item", {}, mod_key, show_quantity=False)
+        form_result = render_item_form("new_db_item", {}, mod_key, show_quantity=False, show_load=show_load)
         
         if st.button("Create Item", key="btn_create_db_item"):
             if form_result["name"]:
@@ -102,7 +103,7 @@ def render() -> None:
                     new_item = {
                         "name": form_result["name"], 
                         "description": final_desc, 
-                        "weight": form_result["weight"], 
+                        "weight": form_result["weight"] if show_load else 0.0, 
                         "is_container": False,
                         "item_type": form_result["item_type"],
                         "sub_type": form_result["sub_type"],
@@ -155,7 +156,8 @@ def render() -> None:
             display_values = item.copy()
             display_values["description"] = clean_desc
             
-            form_result = render_item_form(f"db_item_{i}", display_values, mod_key, show_quantity=False)
+            show_load = (db_type == "Equipment")
+            form_result = render_item_form(f"db_item_{i}", display_values, mod_key, show_quantity=False, show_load=show_load)
             
             c_save, c_del = st.columns([1, 1])
             
@@ -165,7 +167,7 @@ def render() -> None:
                     
                     item["name"] = form_result["name"]
                     item["description"] = final_desc
-                    item["weight"] = form_result["weight"]
+                    item["weight"] = form_result["weight"] if show_load else 0.0
                     item["item_type"] = form_result["item_type"]
                     item["sub_type"] = form_result["sub_type"]
                     item["range_normal"] = form_result["range_normal"]

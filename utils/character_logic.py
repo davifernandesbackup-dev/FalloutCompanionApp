@@ -24,7 +24,7 @@ def get_default_character():
     return {
         "name": "New Character",
         "level": 1,
-        "origin": "Vault Dweller",
+        "background": "Vault Dweller",
         "xp": 0,
         "stats": {
             "STR": 5, "PER": 5, "END": 5, "CHA": 5, "INT": 5, "AGI": 5, "LUC": 5
@@ -37,7 +37,7 @@ def get_default_character():
         },
         "hp_max": 10, "hp_current": 10, "stamina_max": 10, "stamina_current": 10,
         "ac": 10, "combat_sequence": 0, "action_points": 10, 
-        "carry_load": 50, "perks": [], "inventory": [],
+        "carry_load": 50, "perks": [], "traits": [], "inventory": [],
         "fatigue": 0, "exhaustion": 0, "hunger": 0, "dehydration": 0,
         "group_sneak": 0, "party_nerve": 0,
         "notes": ""
@@ -51,13 +51,14 @@ def sync_char_widgets():
     
     # Basic Info
     st.session_state["c_name"] = char.get("name", "")
-    st.session_state["c_origin"] = char.get("origin", "")
+    st.session_state["c_background"] = char.get("background", "")
     st.session_state["c_level"] = char.get("level", 1)
     st.session_state["c_xp"] = char.get("xp", 0)
     st.session_state["c_hp_curr"] = char.get("hp_current", 10)
     st.session_state["c_stamina_curr"] = char.get("stamina_current", 10)
     st.session_state["c_ac"] = char.get("ac", 10)
     st.session_state["c_perks"] = char.get("perks", [])
+    st.session_state["c_traits"] = char.get("traits", [])
     st.session_state["c_inv"] = char.get("inventory", [])
     st.session_state["c_fatigue"] = char.get("fatigue", 0)
     st.session_state["c_exhaustion"] = char.get("exhaustion", 0)
@@ -74,6 +75,10 @@ def sync_char_widgets():
 
 def migrate_character(char):
     """Converts legacy string-based inventory/perks to list-based objects."""
+    # Migrate Origin -> Background
+    if "origin" in char and "background" not in char:
+        char["background"] = char.pop("origin")
+
     # Migrate Inventory
     if isinstance(char.get("inventory"), str):
         new_inv = []
@@ -116,6 +121,12 @@ def migrate_character(char):
             else:
                 new_perks.append({"name": line, "description": "", "active": True})
         char["perks"] = new_perks
+        
+    # Migrate Traits
+    if "traits" not in char:
+        char["traits"] = []
+    for trait in char.get("traits", []):
+        if "id" not in trait: trait["id"] = str(uuid.uuid4())
 
     # Migrate Container/ID System
     inventory = char.get("inventory", [])
@@ -158,6 +169,11 @@ def calculate_stats(char):
     for perk in char.get("perks", []):
         if perk.get("active", True):
             full_text += f" {perk.get('description', '')}"
+            
+    # Process Traits
+    for trait in char.get("traits", []):
+        if trait.get("active", True):
+            full_text += f" {trait.get('description', '')}"
 
     # Process Inventory
     for item in char.get("inventory", []):
@@ -212,10 +228,10 @@ def calculate_stats(char):
         # Apply external modifiers (Perks/Items) to the derived base
         effective_skills[key] = int(get_effective_value(derived_base, key))
 
-    # Calculate Current Weight
+    # Calculate Current Load
     inventory = char.get("inventory", [])
     
-    # Build Tree for recursive weight
+    # Build Tree for recursive load
     item_map = {item["id"]: item for item in inventory}
     children_map = {}
     for item in inventory:
@@ -224,23 +240,23 @@ def calculate_stats(char):
             if pid not in children_map: children_map[pid] = []
             children_map[pid].append(item)
 
-    def get_total_weight(item_id):
+    def get_total_load(item_id):
         item = item_map.get(item_id)
         if not item: return 0.0
-        # Self weight
+        # Self load
         w = float(item.get("weight", 0.0)) * item.get("quantity", 1)
-        # Children weight
+        # Children load
         for child in children_map.get(item_id, []):
-            w += get_total_weight(child["id"])
+            w += get_total_load(child["id"])
         return w
 
-    current_weight = 0.0
+    current_load = 0.0
     carried_caps = 0
 
     for item in inventory:
         # Only count weight for root items in "carried"
         if item.get("parent_id") is None and item.get("location") == "carried":
-            current_weight += get_total_weight(item["id"])
+            current_load += get_total_load(item["id"])
         
         # Count caps (anywhere in carried hierarchy)
         # We need to check if the item is effectively carried
@@ -259,7 +275,7 @@ def calculate_stats(char):
             if is_carried:
                 carried_caps += item.get("quantity", 0)
     
-    char["current_weight"] = round(current_weight, 1)
+    char["current_load"] = round(current_load, 1)
     char["caps"] = carried_caps # Update display value
 
     # 4. Derived Stats

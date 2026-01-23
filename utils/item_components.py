@@ -41,17 +41,21 @@ def render_modifier_builder(key_prefix, mod_list_key):
         if mod_list_key not in st.session_state: st.session_state[mod_list_key] = []
         st.session_state[mod_list_key].append(f"{{{stat_sel} {operator_map[op_sel]}{val_fmt}}}")
 
-def render_item_form(prefix, current_values, mod_list_key, show_quantity=False):
+def render_item_form(prefix, current_values, mod_list_key, show_quantity=False, show_load=True):
     """
     Renders a standardized item form.
     current_values: dict with keys (name, weight, item_type, sub_type, range_normal, range_long, description, quantity)
     mod_list_key: session state key for the list of modifiers
     """
     
-    if show_quantity:
-        c_name, c_weight, c_qty = st.columns([3, 1, 1])
+    if show_quantity and show_load:
+        c_name, c_load, c_qty = st.columns([3, 1, 1])
+    elif show_load:
+        c_name, c_load = st.columns([3, 1])
+        c_qty = None
     else:
-        c_name, c_weight = st.columns([3, 1])
+        c_name = st.container()
+        c_load = None
         c_qty = None
     
     k_name = f"{prefix}_name"
@@ -60,11 +64,14 @@ def render_item_form(prefix, current_values, mod_list_key, show_quantity=False):
     else:
         new_name = c_name.text_input("Name", value=current_values.get("name", ""), key=k_name)
 
-    k_weight = f"{prefix}_weight"
-    if k_weight in st.session_state:
-        new_weight = c_weight.number_input("Weight", min_value=0.0, step=0.1, key=k_weight)
+    if show_load and c_load:
+        k_weight = f"{prefix}_weight"
+        if k_weight in st.session_state:
+            new_weight = c_load.number_input("Load", min_value=0.0, step=0.1, key=k_weight)
+        else:
+            new_weight = c_load.number_input("Load", min_value=0.0, step=0.1, value=float(current_values.get("weight", 0.0)), key=k_weight)
     else:
-        new_weight = c_weight.number_input("Weight", min_value=0.0, step=0.1, value=float(current_values.get("weight", 0.0)), key=k_weight)
+        new_weight = 0.0
     
     new_qty = 1
     if show_quantity and c_qty:

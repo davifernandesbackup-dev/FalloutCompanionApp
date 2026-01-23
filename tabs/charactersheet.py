@@ -4,7 +4,24 @@ import copy
 from utils.data_manager import load_data, save_data
 from constants import CHARACTERS_FILE, EQUIPMENT_FILE, PERKS_FILE
 from utils.character_logic import get_default_character, sync_char_widgets, calculate_stats, roll_skill, migrate_character, SKILL_MAP
-from utils.character_components import render_css, render_bars, render_database_manager, render_inventory_management, render_character_statblock, caps_manager_dialog, crafting_manager_dialog
+from utils.character_components import render_css, render_bars, render_database_manager, render_inventory_management, render_character_statblock, caps_manager_dialog, crafting_manager_dialog, add_db_item_dialog
+
+def update_skills_callback():
+    """Callback to update skills immediately on edit to fix desync."""
+    if "skill_editor" in st.session_state:
+        ed = st.session_state["skill_editor"]
+        rows = ed.get("edited_rows", {})
+        if not rows: return
+        
+        if "char_sheet" in st.session_state:
+            char = st.session_state.char_sheet
+            sorted_skills = sorted(list(SKILL_MAP.keys()))
+            
+            for idx, changes in rows.items():
+                if "Others" in changes:
+                    skill_name = sorted_skills[int(idx)]
+                    if "skills" in char:
+                        char["skills"][skill_name] = changes["Others"]
 
 def render_character_sheet() -> None:
     st.header("📝 Character Sheet")
@@ -141,9 +158,9 @@ def render_character_sheet() -> None:
             st.session_state["c_level"] = new_level
 
             # ROW 1: BASIC INFO
-            col_name, col_origin, col_level, col_experience = st.columns(4)
+            col_name, col_background, col_level, col_experience = st.columns(4)
             char["name"] = col_name.text_input("Name", key="c_name")
-            char["origin"] = col_origin.text_input("Origin", key="c_origin")
+            char["background"] = col_background.text_input("Background", key="c_background")
             # Level is derived from XP, so we disable manual input or just show it
             col_level.text_input("Level", value=str(char.get("level", 1)), disabled=True, help="Derived from XP (1000 XP per level)")
             char["xp"] = col_experience.number_input("XP", min_value=0, key="c_xp")
@@ -201,14 +218,16 @@ def render_character_sheet() -> None:
             
             with col_health_bar:
                 st.markdown("**Health Points**")
-                health_current = char.get("hp_current", 10)
+                # Use session state value if available to prevent desync during editing
+                health_current = st.session_state.get("c_hp_curr", char.get("hp_current", 10))
                 # Use Effective Max for bar calculation
                 health_percent = max(0.0, min(1.0, health_current / effective_health_max)) if effective_health_max > 0 else 0.0
                 
                 # Custom HP Bar (Red)
                 st.markdown(f"""
-                <div class="custom-bar-bg">
-                    <div class="custom-bar-fill hp-fill" style="width: {health_percent*100}%;"></div>
+                <div class="stat-bar-container">
+                    <div class="stat-bar-fill hp-fill" style="width: {health_percent*100}%;"></div>
+                    <div class="stat-bar-text">{health_current} / {effective_health_max}</div>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -218,14 +237,16 @@ def render_character_sheet() -> None:
 
             with col_stamina_bar:
                 st.markdown("**Stamina**")
-                stamina_current = char.get("stamina_current", 10)
+                # Use session state value if available to prevent desync during editing
+                stamina_current = st.session_state.get("c_stamina_curr", char.get("stamina_current", 10))
                 # Use Effective Max for bar calculation
                 stamina_percent = max(0.0, min(1.0, stamina_current / effective_stamina_max)) if effective_stamina_max > 0 else 0.0
                 
                 # Custom Stamina Bar (Yellow-Green)
                 st.markdown(f"""
-                <div class="custom-bar-bg">
-                    <div class="custom-bar-fill stamina-fill" style="width: {stamina_percent*100}%;"></div>
+                <div class="stat-bar-container">
+                    <div class="stat-bar-fill stamina-fill" style="width: {stamina_percent*100}%;"></div>
+                    <div class="stat-bar-text">{stamina_current} / {effective_stamina_max}</div>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -241,7 +262,7 @@ def render_character_sheet() -> None:
             grid_html += f'<div class="special-box" title="Base 10 + Modifiers"><div class="special-label">AC</div><div class="special-value">{effective_armor_class}</div></div>'
             grid_html += f'<div class="special-box" title="10 + Perception Modifier"><div class="special-label">SEQ</div><div class="special-value">{char.get("combat_sequence", 0)}</div></div>'
             grid_html += f'<div class="special-box" title="Derived: AGI + 5"><div class="special-label">AP</div><div class="special-value">{char.get("action_points", 10)}</div></div>'
-            grid_html += f'<div class="special-box" title="Derived: STR * 10"><div class="special-label">LOAD</div><div class="special-value">{char.get("carry_load", 50)}</div></div>'
+            grid_html += f'<div class="special-box" title="Derived: STR * 10"><div class="special-label">LOAD</div><div class="special-value">{char.get("current_load", 0)}/{char.get("carry_load", 50)}</div></div>'
             grid_html += f'<div class="special-box" title="Endurance + Level"><div class="special-label">HEAL</div><div class="special-value">{char.get("healing_rate", 0)}</div></div>'
             grid_html += f'<div class="special-box" title="12 + Perception Mod"><div class="special-label">SENSE</div><div class="special-value">{char.get("passive_sense", 0)}</div></div>'
             grid_html += '</div>'
@@ -288,7 +309,7 @@ def render_character_sheet() -> None:
                     skill_table_data.append({
                         "Skill": skill,
                         "Stat": stat_str,
-                        "Rank": base_val,
+                        "Others": base_val,
                         "Total": eff_val
                     })
                 
@@ -302,22 +323,32 @@ def render_character_sheet() -> None:
                         "Skill": st.column_config.TextColumn(disabled=True),
                         "Stat": st.column_config.TextColumn(disabled=True),
                         "Total": st.column_config.NumberColumn(disabled=True, help="Effective value including stats and perks"),
-                        "Rank": st.column_config.NumberColumn(min_value=0, max_value=100, step=1)
+                        "Others": st.column_config.NumberColumn(step=1, help="Custom value added/subtracted from skill")
                     },
                     hide_index=True,
                     use_container_width=True,
-                    key="skill_editor"
+                    key="skill_editor",
+                    on_change=update_skills_callback
                 )
-                
-                # Sync changes back to char
-                for row in edited_skills:
-                    char["skills"][row["Skill"]] = row["Rank"]
             
             with col_right:
-                st.markdown("**Perks & Traits**")
+                # --- TRAITS ---
+                st.markdown("**Traits** (Max 2)")
+                render_inventory_management(char, "traits", "Perk")
+                
+                if len(char.get("traits", [])) < 2:
+                    if st.button("➕ Add Trait", key="btn_add_trait", use_container_width=True):
+                        # Reusing PERKS_FILE as a placeholder, or allows custom creation
+                        add_db_item_dialog("Trait", PERKS_FILE, char, "traits", "c_traits", "trait_dlg")
+                else:
+                    st.caption("Trait limit reached.")
+                
+                st.divider()
+
+                # --- PERKS ---
+                st.markdown("**Perks**")
                 render_inventory_management(char, "perks", "Perk")
                 
-                # --- PERK MANAGER ---
                 render_database_manager(
                     label="Perk",
                     file_path=PERKS_FILE,
@@ -327,6 +358,7 @@ def render_character_sheet() -> None:
                     prefix="pk"
                 )
                 
+                st.divider()
                 st.markdown("**Inventory**")
                 c_inv_head, c_craft_btn = st.columns([3, 1])
                 c_inv_head.caption("Manage your equipment and items.")
@@ -336,7 +368,7 @@ def render_character_sheet() -> None:
                 render_inventory_management(
                     char, "inventory", "Equipment",
                     max_load=char.get("carry_load", 0),
-                    current_load=char.get("current_weight", 0)
+                    current_load=char.get("current_load", 0)
                 )
                 
                 st.markdown("**Caps**")
