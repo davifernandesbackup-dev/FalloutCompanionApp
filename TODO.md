@@ -66,7 +66,10 @@
 - [x] (2026-01-22 22:17) **Character Notes**: Added a persistent freeform notes section to both the Character Editor and Statblock views.
 - [x] (2026-01-22 22:17) **Bug Fixes**: Resolved session state conflicts in character sheet inputs and fixed item builder crashes for weapon subtypes.
 
-
+character sheet
+lidar com traits (basicamente a mesmsa coisa que perks mas so pode ter duas)
+resolver bug do desync da barra de vida
+indicar hp maximo e stamina maxima no edit mode
 
 ## Notes
 # Use this file to track progress.

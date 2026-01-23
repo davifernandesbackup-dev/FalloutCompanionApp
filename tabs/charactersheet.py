@@ -1,5 +1,6 @@
 import streamlit as st
 import re
+import json
 import copy
 from utils.data_manager import load_data, save_data
 from constants import CHARACTERS_FILE, EQUIPMENT_FILE, PERKS_FILE
@@ -118,7 +119,7 @@ def render_character_sheet() -> None:
             return
 
         # --- EDIT VIEW TOOLBAR ---
-        col_back, col_view, col_save, col_delete = st.columns([0.8, 1.5, 1.2, 0.8])
+        col_back, col_view, col_save, col_export, col_delete = st.columns([0.8, 1.5, 1.2, 1.2, 0.8])
         
         if col_back.button("⬅️ Back"):
             st.session_state.char_sheet_mode = "SELECT"
@@ -140,6 +141,10 @@ def render_character_sheet() -> None:
                 st.toast("Character Saved!")
             else:
                 st.error("Error saving character.")
+        
+        # Export Button
+        json_str = json.dumps(char, indent=4)
+        col_export.download_button("📤 Export JSON", json_str, file_name=f"{char.get('name','char')}.json", mime="application/json", use_container_width=True)
 
         if col_delete.button("🗑️ Delete", use_container_width=True):
             if st.session_state.active_char_idx is not None:

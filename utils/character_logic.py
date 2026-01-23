@@ -174,6 +174,9 @@ def calculate_stats(char):
     for trait in char.get("traits", []):
         if trait.get("active", True):
             full_text += f" {trait.get('description', '')}"
+            
+    # Process Background
+    full_text += f" {char.get('background', '')}"
 
     # Process Inventory
     for item in char.get("inventory", []):

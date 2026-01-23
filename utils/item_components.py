@@ -41,7 +41,7 @@ def render_modifier_builder(key_prefix, mod_list_key):
         if mod_list_key not in st.session_state: st.session_state[mod_list_key] = []
         st.session_state[mod_list_key].append(f"{{{stat_sel} {operator_map[op_sel]}{val_fmt}}}")
 
-def render_item_form(prefix, current_values, mod_list_key, show_quantity=False, show_load=True):
+def render_item_form(prefix, current_values, mod_list_key, show_quantity=False, show_load=True, show_type=True):
     """
     Renders a standardized item form.
     current_values: dict with keys (name, weight, item_type, sub_type, range_normal, range_long, description, quantity)
@@ -81,51 +81,57 @@ def render_item_form(prefix, current_values, mod_list_key, show_quantity=False, 
         else:
             new_qty = c_qty.number_input("Qty", min_value=1, step=1, value=int(current_values.get("quantity", 1)), key=k_qty)
     
-    c_type, c_sub = st.columns(2)
-    types = ["Misc", "Weapon", "Apparel", "Aid", "Currency"]
-    curr_type = current_values.get("item_type", "Misc")
-    if curr_type not in types: curr_type = "Misc"
-    
-    k_type = f"{prefix}_type"
-    if k_type in st.session_state:
-        new_type = c_type.selectbox("Type", types, key=k_type)
-    else:
-        new_type = c_type.selectbox("Type", types, index=types.index(curr_type), key=k_type)
-    
-    new_subtype = current_values.get("sub_type")
-    new_rn = int(current_values.get("range_normal", 0))
-    new_rl = int(current_values.get("range_long", 0))
-    
-    if new_type == "Weapon":
-        subs = ["Guns", "Melee", "Unarmed", "Explosives", "Energy Weapons"]
-        curr_sub = new_subtype if new_subtype in subs else "Guns"
+    if show_type:
+        c_type, c_sub = st.columns(2)
+        types = ["Misc", "Weapon", "Apparel", "Aid", "Currency"]
+        curr_type = current_values.get("item_type", "Misc")
+        if curr_type not in types: curr_type = "Misc"
         
-        # Ensure session state has a valid value for the selectbox to avoid crashes
-        sb_key = f"{prefix}_sub"
-        if sb_key in st.session_state and st.session_state[sb_key] not in subs:
-            st.session_state[sb_key] = subs[0]
-            
-        if sb_key in st.session_state:
-            new_subtype = c_sub.selectbox("Weapon Type", subs, key=sb_key)
+        k_type = f"{prefix}_type"
+        if k_type in st.session_state:
+            new_type = c_type.selectbox("Type", types, key=k_type)
         else:
-            new_subtype = c_sub.selectbox("Weapon Type", subs, index=subs.index(curr_sub), key=sb_key)
+            new_type = c_type.selectbox("Type", types, index=types.index(curr_type), key=k_type)
         
-        if new_subtype in ["Guns", "Energy Weapons"]:
-            c_rn, c_rl = st.columns(2)
-            k_rn = f"{prefix}_rn"
-            k_rl = f"{prefix}_rl"
+        new_subtype = current_values.get("sub_type")
+        new_rn = int(current_values.get("range_normal", 0))
+        new_rl = int(current_values.get("range_long", 0))
+        
+        if new_type == "Weapon":
+            subs = ["Guns", "Melee", "Unarmed", "Explosives", "Energy Weapons"]
+            curr_sub = new_subtype if new_subtype in subs else "Guns"
             
-            if k_rn in st.session_state:
-                new_rn = c_rn.number_input("Normal Range", step=1, min_value=0, key=k_rn)
-            else:
-                new_rn = c_rn.number_input("Normal Range", value=new_rn, step=1, min_value=0, key=k_rn)
+            # Ensure session state has a valid value for the selectbox to avoid crashes
+            sb_key = f"{prefix}_sub"
+            if sb_key in st.session_state and st.session_state[sb_key] not in subs:
+                st.session_state[sb_key] = subs[0]
                 
-            if k_rl in st.session_state:
-                new_rl = c_rl.number_input("Long Range", step=1, min_value=0, key=k_rl)
+            if sb_key in st.session_state:
+                new_subtype = c_sub.selectbox("Weapon Type", subs, key=sb_key)
             else:
-                new_rl = c_rl.number_input("Long Range", value=new_rl, step=1, min_value=0, key=k_rl)
+                new_subtype = c_sub.selectbox("Weapon Type", subs, index=subs.index(curr_sub), key=sb_key)
+            
+            if new_subtype in ["Guns", "Energy Weapons"]:
+                c_rn, c_rl = st.columns(2)
+                k_rn = f"{prefix}_rn"
+                k_rl = f"{prefix}_rl"
+                
+                if k_rn in st.session_state:
+                    new_rn = c_rn.number_input("Normal Range", step=1, min_value=0, key=k_rn)
+                else:
+                    new_rn = c_rn.number_input("Normal Range", value=new_rn, step=1, min_value=0, key=k_rn)
+                    
+                if k_rl in st.session_state:
+                    new_rl = c_rl.number_input("Long Range", step=1, min_value=0, key=k_rl)
+                else:
+                    new_rl = c_rl.number_input("Long Range", value=new_rl, step=1, min_value=0, key=k_rl)
+        else:
+            new_subtype = None
     else:
+        new_type = "Misc"
         new_subtype = None
+        new_rn = 0
+        new_rl = 0
         
     k_desc = f"{prefix}_desc"
     if k_desc in st.session_state:

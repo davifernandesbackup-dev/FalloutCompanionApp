@@ -475,7 +475,7 @@ def crafting_manager_dialog(char, save_callback=None):
                     st.rerun()
 
 @st.dialog("Edit Item")
-def edit_item_dialog(item, item_id, all_items, callback, show_load=True):
+def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_type=True):
     """Dialog to edit an item's name, description, weight, and modifiers."""
     # Generate a unique key for this dialog session based on item ID
     dialog_id = f"edit_dialog_{item_id}"
@@ -517,7 +517,7 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True):
     }
     mods_key = f"{dialog_id}_mods"
     
-    form_result = render_item_form(dialog_id, current_values, mods_key, show_quantity=True, show_load=show_load)
+    form_result = render_item_form(dialog_id, current_values, mods_key, show_quantity=True, show_load=show_load, show_type=show_type)
 
     st.divider()
     
@@ -625,6 +625,7 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True):
 def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, callback=None):
     """Dialog to add items from database or custom."""
     show_load = (label == "Equipment")
+    show_type = (label == "Equipment")
     data_list = load_data(file_path)
     if not isinstance(data_list, list):
         data_list = []
@@ -674,7 +675,7 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
     
     # Use render_item_form but we need to manage the values manually since it's not bound to an existing item
     # We can pass empty dict and let it use keys
-    render_item_form(prefix + "_dlg", {}, mod_key, show_quantity=False, show_load=show_load)
+    render_item_form(prefix + "_dlg", {}, mod_key, show_quantity=False, show_load=show_load, show_type=show_type)
 
     def create_custom_callback():
         name = st.session_state.get(f"{prefix}_dlg_name", "")
@@ -722,6 +723,7 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
 
 def render_database_manager(label, file_path, char, char_key, session_key, prefix):
     show_load = (label == "Equipment")
+    show_type = (label == "Equipment")
     with st.expander(f"➕ Add {label}"):
         data_list = load_data(file_path)
         if not isinstance(data_list, list):
@@ -765,7 +767,7 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
         mod_key = f"{prefix}_modifiers"
         if mod_key not in st.session_state: st.session_state[mod_key] = []
         
-        render_item_form(prefix, {}, mod_key, show_quantity=False, show_load=show_load)
+        render_item_form(prefix, {}, mod_key, show_quantity=False, show_load=show_load, show_type=show_type)
         
         c_local, c_db = st.columns(2)
         
@@ -876,7 +878,7 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
             with c3:
                 ca, cb = st.columns(2)
                 if ca.button("✏️", key=f"{key}_edit_{i}"):
-                    edit_item_dialog(item, item.get("id", str(i)), items, lambda: None, show_load=False)
+                    edit_item_dialog(item, item.get("id", str(i)), items, lambda: None, show_load=False, show_type=False)
                 if cb.button("🗑️", key=f"{key}_del_{i}"):
                     items.pop(i)
                     st.rerun()
@@ -1442,6 +1444,26 @@ def render_character_statblock(char, save_callback=None):
                 render_sb_node(stash)
             else:
                 st.caption("Stash is empty.")
+
+        # FEATURES & TRAITS SECTION
+        st.markdown('<div class="section-header">Features & Traits</div>', unsafe_allow_html=True)
+        
+        # Background
+        bg_name = char.get("background", "Wastelander")
+        if bg_name:
+            st.markdown(f"**Background: {bg_name}**")
+        
+        # Traits
+        traits = char.get("traits", [])
+        if traits:
+            for t in traits:
+                st.markdown(f"**{t.get('name')}**: {t.get('description', '')}")
+        
+        # Perks
+        perks = char.get("perks", [])
+        if perks:
+            for p in perks:
+                st.markdown(f"**{p.get('name')}**: {p.get('description', '')}")
 
         # NOTES SECTION
         st.markdown('<div class="section-header">Notes</div>', unsafe_allow_html=True)

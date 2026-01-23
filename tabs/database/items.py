@@ -91,32 +91,46 @@ def render() -> None:
         mod_key = "new_db_item_mods"
         if mod_key not in st.session_state: st.session_state[mod_key] = []
         show_load = (db_type == "Equipment")
+        show_type = (db_type == "Equipment")
         
-        form_result = render_item_form("new_db_item", {}, mod_key, show_quantity=False, show_load=show_load)
+        render_item_form("new_db_item", {}, mod_key, show_quantity=False, show_load=show_load, show_type=show_type)
         
-        if st.button("Create Item", key="btn_create_db_item"):
-            if form_result["name"]:
-                if any(x['name'] == form_result["name"] for x in data_list):
-                    st.error("Item with this name already exists.")
+        def create_db_item_callback():
+            name = st.session_state.get("new_db_item_name", "")
+            if name:
+                if any(x['name'] == name for x in data_list):
+                    st.toast("Item with this name already exists.")
                 else:
-                    final_desc = join_modifiers(form_result["description"], st.session_state[mod_key])
+                    desc = st.session_state.get("new_db_item_desc", "")
+                    weight = st.session_state.get("new_db_item_weight", 0.0) if show_load else 0.0
+                    item_type = st.session_state.get("new_db_item_type", "Misc")
+                    sub_type = st.session_state.get("new_db_item_sub", None)
+                    range_normal = st.session_state.get("new_db_item_rn", 0)
+                    range_long = st.session_state.get("new_db_item_rl", 0)
+                    
+                    final_desc = join_modifiers(desc, st.session_state[mod_key])
                     new_item = {
-                        "name": form_result["name"], 
+                        "name": name, 
                         "description": final_desc, 
-                        "weight": form_result["weight"] if show_load else 0.0, 
+                        "weight": weight, 
                         "is_container": False,
-                        "item_type": form_result["item_type"],
-                        "sub_type": form_result["sub_type"],
-                        "range_normal": form_result["range_normal"],
-                        "range_long": form_result["range_long"]
+                        "item_type": item_type,
+                        "sub_type": sub_type,
+                        "range_normal": range_normal,
+                        "range_long": range_long
                     }
                     data_list.append(new_item)
                     save_data(target_file, data_list)
                     st.session_state[mod_key] = [] # Clear modifiers
-                    st.success(f"Created {form_result['name']}")
-                    st.rerun()
+                    
+                    # Clear inputs
+                    st.session_state["new_db_item_name"] = ""
+                    st.session_state["new_db_item_desc"] = ""
+                    st.toast(f"Created {name}")
             else:
-                st.warning("Name is required.")
+                st.toast("Name is required.")
+
+        st.button("Create Item", key="btn_create_db_item", on_click=create_db_item_callback)
 
     st.divider()
     
@@ -157,7 +171,8 @@ def render() -> None:
             display_values["description"] = clean_desc
             
             show_load = (db_type == "Equipment")
-            form_result = render_item_form(f"db_item_{i}", display_values, mod_key, show_quantity=False, show_load=show_load)
+            show_type = (db_type == "Equipment")
+            form_result = render_item_form(f"db_item_{i}", display_values, mod_key, show_quantity=False, show_load=show_load, show_type=show_type)
             
             c_save, c_del = st.columns([1, 1])
             
