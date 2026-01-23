@@ -1,12 +1,13 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import re
 import uuid
 from utils.data_manager import load_data, save_data
 from utils.character_logic import get_default_character, calculate_stats, SKILL_MAP
 from utils.item_components import render_item_form, render_modifier_builder, parse_modifiers, join_modifiers
-from constants import EQUIPMENT_FILE, PERKS_FILE
+from constants import EQUIPMENT_FILE, PERKS_FILE, RECIPES_FILE
 
-def render_css():
+def render_css(compact=True):
     st.markdown("""
     <style>
         /* Global Font & Colors */
@@ -27,22 +28,39 @@ def render_css():
             text-shadow: 0 0 5px rgba(0, 255, 0, 0.7);
         }
 
-        /* Input Styling to match Terminal */
-        .stat-input input {
-            text-align: center;
-            font-weight: bold;
-            color: #00ff00 !important;
+        /* TERMINAL INPUT STYLING (Base) */
+        div[data-testid="stTextInput"] {
+            border-bottom: 1px solid #00b300;
         }
         
-        div[data-testid="stNumberInput"] input, 
-        div[data-testid="stTextInput"] input,
+        div[data-testid="stNumberInput"] input,
+        div[data-testid="stTextInput"] input {
+            color: #00ff00 !important;
+            background-color: transparent !important;
+            font-family: "Source Code Pro", monospace;
+            padding: 0px !important;
+            height: 1.8rem !important;
+            min-height: 1.8rem !important;
+            -webkit-text-fill-color: #00ff00 !important;
+        }
+
         div[data-testid="stTextArea"] textarea {
             color: #00ff00 !important;
-            background-color: rgba(13, 17, 23, 0.9) !important;
-            border: 1px solid #00b300 !important;
-            border-radius: 4px;
-            box-shadow: 0 0 5px rgba(0, 255, 0, 0.2);
+            background-color: transparent !important;
+            font-family: "Source Code Pro", monospace;
             -webkit-text-fill-color: #00ff00 !important;
+        }
+        
+        /* Center numbers */
+        div[data-testid="stNumberInput"] input {
+            text-align: center;
+        }
+        
+        /* Style the +/- buttons in NumberInput */
+        div[data-testid="stNumberInput"] button {
+            color: #00ff00 !important;
+            border: none !important;
+            background-color: transparent !important;
         }
         
         div[data-testid="stSelectbox"] > div > div {
@@ -69,6 +87,7 @@ def render_css():
         .hp-fill { background-color: #ff3333; box-shadow: 0 0 10px #ff0000; }
         .stamina-fill { background-color: #ccff00; box-shadow: 0 0 10px #ccff00; }
         .load-fill { background-color: #00b300; box-shadow: 0 0 10px #00ff00; }
+        .xp-fill { background-color: #0066cc; box-shadow: 0 0 10px #003366; }
         .roll-btn {
             padding: 0px 5px;
             font-size: 0.8em;
@@ -85,17 +104,34 @@ def render_css():
 
         /* Button Styling */
         .stButton > button {
-            background-color: rgba(13, 17, 23, 0.9);
-            color: #00b300;
-            border: 1px solid #00b300;
             text-transform: uppercase;
             font-weight: bold;
             transition: all 0.2s;
         }
-        .stButton > button:hover {
+
+        /* Secondary button (default, unequipped) */
+        .stButton > button[data-testid="stButton-secondary"] {
+            background-color: transparent;
+            color: #00b300;
+            border: 1px solid #00b300;
+        }
+        .stButton > button[data-testid="stButton-secondary"]:hover {
             background-color: #00b300;
             color: #0d1117;
             box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        /* Primary button (filled, equipped) */
+        .stButton > button[data-testid="stButton-primary"] {
+            background-color: #00b300;
+            color: #0d1117;
+            border: 1px solid #00b300;
+        }
+        .stButton > button[data-testid="stButton-primary"]:hover {
+            background-color: #00ff00;
+            border-color: #00ff00;
+            color: #0d1117;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.7);
         }
 
         /* CRT SCANLINE EFFECT */
@@ -113,6 +149,12 @@ def render_css():
             pointer-events: none;
             z-index: 9999;
             opacity: 0.3;
+        }
+        
+        /* Data Editor Styling */
+        div[data-testid="stDataFrame"] {
+            border: 1px solid #00b300;
+            background-color: rgba(13, 17, 23, 0.9);
         }
 
         /* STATBLOCK STYLING */
@@ -158,6 +200,7 @@ def render_css():
             border-right: 1px solid #00b300;
             background-color: #0d1117;
         }
+        .special-box:hover { background-color: rgba(0, 179, 0, 0.2); }
         .special-box:last-child {
             border-right: none;
         }
@@ -174,6 +217,7 @@ def render_css():
             font-weight: bold;
             padding: 4px 0;
             color: #00ff00;
+            line-height: 1.2;
         }
         .derived-row {
             display: flex;
@@ -228,6 +272,27 @@ def render_bars(char, effective_health_max, effective_stamina_max):
         col_stamina_max.text_input("Max SP", value=str(effective_stamina_max), disabled=True, label_visibility="collapsed")
         char["stamina_current"] = col_stamina_current.number_input("Curr SP", min_value=0, max_value=effective_stamina_max, step=1, key="c_stamina_curr", label_visibility="collapsed")
 
+@st.dialog("Manage Experience")
+def xp_manager_dialog(char, save_callback=None):
+    """Dialog to add or remove experience points."""
+    st.markdown("Add or remove experience points.")
+    current_xp = char.get("xp", 0)
+    st.metric("Current XP", current_xp)
+    
+    amount = st.number_input("Amount", min_value=1, value=100, step=100, key="xp_dlg_amount")
+    
+    col_add, col_remove = st.columns(2)
+    
+    if col_add.button("➕ Add XP", use_container_width=True, key="xp_dlg_add"):
+        char["xp"] = current_xp + amount
+        if save_callback: save_callback()
+        st.rerun()
+        
+    if col_remove.button("➖ Remove XP", use_container_width=True, key="xp_dlg_remove"):
+        char["xp"] = max(0, current_xp - amount)
+        if save_callback: save_callback()
+        st.rerun()
+
 @st.dialog("Manage Caps")
 def caps_manager_dialog(char, save_callback=None):
     """Dialog to add or remove caps from inventory."""
@@ -275,6 +340,121 @@ def caps_manager_dialog(char, save_callback=None):
                 inventory.remove(caps_item)
             if save_callback: save_callback()
             st.rerun()
+
+@st.dialog("Crafting")
+def crafting_manager_dialog(char, save_callback=None):
+    """Dialog to handle crafting items based on recipes."""
+    recipes = load_data(RECIPES_FILE)
+    if not isinstance(recipes, list):
+        st.warning("No recipes found in database.")
+        return
+
+    inventory = char.get("inventory", [])
+    
+    # Helper to count items in inventory (recursive not strictly needed if we assume flat names, but good for robustness)
+    def get_inv_qty(name):
+        total = 0
+        for item in inventory:
+            if item.get("name") == name:
+                total += item.get("quantity", 1)
+        return total
+
+    st.markdown("### Available Recipes")
+    
+    search = st.text_input("Search Recipes", key="craft_search")
+    filtered_recipes = [r for r in recipes if search.lower() in r.get("name", "").lower()]
+    
+    for recipe in filtered_recipes:
+        # Check Requirements
+        can_craft = True
+        missing_text = []
+        
+        # 1. Check Ingredients
+        ingredients = recipe.get("ingredients", [])
+        for ing in ingredients:
+            have = get_inv_qty(ing["name"])
+            need = ing["quantity"]
+            if have < need:
+                can_craft = False
+                missing_text.append(f"Missing {ing['name']} ({have}/{need})")
+        
+        # 2. Check Skill
+        req = recipe.get("skill_requirement", {})
+        if req.get("skill"):
+            skill_name = req["skill"]
+            skill_level = req.get("level", 0)
+            char_skill = char.get("skills", {}).get(skill_name, 0)
+            # We should probably use effective skill, but raw is safer for now or we need to pass effective stats
+            # For now, let's use the value in char dict which is usually base, 
+            # but let's assume the user has updated the sheet. 
+            # Ideally we pass effective_skills to this dialog, but for now let's trust the sheet state or calc it.
+            # Let's do a quick calc or just use base to be safe/simple.
+            if char_skill < skill_level:
+                can_craft = False
+                missing_text.append(f"Low {skill_name} ({char_skill}/{skill_level})")
+
+        # Render Row
+        with st.container(border=True):
+            c_info, c_act = st.columns([3, 1])
+            with c_info:
+                st.markdown(f"**{recipe['name']}**")
+                res = recipe.get("result", {})
+                st.caption(f"Result: {res.get('name')} x{res.get('quantity', 1)}")
+                
+                # Ingredients List
+                ing_strs = []
+                for ing in ingredients:
+                    have = get_inv_qty(ing["name"])
+                    color = "green" if have >= ing["quantity"] else "red"
+                    ing_strs.append(f":{color}[{ing['name']} {have}/{ing['quantity']}]")
+                st.markdown(" | ".join(ing_strs))
+                
+                if missing_text:
+                    st.error(", ".join(missing_text))
+            
+            with c_act:
+                if st.button("🛠️ Craft", key=f"btn_craft_{recipe.get('id')}", disabled=not can_craft, use_container_width=True):
+                    # Deduct Ingredients
+                    for ing in ingredients:
+                        qty_needed = ing["quantity"]
+                        # Iterate inventory to remove
+                        for item in inventory[:]: # Copy to modify
+                            if item.get("name") == ing["name"]:
+                                take = min(qty_needed, item.get("quantity", 1))
+                                item["quantity"] -= take
+                                qty_needed -= take
+                                if item["quantity"] <= 0:
+                                    inventory.remove(item)
+                                if qty_needed <= 0:
+                                    break
+                    
+                    # Add Result
+                    res_name = res.get("name")
+                    res_qty = res.get("quantity", 1)
+                    
+                    # Check if we can stack
+                    # For simplicity, just add new item. The user can stack manually or we implement auto-stack later.
+                    # We should try to find item data from EQUIPMENT_FILE to get weight/desc
+                    eq_db = load_data(EQUIPMENT_FILE)
+                    db_item = next((i for i in eq_db if i["name"] == res_name), None)
+                    
+                    new_item = {
+                        "id": str(uuid.uuid4()),
+                        "name": res_name,
+                        "description": db_item.get("description", "Crafted item") if db_item else "Crafted item",
+                        "weight": db_item.get("weight", 0.0) if db_item else 0.0,
+                        "quantity": res_qty,
+                        "equipped": False,
+                        "location": "carried",
+                        "parent_id": None,
+                        "is_container": False,
+                        "item_type": db_item.get("item_type", "Misc") if db_item else "Misc"
+                    }
+                    inventory.append(new_item)
+                    
+                    st.success(f"Crafted {res_name}!")
+                    if save_callback: save_callback()
+                    st.rerun()
 
 @st.dialog("Edit Item")
 def edit_item_dialog(item, item_id, all_items, callback):
@@ -342,24 +522,47 @@ def edit_item_dialog(item, item_id, all_items, callback):
     invalid_targets = [item["id"]] + get_descendants(item["id"], all_items)
     potential_containers = [i for i in all_items if i.get("is_container") and i["id"] not in invalid_targets]
     
-    loc_options = ["Carried", "Stash"] + [f"Container: {i['name']}" for i in potential_containers]
+    # Check for duplicate names to disambiguate
+    name_counts = {}
+    for c in potential_containers:
+        name_counts[c["name"]] = name_counts.get(c["name"], 0) + 1
+
+    # Build options map: ID -> Display String
+    loc_map = {
+        "carried": "Carried",
+        "stash": "Stash"
+    }
     
-    # Determine current selection index
+    for c in potential_containers:
+        display_name = c["name"]
+        if name_counts.get(c["name"], 0) > 1:
+            display_name = f"{c['name']} ({c['id'][:4]})"
+        loc_map[c["id"]] = f"Container: {display_name}"
+    
+    loc_options = ["carried", "stash"] + [c["id"] for c in potential_containers]
+    
+    # Determine current selection
     current_pid = st.session_state[f"{dialog_id}_pid"]
     current_loc = st.session_state[f"{dialog_id}_loc"]
     
-    default_idx = 0
-    if current_pid:
-        # Find container name
-        parent = next((i for i in all_items if i["id"] == current_pid), None)
-        if parent:
-            try:
-                default_idx = loc_options.index(f"Container: {parent['name']}")
-            except ValueError: pass
+    default_val = "carried"
+    if current_pid and current_pid in loc_map:
+        default_val = current_pid
     elif current_loc == "stash":
-        default_idx = 1
+        default_val = "stash"
+    
+    try:
+        default_idx = loc_options.index(default_val)
+    except ValueError:
+        default_idx = 0
         
-    move_selection = c_loc.selectbox("Location / Container", loc_options, index=default_idx, key=f"{dialog_id}_move_sel")
+    move_selection = c_loc.selectbox(
+        "Location / Container", 
+        loc_options, 
+        index=default_idx, 
+        format_func=lambda x: loc_map.get(x, x),
+        key=f"{dialog_id}_move_sel"
+    )
 
     st.divider()
     
@@ -379,20 +582,16 @@ def edit_item_dialog(item, item_id, all_items, callback):
         item["range_long"] = form_result["range_long"]
         
         # Update Location
-        if move_selection == "Carried":
+        if move_selection == "carried":
             item["parent_id"] = None
             item["location"] = "carried"
-        elif move_selection == "Stash":
+        elif move_selection == "stash":
             item["parent_id"] = None
             item["location"] = "stash"
         else:
-            # Extract container name and find ID
-            cont_name = move_selection.replace("Container: ", "")
-            parent = next((i for i in potential_containers if i["name"] == cont_name), None)
-            if parent:
-                item["parent_id"] = parent["id"]
-                # Location is irrelevant if parent_id is set, but good to keep clean
-                item["location"] = "carried" 
+            # move_selection is the container ID
+            item["parent_id"] = move_selection
+            item["location"] = "carried" 
 
         # Cleanup session state
         del st.session_state[f"{dialog_id}_initialized"]
@@ -448,7 +647,8 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
     st.caption(f"Or Create Custom {label}")
     
     # Initialize defaults for custom item form
-    if f"{prefix}_new_name_dlg" not in st.session_state: st.session_state[f"{prefix}_new_name_dlg"] = ""
+    name_key = f"{prefix}_dlg_name"
+    if name_key not in st.session_state: st.session_state[name_key] = ""
     
     mod_key = f"{prefix}_modifiers_dlg"
     if mod_key not in st.session_state: st.session_state[mod_key] = []
@@ -746,9 +946,9 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
         with c_load:
             if max_load is not None and current_load is not None:
                 pct = min(1.0, current_load / max_load) if max_load > 0 else 1.0
-                st.markdown(f"**Load: {current_load} / {max_load}**")
                 st.markdown(f"""
-                <div class="custom-bar-bg" style="height: 12px; margin-bottom: 5px;">
+                <div style="margin-bottom: 0px; font-weight: bold;">Load: {current_load} / {max_load}</div>
+                <div class="custom-bar-bg" style="height: 12px; margin-bottom: 0px;">
                     <div class="custom-bar-fill load-fill" style="width: {pct*100}%;"></div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -795,6 +995,106 @@ def render_character_statblock(char, save_callback=None):
     # Ensure stats are up to date within the fragment
     _, _, _, effective_stats, effective_skills = calculate_stats(char)
     
+    # --- FIXED LAYOUT CSS OVERRIDE ---
+    st.markdown("""
+    <style>
+        /* Target the Statblock Container */
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            padding: 10px !important;
+            background-color: #000000 !important;
+            border: 2px solid #00ff00 !important;
+        }
+        
+        /* Remove Gaps */
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stVerticalBlock"] {
+            gap: 2px !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] {
+            gap: 5px !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"] {
+            padding: 0px !important;
+        }
+        
+        /* Compact Inputs */
+        div[data-testid="stVerticalBlockBorderWrapper"] input {
+            background-color: #0d1117 !important;
+            border: 1px solid #00b300 !important;
+            color: #00ff00 !important;
+            height: 28px !important;
+            min-height: 28px !important;
+            font-size: 14px !important;
+        }
+        
+        .stat-label {
+            font-size: 0.8em;
+            color: #00b300;
+            margin-bottom: 0px;
+        }
+        
+        /* Custom Status Buttons (Streamlit Widgets) */
+        div[data-testid="stVerticalBlockBorderWrapper"] button {
+            border: 1px solid #00b300 !important;
+            background-color: rgba(13, 17, 23, 0.8) !important;
+            color: #00ff00 !important;
+            border-radius: 4px !important;
+            padding: 0px !important;
+            min-height: 39px !important;
+            height: 39px !important;
+            line-height: 1 !important;
+            margin: 0px !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] button:hover {
+            background-color: #00b300 !important;
+            color: #0d1117 !important;
+            border-color: #00ff00 !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] button p {
+            font-size: 1.2em !important;
+            padding-top: 0px !important;
+        }
+        
+        .stat-bar-container {
+            width: 100%;
+            background-color: #0d1117;
+            border: 1px solid #00b300;
+            border-radius: 4px;
+            height: 39px;
+            position: relative;
+            overflow: hidden;
+            top: -8px;
+        }
+        .stat-bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .hp-fill { background-color: rgba(255, 50, 50, 0.7); }
+        .sp-fill { background-color: rgba(200, 255, 50, 0.7); }
+        .xp-fill { background-color: rgba(50, 100, 255, 0.7); }
+        
+        .stat-bar-text {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 1px 1px 2px black;
+            pointer-events: none;
+        }
+        
+        .stat-label-sm {
+            font-size: 0.7em;
+            color: #00b300;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
     # 1. SPECIAL Stats
     stat_keys = ["STR", "PER", "END", "CHA", "INT", "AGI", "LUC"]
     
@@ -814,6 +1114,15 @@ def render_character_statblock(char, save_callback=None):
     
     # 3. Skills HTML
     skills_by_stat = {k: [] for k in ["STR", "PER", "END", "CHA", "INT", "AGI", "LUC"]}
+    
+    # Helper for grid boxes
+    def make_box(label, value, help_text=""):
+        return (
+            f'<div class="special-box" title="{help_text}">'
+            f'<div class="special-label">{label}</div>'
+            f'<div class="special-value">{value}</div>'
+            f'</div>'
+        )
     
     for skill, stats in SKILL_MAP.items():
         if skill in effective_skills:
@@ -840,6 +1149,7 @@ def render_character_statblock(char, save_callback=None):
 
     # --- RENDER CONTAINER ---
     with st.container(border=True):
+        
         # HEADER
         header_html = (
         f'<div class="statblock-header">'
@@ -850,91 +1160,137 @@ def render_character_statblock(char, save_callback=None):
         st.markdown(header_html + special_html, unsafe_allow_html=True)
         
         # INTERACTIVE STATS ROW
-        st.markdown('<div class="derived-row" style="margin-bottom: 5px;">Status</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">Status</div>', unsafe_allow_html=True)
         c1, c2, c3, c4 = st.columns(4)
 
         unique_id = char.get("name", "char")
         
         with c1:
-            st.caption(f"HP (Max {char.get('hp_max', 0)})", help=f"Healing Rate: {char.get('healing_rate', 0)} (Endurance + Level)")
-            hp_key = f"sb_hp_{unique_id}"
-            st.number_input(
-                "HP", value=char.get("hp_current", 0), min_value=0, max_value=char.get("hp_max", 999), 
-                key=hp_key, label_visibility="collapsed",
-                on_change=update_stat_callback, args=(char, "hp_current", hp_key, save_callback)
-            )
+            st.markdown('<div class="stat-label-sm">Hit Points</div>', unsafe_allow_html=True)
+            b_sub, b_bar, b_add = st.columns([1, 4.5, 1], vertical_alignment="center")
+            
+            with b_sub:
+                dec_hp = st.button("➖", key=f"btn_dec_hp_{unique_id}", use_container_width=True)
+            with b_add:
+                inc_hp = st.button("➕", key=f"btn_inc_hp_{unique_id}", use_container_width=True)
+            
+            if dec_hp:
+                char["hp_current"] = max(0, char.get("hp_current", 0) - 1)
+                if save_callback: save_callback()
+            if inc_hp:
+                char["hp_current"] = min(char.get("hp_max", 1), char.get("hp_current", 0) + 1)
+                if save_callback: save_callback()
+
+            with b_bar:
+                curr = char.get("hp_current", 0)
+                maxx = char.get("hp_max", 1)
+                pct = min(1.0, curr / maxx) if maxx > 0 else 0
+                st.markdown(f"""
+                <div class="stat-bar-container">
+                    <div class="stat-bar-fill hp-fill" style="width: {pct*100}%;"></div>
+                    <div class="stat-bar-text">{curr} / {maxx}</div>
+                </div>
+                """, unsafe_allow_html=True)
                 
         with c2:
-            st.caption(f"SP (Max {char.get('stamina_max', 0)})")
-            sp_key = f"sb_sp_{unique_id}"
-            st.number_input(
-                "SP", value=char.get("stamina_current", 0), min_value=0, max_value=char.get("stamina_max", 999), 
-                key=sp_key, label_visibility="collapsed",
-                on_change=update_stat_callback, args=(char, "stamina_current", sp_key, save_callback)
-            )
+            st.markdown('<div class="stat-label-sm">Stamina</div>', unsafe_allow_html=True)
+            b_sub, b_bar, b_add = st.columns([1, 4.5, 1], vertical_alignment="center")
+            
+            with b_sub:
+                dec_sp = st.button("➖", key=f"btn_dec_sp_{unique_id}", use_container_width=True)
+            with b_add:
+                inc_sp = st.button("➕", key=f"btn_inc_sp_{unique_id}", use_container_width=True)
+            
+            if dec_sp:
+                char["stamina_current"] = max(0, char.get("stamina_current", 0) - 1)
+                if save_callback: save_callback()
+            if inc_sp:
+                char["stamina_current"] = min(char.get("stamina_max", 1), char.get("stamina_current", 0) + 1)
+                if save_callback: save_callback()
+
+            with b_bar:
+                curr = char.get("stamina_current", 0)
+                maxx = char.get("stamina_max", 1)
+                pct = min(1.0, curr / maxx) if maxx > 0 else 0
+                st.markdown(f"""
+                <div class="stat-bar-container">
+                    <div class="stat-bar-fill sp-fill" style="width: {pct*100}%;"></div>
+                    <div class="stat-bar-text">{curr} / {maxx}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
         with c3:
-            st.caption("XP")
-            xp_key = f"sb_xp_{unique_id}"
-            st.number_input(
-                "XP", value=char.get("xp", 0), min_value=0, step=10, 
-                key=xp_key, label_visibility="collapsed",
-                on_change=update_stat_callback, args=(char, "xp", xp_key, save_callback)
-            )
+            st.markdown('<div class="stat-label-sm">Experience</div>', unsafe_allow_html=True)
+            b_bar, b_man = st.columns([2, 1], vertical_alignment="center")
+            
+            with b_bar:
+                curr_xp = char.get("xp", 0)
+                pct = (curr_xp % 1000) / 1000.0
+                st.markdown(f"""
+                <div class="stat-bar-container">
+                    <div class="stat-bar-fill xp-fill" style="width: {pct*100}%;"></div>
+                    <div class="stat-bar-text">{curr_xp}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with b_man:
+                if st.button("⚙️", key=f"btn_man_xp_{unique_id}", use_container_width=True, help="Manage XP"):
+                    xp_manager_dialog(char, save_callback)
         
         with c4:
-            st.caption("Caps")
-            if st.button(f"🪙 {char.get('caps', 0)}", key=f"sb_caps_btn_{unique_id}", use_container_width=True, help="Manage Caps"):
-                caps_manager_dialog(char, save_callback)
+            st.markdown('<div class="stat-label-sm">Caps</div>', unsafe_allow_html=True)
+            b_val, b_man = st.columns([2, 1], vertical_alignment="center")
+            with b_val:
+                st.markdown(f"<div style='text-align: center; font-weight: bold; color: #e6fffa; line-height: 39px;'>🪙 {char.get('caps', 0)}</div>", unsafe_allow_html=True)
+            with b_man:
+                if st.button("⚙️", key=f"btn_man_caps_{unique_id}", use_container_width=True, help="Manage Caps"):
+                    caps_manager_dialog(char, save_callback)
 
         # CONDITIONS ROW
-        st.markdown('<div class="derived-row" style="margin-bottom: 5px; margin-top: 10px;">Conditions</div>', unsafe_allow_html=True)
+        st.markdown('<div style="margin-top: 5px;"></div>', unsafe_allow_html=True)
         cond1, cond2, cond3, cond4 = st.columns(4)
         
         with cond1:
-            st.caption("Fatigue", help="-1 penalty to d20 rolls per level.")
+            st.markdown("<div class='stat-label'>Fatigue</div>", unsafe_allow_html=True)
             f_key = f"sb_fatigue_{unique_id}"
-            st.number_input("Fatigue", value=char.get("fatigue", 0), min_value=0, key=f_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "fatigue", f_key, save_callback))
+            st.number_input("Fatigue", value=char.get("fatigue", 0), min_value=0, step=1, key=f_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "fatigue", f_key, save_callback))
         with cond2:
-            st.caption("Exhaustion", help="-1 penalty to d20 rolls per level. Requires rest to remove.")
+            st.markdown("<div class='stat-label'>Exhaustion</div>", unsafe_allow_html=True)
             e_key = f"sb_exhaustion_{unique_id}"
-            st.number_input("Exhaustion", value=char.get("exhaustion", 0), min_value=0, key=e_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "exhaustion", e_key, save_callback))
+            st.number_input("Exhaustion", value=char.get("exhaustion", 0), min_value=0, step=1, key=e_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "exhaustion", e_key, save_callback))
         with cond3:
-            st.caption("Hunger", help="-1 penalty to d20 rolls per level. Requires food to remove.")
+            st.markdown("<div class='stat-label'>Hunger</div>", unsafe_allow_html=True)
             h_key = f"sb_hunger_{unique_id}"
-            st.number_input("Hunger", value=char.get("hunger", 0), min_value=0, key=h_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "hunger", h_key, save_callback))
+            st.number_input("Hunger", value=char.get("hunger", 0), min_value=0, step=1, key=h_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "hunger", h_key, save_callback))
         with cond4:
-            st.caption("Dehydration", help="-1 penalty to d20 rolls per level. Requires water to remove.")
+            st.markdown("<div class='stat-label'>Dehydration</div>", unsafe_allow_html=True)
             d_key = f"sb_dehydration_{unique_id}"
-            st.number_input("Dehydration", value=char.get("dehydration", 0), min_value=0, key=d_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "dehydration", d_key, save_callback))
+            st.number_input("Dehydration", value=char.get("dehydration", 0), min_value=0, step=1, key=d_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "dehydration", d_key, save_callback))
 
-        # TACTICAL STATS ROW
-        st.markdown('<div class="derived-row" style="margin-bottom: 5px; margin-top: 10px;">Tactical</div>', unsafe_allow_html=True)
-        tac1, tac2, tac3 = st.columns(3)
-        with tac1:
-            st.caption("Group Sneak", help="Average of all players sneak skill rounded down.")
-            gs_key = f"sb_gs_{unique_id}"
-            st.number_input("Grp Sneak", value=char.get("group_sneak", 0), step=1, key=gs_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "group_sneak", gs_key, save_callback))
-        with tac2:
-            st.caption("Party Nerve", help="Sum of all players CHA mod, halved, rounded down.")
-            pn_key = f"sb_pn_{unique_id}"
-            st.number_input("Pty Nerve", value=char.get("party_nerve", 0), step=1, key=pn_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "party_nerve", pn_key, save_callback))
-        with tac3:
-            st.caption("Rad DC", help="12 - Endurance Mod")
-            st.text_input("Rad DC", value=str(char.get("radiation_dc", 0)), disabled=True, label_visibility="collapsed")
+        # DERIVED & TACTICAL GRID
+        st.markdown('<div class="section-header">Combat & Survival</div>', unsafe_allow_html=True)
+        
+        # Row 1: Combat
+        grid_html = '<div class="special-grid">'
+        grid_html += make_box("AC", char.get("ac", 10), "Armor Class")
+        grid_html += make_box("SEQ", char.get("combat_sequence", 0), "Combat Sequence (10 + PER Mod)")
+        grid_html += make_box("AP", char.get("action_points", 0), "Action Points (AGI + 5)")
+        grid_html += make_box("LOAD", f"{char.get('current_weight', 0)}/{char.get('carry_load', 0)}", "Current Load / Max Load")
+        grid_html += '</div>'
+        
+        # Row 2: Survival / Tactical
+        grid_html += '<div class="special-grid">'
+        grid_html += make_box("SENSE", char.get("passive_sense", 0), "Passive Sense (12 + PER Mod)")
+        grid_html += make_box("HEAL", char.get("healing_rate", 0), "Healing Rate (END + Level)")
+        grid_html += make_box("RAD DC", char.get("radiation_dc", 0), "Radiation DC (12 - END Mod)")
+        grid_html += make_box("NERVE", char.get("party_nerve", 0), "Party Nerve (Sum CHA Mods / 2)")
+        grid_html += make_box("G.SNEAK", char.get("group_sneak", 0), "Group Sneak (Avg of Party Sneak)")
+        grid_html += '</div>'
+        
+        st.markdown(grid_html, unsafe_allow_html=True)
+        st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
 
-        # DERIVED STATS (Read Only)
-        derived_html = (
-            f'<div class="derived-row" style="margin-top: 10px;">'
-            f'<span>AC: {char.get("ac", 10)}</span>'
-            f'<span title="10 + Perception Modifier">SEQ: {char.get("combat_sequence", 0)}</span>'
-            f'<span>AP: {char.get("action_points", 0)}</span>'
-            f'<span title="12 + Perception Modifier">Pas. Sense: {char.get("passive_sense", 0)}</span>'
-            f'<span title="Endurance + Level">Heal Rate: {char.get("healing_rate", 0)}</span>'
-            f'<span>Load: {char.get("current_weight", 0)} / {char.get("carry_load", 0)}</span>'
-            f'</div>'
-        )
-        st.markdown(derived_html + skills_html, unsafe_allow_html=True)
+        st.markdown(skills_html, unsafe_allow_html=True)
 
         # INVENTORY / EQUIPMENT
         st.markdown('<div class="section-header">Inventory & Equipment</div>', unsafe_allow_html=True)
@@ -945,19 +1301,26 @@ def render_character_statblock(char, save_callback=None):
         if not inventory:
             st.caption("Inventory is empty.")
         
-        # Load Bar & Add Button
-        c_load, c_add = st.columns([3, 1], vertical_alignment="bottom")
-        with c_load:
-            max_load = char.get("carry_load", 0)
-            curr_load = char.get("current_weight", 0)
-            pct = min(1.0, curr_load / max_load) if max_load > 0 else 1.0
-            st.markdown(f"**Load: {curr_load} / {max_load}**")
-            st.markdown(f"""
-            <div class="custom-bar-bg" style="height: 12px; margin-bottom: 5px;">
-                <div class="custom-bar-fill load-fill" style="width: {pct*100}%;"></div>
-            </div>
-            """, unsafe_allow_html=True)
+        # Load Bar (Full Width)
+        max_load = char.get("carry_load", 0)
+        curr_load = char.get("current_weight", 0)
+        pct = min(1.0, curr_load / max_load) if max_load > 0 else 1.0
+        st.markdown(f"""
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-weight: bold;">
+            <span>Load</span>
+            <span>{curr_load} / {max_load}</span>
+        </div>
+        <div class="custom-bar-bg" style="height: 12px; margin-bottom: 8px;">
+            <div class="custom-bar-fill load-fill" style="width: {pct*100}%;"></div>
+        </div>
+        """, unsafe_allow_html=True)
         
+        # Buttons
+        c_craft, c_add = st.columns(2)
+        with c_craft:
+            if st.button("🛠️ Craft", use_container_width=True, key=f"sb_btn_craft_{unique_id}"):
+                crafting_manager_dialog(char, save_callback)
+
         with c_add:
             if st.button("➕ Add Item", use_container_width=True, key=f"sb_btn_add_{unique_id}"):
                 add_db_item_dialog("Equipment", EQUIPMENT_FILE, char, "inventory", f"sb_inv_sync_{unique_id}", f"sb_eq_{unique_id}", callback=save_callback)
@@ -984,7 +1347,7 @@ def render_character_statblock(char, save_callback=None):
                     desc_str = f" | {item.get('description')}" if item.get("description") else ""
                     label = f"📦 {item.get('name')}{qty_str}{weight_str}{desc_str}"
                     
-                    c_exp, c_act = st.columns([0.9, 0.1], vertical_alignment="top")
+                    c_exp, c_act = st.columns([10, 0.5], vertical_alignment="top")
                     
                     with c_act:
                         with st.popover("⚙️", use_container_width=True):
@@ -1001,7 +1364,8 @@ def render_character_statblock(char, save_callback=None):
                                 render_sb_node(tree[item["id"]])
                 else:
                     # Item (Row)
-                    c_chk, c_lbl, c_act = st.columns([0.05, 0.85, 0.1], vertical_alignment="top")
+                    st.markdown('<div style="border-top: 1px dashed rgba(0, 255, 0, 0.2); margin-top: -5px; margin-bottom: 8px;"></div>', unsafe_allow_html=True)
+                    c_chk, c_lbl, c_act = st.columns([0.2, 8.2, 0.5], vertical_alignment="top")
                     
                     # Equip Checkbox
                     is_caps = item.get("name") == "Cap"
@@ -1010,10 +1374,14 @@ def render_character_statblock(char, save_callback=None):
                     with c_chk:
                         if can_equip:
                             is_equipped = item.get("equipped", False)
-                            st.checkbox("Eq", value=is_equipped, key=f"sb_eq_{item['id']}", label_visibility="collapsed", on_change=update_stat_callback, args=(item, "equipped", f"sb_eq_{item['id']}", save_callback))
+                            button_type = "primary" if is_equipped else "secondary"
+                            if st.button(" ", key=f"sb_eq_btn_{item['id']}", help="Toggle Equip", use_container_width=True, type=button_type):
+                                item["equipped"] = not is_equipped
+                                if save_callback: save_callback()
+                                st.rerun()
                     
                     with c_lbl:
-                        style = "color: #00ff00; font-weight: bold;" if item.get("equipped") else "color: #e6fffa; opacity: 0.9;"
+                        style = "color: #e6fffa;"
                         qty_str = f" (x{item.get('quantity', 1)})" if item.get('quantity', 1) > 1 else ""
                         
                         desc_parts = []
@@ -1028,9 +1396,9 @@ def render_character_statblock(char, save_callback=None):
                         if float(item.get("weight", 0)) > 0: desc_parts.append(f"{float(item['weight'])} Load")
                         if item.get("description"): desc_parts.append(item["description"])
                         
-                        desc_html = f"<br><span style='font-size:0.8em; color:#8b949e;'>{' | '.join(desc_parts)}</span>" if desc_parts else ""
+                        desc_html = f"<div style='font-size:0.85em; color:rgba(0, 255, 0, 0.6); line-height: 1.2; margin-top: 2px;'>{' | '.join(desc_parts)}</div>" if desc_parts else ""
                         
-                        st.markdown(f"<span style='{style}'>{item.get('name')}{qty_str}</span>{desc_html}", unsafe_allow_html=True)
+                        st.markdown(f"<div style='line-height: 1.2; padding-top: 0px;'><span style='{style}'>{item.get('name')}{qty_str}</span>{desc_html}</div>", unsafe_allow_html=True)
                     
                     with c_act:
                         with st.popover("⚙️", use_container_width=True):
@@ -1057,3 +1425,9 @@ def render_character_statblock(char, save_callback=None):
                 render_sb_node(stash)
             else:
                 st.caption("Stash is empty.")
+
+        # NOTES SECTION
+        st.markdown('<div class="section-header">Notes</div>', unsafe_allow_html=True)
+        notes_key = f"sb_notes_{unique_id}"
+        st.text_area("Notes", value=char.get("notes", ""), height=400, key=notes_key, label_visibility="collapsed",
+                     on_change=update_stat_callback, args=(char, "notes", notes_key, save_callback))

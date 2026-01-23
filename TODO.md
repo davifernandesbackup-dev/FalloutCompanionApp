@@ -62,6 +62,9 @@
 - [x] (2026-01-22 16:37) **Caps System**: Added a dedicated Caps Manager dialog and standardized Currency item properties.
 - [x] (2026-01-22 16:37) **Extended Stats**: Implemented Healing Rate, Radiation DC, Passive Sense, and condition trackers (Fatigue, Hunger, Dehydration).
 - [x] (2026-01-22 16:37) **UI Polish**: Widened modal dialogs and optimized item builder layouts for better usability.
+- [x] (2026-01-22 22:17) **Crafting System**: Implemented a full crafting system with recipe database, ingredient checking, and skill requirements.
+- [x] (2026-01-22 22:17) **Character Notes**: Added a persistent freeform notes section to both the Character Editor and Statblock views.
+- [x] (2026-01-22 22:17) **Bug Fixes**: Resolved session state conflicts in character sheet inputs and fixed item builder crashes for weapon subtypes.
 
 
 

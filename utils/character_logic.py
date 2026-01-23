@@ -39,7 +39,8 @@ def get_default_character():
         "ac": 10, "combat_sequence": 0, "action_points": 10, 
         "carry_load": 50, "perks": [], "inventory": [],
         "fatigue": 0, "exhaustion": 0, "hunger": 0, "dehydration": 0,
-        "group_sneak": 0, "party_nerve": 0
+        "group_sneak": 0, "party_nerve": 0,
+        "notes": ""
     }
 
 def sync_char_widgets():
@@ -64,6 +65,7 @@ def sync_char_widgets():
     st.session_state["c_dehydration"] = char.get("dehydration", 0)
     st.session_state["c_group_sneak"] = char.get("group_sneak", 0)
     st.session_state["c_party_nerve"] = char.get("party_nerve", 0)
+    st.session_state["c_notes"] = char.get("notes", "")
     
     for stat_key, stat_value in char.get("stats", {}).items():
         st.session_state[f"stat_{stat_key}"] = stat_value

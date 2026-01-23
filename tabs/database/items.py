@@ -1,13 +1,15 @@
 import streamlit as st
+import uuid
 from utils.data_manager import load_data, save_data
-from constants import EQUIPMENT_FILE, PERKS_FILE
+from constants import EQUIPMENT_FILE, PERKS_FILE, RECIPES_FILE
 from utils.item_components import render_item_form, parse_modifiers, join_modifiers
+from utils.character_logic import SKILL_MAP
 
 def render() -> None:
-    st.subheader("🎒 Item Database (Equipment & Perks)")
+    st.subheader("🎒 Item & Recipe Database")
 
-    db_type = st.radio("Select Category:", ["Equipment", "Perks"], horizontal=True, key="db_item_type")
-    target_file = EQUIPMENT_FILE if db_type == "Equipment" else PERKS_FILE
+    db_type = st.radio("Select Category:", ["Equipment", "Perks", "Recipes"], horizontal=True, key="db_item_type")
+    target_file = EQUIPMENT_FILE if db_type == "Equipment" else (PERKS_FILE if db_type == "Perks" else RECIPES_FILE)
     
     data_list = load_data(target_file)
     if not isinstance(data_list, list):
@@ -15,6 +17,74 @@ def render() -> None:
         
     # Sort for display
     data_list.sort(key=lambda x: x.get("name", ""))
+
+    # --- RECIPE EDITOR LOGIC ---
+    if db_type == "Recipes":
+        with st.expander("➕ Create New Recipe", expanded=False):
+            c_name, c_res, c_qty = st.columns([2, 2, 1])
+            r_name = c_name.text_input("Recipe Name", key="new_rec_name")
+            r_result = c_res.text_input("Result Item Name", key="new_rec_res")
+            r_qty = c_qty.number_input("Result Qty", min_value=1, value=1, key="new_rec_qty")
+            
+            st.caption("Ingredients")
+            if "new_rec_ing" not in st.session_state: st.session_state.new_rec_ing = []
+            
+            # Ingredient Adder
+            c_ing_name, c_ing_qty, c_ing_add = st.columns([2, 1, 1], vertical_alignment="bottom")
+            ing_name = c_ing_name.text_input("Ingredient", key="new_ing_name_in")
+            ing_qty = c_ing_qty.number_input("Qty", min_value=1, value=1, key="new_ing_qty_in")
+            if c_ing_add.button("Add", key="btn_add_ing_new"):
+                if ing_name:
+                    st.session_state.new_rec_ing.append({"name": ing_name, "quantity": ing_qty})
+            
+            # List Ingredients
+            for i, ing in enumerate(st.session_state.new_rec_ing):
+                st.text(f"- {ing['name']} (x{ing['quantity']})")
+            
+            if st.button("Clear Ingredients", key="btn_clr_ing_new"):
+                st.session_state.new_rec_ing = []
+
+            st.caption("Requirements")
+            c_skill, c_lvl = st.columns(2)
+            r_skill = c_skill.selectbox("Skill", ["None"] + sorted(list(SKILL_MAP.keys())), key="new_rec_skill")
+            r_lvl = c_lvl.number_input("Level Req", min_value=0, step=5, key="new_rec_slvl")
+
+            if st.button("Save Recipe", key="btn_save_rec_new"):
+                if r_name and r_result:
+                    new_recipe = {
+                        "id": str(uuid.uuid4()),
+                        "name": r_name,
+                        "result": {"name": r_result, "quantity": r_qty},
+                        "ingredients": st.session_state.new_rec_ing,
+                        "skill_requirement": {"skill": r_skill if r_skill != "None" else None, "level": r_lvl}
+                    }
+                    data_list.append(new_recipe)
+                    save_data(target_file, data_list)
+                    st.session_state.new_rec_ing = []
+                    st.success(f"Created recipe for {r_name}")
+                    st.rerun()
+                else:
+                    st.warning("Name and Result Item are required.")
+        
+        st.divider()
+        st.markdown(f"**Existing Recipes ({len(data_list)})**")
+        
+        for i, recipe in enumerate(data_list):
+            with st.expander(f"🛠️ {recipe.get('name')}"):
+                st.write(f"**Result:** {recipe['result']['name']} (x{recipe['result']['quantity']})")
+                st.write("**Ingredients:**")
+                for ing in recipe.get("ingredients", []):
+                    st.write(f"- {ing['name']} x{ing['quantity']}")
+                
+                req = recipe.get("skill_requirement", {})
+                if req.get("skill"):
+                    st.write(f"**Requires:** {req['skill']} {req.get('level', 0)}")
+                
+                if st.button("🗑️ Delete Recipe", key=f"del_rec_{i}"):
+                    data_list.pop(i)
+                    save_data(target_file, data_list)
+                    st.rerun()
+        return
 
     # --- ADD NEW ITEM ---
     with st.expander("➕ Create New Item", expanded=False):
