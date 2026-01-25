@@ -13,70 +13,73 @@ def render_statblock(name: str, data: Dict[str, Any], container: Any = st) -> No
         container.warning(f"No statblock data found for **{name}**.")
         return
 
+    primary = st.session_state.get("theme_primary", "#00ff00")
+    secondary = st.session_state.get("theme_secondary", "#00b300")
+
     # --- CSS STYLING ---
-    statblock_css = """
+    statblock_css = f"""
     <style>
-        .statblock-container {
-            border: 2px solid #00b300;
+        .statblock-container {{
+            border: 2px solid {secondary};
             border-radius: 8px;
             padding: 15px;
             background-color: rgba(13, 17, 23, 0.9);
             font-family: "Source Sans Pro", sans-serif;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 10px {primary}33;
             margin-bottom: 10px;
-        }
-        .statblock-header {
-            border-bottom: 2px solid #00b300;
+        }}
+        .statblock-header {{
+            border-bottom: 2px solid {secondary};
             margin-bottom: 10px;
             padding-bottom: 5px;
             display: flex;
             justify-content: space-between;
             align-items: baseline;
-        }
-        .statblock-title {
+        }}
+        .statblock-title {{
             font-size: 1.4em;
             font-weight: bold;
-            color: #00ff00;
+            color: {primary};
             text-transform: uppercase;
-            text-shadow: 0 0 5px rgba(0, 255, 0, 0.7);
-        }
-        .statblock-meta {
+            text-shadow: 0 0 5px {primary}B3;
+        }}
+        .statblock-meta {{
             font-style: italic;
-            color: #00cc00;
+            color: {secondary};
             font-size: 0.9em;
-        }
-        .special-grid {
+        }}
+        .special-grid {{
             display: flex;
             width: 100%;
-            border: 2px solid #00b300;
+            border: 2px solid {secondary};
             border-radius: 6px;
             overflow: hidden;
             margin: 10px 0;
-        }
-        .special-box {
+        }}
+        .special-box {{
             text-align: center;
             flex: 1;
-            border-right: 1px solid #00b300;
+            border-right: 1px solid {secondary};
             background-color: #0d1117;
-        }
-        .special-box:last-child {
+        }}
+        .special-box:last-child {{
             border-right: none;
-        }
-        .special-label {
-            background-color: #00b300;
+        }}
+        .special-label {{
+            background-color: {secondary};
             color: #0d1117;
             font-weight: bold;
             font-size: 0.75em;
             padding: 2px 0;
             text-shadow: none;
-        }
-        .special-value {
+        }}
+        .special-value {{
             font-size: 1.1em;
             font-weight: bold;
             padding: 4px 0;
-            color: #00ff00;
-        }
-        .derived-row {
+            color: {primary};
+        }}
+        .derived-row {{
             display: flex;
             justify-content: space-around;
             background-color: rgba(0, 179, 0, 0.15);
@@ -85,23 +88,23 @@ def render_statblock(name: str, data: Dict[str, Any], container: Any = st) -> No
             margin-bottom: 12px;
             font-weight: bold;
             color: #e6fffa;
-        }
-        .section-header {
-            border-bottom: 1px solid #00b300;
-            color: #00ff00;
+        }}
+        .section-header {{
+            border-bottom: 1px solid {secondary};
+            color: {primary};
             font-weight: bold;
             margin-top: 12px;
             margin-bottom: 6px;
             text-transform: uppercase;
             font-size: 0.9em;
-        }
-        .attack-row {
+        }}
+        .attack-row {{
             margin-bottom: 6px;
             padding-left: 8px;
-            border-left: 3px solid #00b300;
-        }
+            border-left: 3px solid {secondary};
+        }}
         /* CRT SCANLINE EFFECT */
-        .scanlines {
+        .scanlines {{
             background: linear-gradient(
                 to bottom,
                 rgba(255,255,255,0),
@@ -115,7 +118,7 @@ def render_statblock(name: str, data: Dict[str, Any], container: Any = st) -> No
             pointer-events: none;
             z-index: 10;
             opacity: 0.6;
-        }
+        }}
     </style>
     """
 
@@ -190,6 +193,9 @@ def render_statblock(name: str, data: Dict[str, Any], container: Any = st) -> No
 def view_statblock_dialog(name: str, data: Dict[str, Any]) -> None:
     safe_name = urllib.parse.quote(name)
     
+    primary = st.session_state.get("theme_primary", "#00ff00")
+    secondary = st.session_state.get("theme_secondary", "#00b300")
+    
     # Use JavaScript window.open to create a "popout" style window (no toolbar, etc.)
     # We use a component to inject the HTML/JS button.
     window_name = f"sb_{safe_name.replace('%', '')}"
@@ -202,8 +208,8 @@ def view_statblock_dialog(name: str, data: Dict[str, Any]) -> None:
         button {{
             width: 100%;
             background-color: #161b22;
-            color: #00b300;
-            border: 1px solid #00ff00;
+            color: {secondary};
+            border: 1px solid {primary};
             border-radius: 0.5rem;
             padding: 0.25rem 0.75rem;
             min-height: 38.4px;
@@ -212,8 +218,8 @@ def view_statblock_dialog(name: str, data: Dict[str, Any]) -> None:
             font-family: "Source Sans Pro", sans-serif;
         }}
         button:hover {{
-            border-color: #00b300;
-            color: #00ff00;
+            border-color: {secondary};
+            color: {primary};
         }}
     </style>
     </head>
@@ -236,7 +242,6 @@ def view_statblock_dialog(name: str, data: Dict[str, Any]) -> None:
 # --- MAIN RENDERER ---
 def render_bestiary() -> None:
     # The main function to render the Bestiary tab.
-    st.header("📖 Wasteland Bestiary")
     
     bestiary_data = load_data(BESTIARY_FILE)
     

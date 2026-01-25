@@ -2,7 +2,6 @@ import streamlit as st
 from tabs.database import encounters, items, bestiary, characters
 
 def render() -> None:
-    st.header("🛠️ General Database Editor")
     
     # Navigation for the Database Editor
     db_mode = st.radio(

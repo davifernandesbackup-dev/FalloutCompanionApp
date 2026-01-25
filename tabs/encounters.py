@@ -3,7 +3,6 @@ from utils.data_manager import load_data, save_data
 from constants import THREAT_FILE, LOOT_FILE
 
 def render() -> None:
-    st.subheader("⚔️ Encounter Database (Threats & Loot)")
     
     if "expanded_index" not in st.session_state:
         st.session_state["expanded_index"] = None

@@ -8,78 +8,78 @@ from utils.item_components import render_item_form, render_modifier_builder, par
 from constants import EQUIPMENT_FILE, PERKS_FILE, RECIPES_FILE
 
 def render_css(compact=True):
-    st.markdown("""
+    primary = st.session_state.get("theme_primary", "#00ff00")
+    secondary = st.session_state.get("theme_secondary", "#00b300")
+    
+    st.markdown(f"""
     <style>
         /* Global Font & Colors */
-        .stApp {
+        .stApp {{
             font-family: "Source Sans Pro", sans-serif;
             background-color: #0d1117;
-            color: #00b300;
-        }
+            color: {secondary};
+        }}
 
-        .section-header {
-            border-bottom: 1px solid #00b300;
-            margin-top: 12px;
+        .section-header {{
+            border-bottom: 1px solid {secondary};
+            margin-top: 0px;
             margin-bottom: 6px;
             font-size: 1.1em;
             font-weight: bold;
             text-transform: uppercase;
-            color: #00ff00;
-            text-shadow: 0 0 5px rgba(0, 255, 0, 0.7);
-        }
+            color: {primary};
+            text-shadow: 0 0 5px {primary}B3; /* B3 is approx 70% alpha */
+        }}
 
         /* TERMINAL INPUT STYLING (Base) */
-        div[data-testid="stTextInput"] {
-            border-bottom: 1px solid #00b300;
-        }
+        div[data-testid="stTextInput"] {{
+            border-bottom: 1px solid {secondary};
+        }}
         
         div[data-testid="stNumberInput"] input,
-        div[data-testid="stTextInput"] input {
-            color: #00ff00 !important;
+        div[data-testid="stTextInput"] input {{
+            color: {primary} !important;
             background-color: transparent !important;
             font-family: "Source Code Pro", monospace;
             padding: 0px !important;
             height: 1.8rem !important;
             min-height: 1.8rem !important;
-            -webkit-text-fill-color: #00ff00 !important;
-        }
+            -webkit-text-fill-color: {primary} !important;
+            text-align: center !important;
+        }}
 
-        div[data-testid="stTextArea"] textarea {
-            color: #00ff00 !important;
+        div[data-testid="stTextArea"] textarea {{
+            color: {primary} !important;
             background-color: transparent !important;
             font-family: "Source Code Pro", monospace;
-            -webkit-text-fill-color: #00ff00 !important;
-        }
-        
-        /* Center numbers */
-        div[data-testid="stNumberInput"] input {
-            text-align: center;
-        }
+            -webkit-text-fill-color: {primary} !important;
+        }}
         
         /* Style the +/- buttons in NumberInput */
-        div[data-testid="stNumberInput"] button {
-            color: #00ff00 !important;
+        div[data-testid="stNumberInput"] button {{
+            color: {primary} !important;
             border: none !important;
             background-color: transparent !important;
-        }
+        }}
         
-        div[data-testid="stSelectbox"] > div > div {
+        div[data-testid="stSelectbox"] > div > div {{
             background-color: rgba(13, 17, 23, 0.9) !important;
-            color: #00ff00 !important;
-            border: 1px solid #00b300 !important;
-            box-shadow: 0 0 5px rgba(0, 255, 0, 0.2);
-        }
+            color: {primary} !important;
+            border: 1px solid {secondary} !important;
+            box-shadow: 0 0 5px {primary}33;
+        }}
 
-        .stat-bar-container {
+        .stat-bar-container {{
             width: 100%;
             background-color: #0d1117;
-            border: 1px solid #00b300;
+            border: 1px solid {secondary};
             border-radius: 4px;
-            height: 28px;
+            height: 38px;
             position: relative;
             overflow: hidden;
-        }
-        .stat-bar-text {
+            margin-top: -16px;
+        }}
+        .stat-bar-text {{
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
             display: flex;
@@ -90,70 +90,92 @@ def render_css(compact=True):
             color: #ffffff;
             text-shadow: 1px 1px 2px black;
             pointer-events: none;
-        }
+        }}
         
-        .custom-bar-fill {
+        .custom-bar-bg {{
+            width: 100%;
+            background-color: #0d1117;
+            border: 1px solid {secondary};
+            border-radius: 4px;
+            height: 28px;
+            position: relative;
+            overflow: hidden;
+        }}
+        
+        .custom-bar-fill {{
             height: 100%;
             transition: width 0.5s ease-in-out;
-        }
-        .hp-fill { background-color: #ff3333; box-shadow: 0 0 10px #ff0000; }
-        .stamina-fill { background-color: #ccff00; box-shadow: 0 0 10px #ccff00; }
-        .load-fill { background-color: #00b300; box-shadow: 0 0 10px #00ff00; }
-        .xp-fill { background-color: #0066cc; box-shadow: 0 0 10px #003366; }
+        }}
+        .hp-fill {{ background-color: #ff3333; box-shadow: 0 0 10px #ff0000; }}
+        .stamina-fill {{ background-color: #bbbb00; box-shadow: 0 0 10px #ccff00; }}
+        .load-fill {{ background-color: {secondary}; box-shadow: 0 0 10px {primary}; }}
+        .xp-fill {{ background-color: #0066cc; box-shadow: 0 0 10px #003366; }}
         
-        .stat-bar-fill {
+        .stat-bar-fill {{
             height: 100%;
             transition: width 0.3s ease;
-        }
+        }}
         
-        .roll-btn {
+        .roll-btn {{
             padding: 0px 5px;
             font-size: 0.8em;
             margin-left: 5px;
-        }
-        .item-row {
+        }}
+        .item-row {{
             background-color: rgba(0, 179, 0, 0.1);
-            border-left: 3px solid #00b300;
+            border-left: 3px solid {secondary};
             border-radius: 0 4px 4px 0;
             padding: 8px;
             margin-bottom: 6px;
             color: #e6fffa;
-        }
+        }}
 
         /* Button Styling */
-        .stButton > button {
+        .stButton > button,
+        div[data-testid="stPopover"] > button {{
             text-transform: uppercase;
             font-weight: bold;
             transition: all 0.2s;
-        }
+        }}
 
         /* Secondary button (default, unequipped) */
-        .stButton > button[data-testid="stButton-secondary"] {
+        .stButton > button[data-testid="stButton-secondary"],
+        div[data-testid="stPopover"] > button {{
             background-color: transparent;
-            color: #00b300;
-            border: 1px solid #00b300;
-        }
-        .stButton > button[data-testid="stButton-secondary"]:hover {
-            background-color: #00b300;
+            color: {secondary};
+            border: 1px solid {secondary} !important;
+        }}
+        .stButton > button[data-testid="stButton-secondary"]:hover,
+        div[data-testid="stPopover"] > button:hover {{
+            background-color: {secondary};
             color: #0d1117;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-        }
+            box-shadow: 0 0 10px {primary}80;
+            border-color: {primary} !important;
+        }}
+
+        /* Secondary popoverbutton (default) */
+        .stButton > button[data-testid="stPopoverButton"],
+        button[kind="secondary"] {{
+            background-color: transparent;
+            color: {secondary};
+            border: 1px solid {secondary} !important;
+        }}
 
         /* Primary button (filled, equipped) */
-        .stButton > button[data-testid="stButton-primary"] {
-            background-color: #00b300;
+        .stButton > button[data-testid="stButton-primary"] {{
+            background-color: {secondary};
             color: #0d1117;
-            border: 1px solid #00b300;
-        }
-        .stButton > button[data-testid="stButton-primary"]:hover {
-            background-color: #00ff00;
-            border-color: #00ff00;
+            border: 1px solid {secondary};
+        }}
+        .stButton > button[data-testid="stButton-primary"]:hover {{
+            background-color: {primary};
+            border-color: {primary};
             color: #0d1117;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.7);
-        }
-
+            box-shadow: 0 0 10px {primary}B3;
+        }}
+                
         /* CRT SCANLINE EFFECT */
-        .scanlines {
+        .scanlines {{
             background: linear-gradient(
                 to bottom,
                 rgba(255,255,255,0),
@@ -167,77 +189,84 @@ def render_css(compact=True):
             pointer-events: none;
             z-index: 9999;
             opacity: 0.3;
-        }
+        }}
         
         /* Data Editor Styling */
-        div[data-testid="stDataFrame"] {
-            border: 1px solid #00b300;
+        div[data-testid="stDataFrame"] {{
+            border: 1px solid {secondary};
             background-color: rgba(13, 17, 23, 0.9);
-        }
+        }}
+
+        /* Popover Content Styling */
+        div[data-testid="stPopoverButton"] {{
+            border: 2px solid {secondary} !important;
+            background-color: #0d1117 !important;
+            color: {secondary} !important;
+        }}
 
         /* STATBLOCK STYLING */
         /* Target the st.container(border=True) */
-        div[data-testid="stVerticalBlockBorderWrapper"] {
-            border: 2px solid #00b300 !important;
+        div[data-testid="stVerticalBlockBorderWrapper"] {{
+            border: 2px solid {secondary} !important;
             border-radius: 8px;
             background-color: rgba(13, 17, 23, 0.9) !important;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.2) !important;
-            padding: 15px !important;
-        }
-        .statblock-header {
-            border-bottom: 2px solid #00b300;
+            box-shadow: 0 0 10px {primary}33 !important;
+            padding: 10px !important;
+        }}
+        .statblock-header {{
+            border-bottom: 2px solid {secondary};
             margin-bottom: 10px;
             padding-bottom: 5px;
             display: flex;
             justify-content: space-between;
             align-items: baseline;
-        }
-        .statblock-title {
+        }}
+        .statblock-title {{
             font-size: 1.4em;
             font-weight: bold;
-            color: #00ff00;
+            color: {primary};
             text-transform: uppercase;
-            text-shadow: 0 0 5px rgba(0, 255, 0, 0.7);
-        }
-        .statblock-meta {
+            text-shadow: 0 0 5px {primary}B3;
+        }}
+        .statblock-meta {{
             font-style: italic;
-            color: #00cc00;
+            color: {secondary};
             font-size: 0.9em;
-        }
-        .special-grid {
+        }}
+        .special-grid {{
             display: flex;
             width: 100%;
-            border: 2px solid #00b300;
+            border: 2px solid {secondary};
             border-radius: 6px;
             overflow: hidden;
             margin: 10px 0;
-        }
-        .special-box {
+        }}
+        .special-box {{
             text-align: center;
             flex: 1;
-            border-right: 1px solid #00b300;
+            border-right: 1px solid {secondary};
             background-color: #0d1117;
-        }
-        .special-box:hover { background-color: rgba(0, 179, 0, 0.2); }
-        .special-box:last-child {
+        }}
+        .special-box:hover {{ background-color: {secondary}33; }}
+        .special-box:last-child {{
             border-right: none;
-        }
-        .special-label {
-            background-color: #00b300;
+        }}
+        .special-label {{
+            background-color: {secondary};
             color: #0d1117;
             font-weight: bold;
             font-size: 0.75em;
             padding: 2px 0;
             text-shadow: none;
-        }
-        .special-value {
+        }}
+        .special-value {{
             font-size: 1.1em;
             font-weight: bold;
             padding: 4px 0;
-            color: #00ff00;
+            color: {primary};
             line-height: 1.2;
-        }
-        .derived-row {
+        }}
+        .derived-row {{
             display: flex;
             justify-content: space-around;
             background-color: rgba(0, 179, 0, 0.15);
@@ -246,16 +275,94 @@ def render_css(compact=True):
             margin-bottom: 12px;
             font-weight: bold;
             color: #e6fffa;
-        }
-        .attack-row {
+        }}
+        .attack-row {{
             margin-bottom: 6px;
             padding-left: 8px;
-            border-left: 3px solid #00b300;
+            border-left: 3px solid {secondary};
             background-color: rgba(0, 179, 0, 0.05);
-        }
+        }}
     </style>
     <div class="scanlines"></div>
     """, unsafe_allow_html=True)
+
+def get_descendants(pid, items_list):
+    """Recursively finds all descendant item IDs for a given parent ID."""
+    desc = []
+    children = [i for i in items_list if i.get("parent_id") == pid]
+    for child in children:
+        desc.append(child["id"])
+        desc.extend(get_descendants(child["id"], items_list))
+    return desc
+
+def render_move_menu(item, all_items, key_prefix, callback=None):
+    """Renders dynamic buttons to move items between Root/Stash/Containers."""
+    
+    # 1. Root/Location Toggle
+    if item.get("parent_id"):
+        # Item is inside a container -> Extract options
+        if st.button("🎒 Extract to Carried", key=f"{key_prefix}_ext_carry", use_container_width=True):
+            item["parent_id"] = None
+            item["location"] = "carried"
+            if callback: callback()
+            st.rerun()
+        if st.button("📦 Extract to Stash", key=f"{key_prefix}_ext_stash", use_container_width=True):
+            item["parent_id"] = None
+            item["location"] = "stash"
+            item["equipped"] = False
+            if callback: callback()
+            st.rerun()
+    else:
+        # Item is at root -> Swap Location
+        if item.get("location") == "carried":
+            if st.button("📦 To Stash", key=f"{key_prefix}_to_stash", use_container_width=True):
+                item["location"] = "stash"
+                item["parent_id"] = None
+                item["equipped"] = False
+                if callback: callback()
+                st.rerun()
+        else:
+            if st.button("🎒 To Carried", key=f"{key_prefix}_to_carry", use_container_width=True):
+                item["location"] = "carried"
+                item["parent_id"] = None
+                if callback: callback()
+                st.rerun()
+
+    # 2. Move to Container
+    descendants = get_descendants(item["id"], all_items)
+    # Valid containers: is_container, not self, not a descendant of self
+    valid_containers = [
+        c for c in all_items 
+        if c.get("is_container") 
+        and c["id"] != item["id"] 
+        and c["id"] not in descendants
+    ]
+    
+    if valid_containers:
+        st.divider()
+        st.caption("Move To:")
+        valid_containers.sort(key=lambda x: x.get("name", ""))
+        
+        # If many containers, use selectbox to save space
+        if len(valid_containers) > 4:
+            opts = {c["id"]: c.get("name", "Unnamed") for c in valid_containers}
+            sel_id = st.selectbox("Container", options=list(opts.keys()), format_func=lambda x: opts[x], key=f"{key_prefix}_sel_cont", label_visibility="collapsed")
+            if st.button("Move", key=f"{key_prefix}_go_move", use_container_width=True):
+                target = next((c for c in valid_containers if c["id"] == sel_id), None)
+                if target:
+                    item["parent_id"] = target["id"]
+                    item["location"] = target.get("location", "carried")
+                    item["equipped"] = False
+                    if callback: callback()
+                    st.rerun()
+        else:
+            for c in valid_containers:
+                if st.button(f"➡️ {c.get('name')}", key=f"{key_prefix}_mv_{c['id']}", use_container_width=True):
+                    item["parent_id"] = c["id"]
+                    item["location"] = c.get("location", "carried")
+                    item["equipped"] = False
+                    if callback: callback()
+                    st.rerun()
 
 def render_bars(char, effective_health_max, effective_stamina_max):
     col_health_bar, col_stamina_bar = st.columns(2)
@@ -289,6 +396,44 @@ def render_bars(char, effective_health_max, effective_stamina_max):
         col_stamina_max, col_stamina_current = st.columns(2)
         col_stamina_max.text_input("Max SP", value=str(effective_stamina_max), disabled=True, label_visibility="collapsed")
         char["stamina_current"] = col_stamina_current.number_input("Curr SP", min_value=0, max_value=effective_stamina_max, step=1, key="c_stamina_curr", label_visibility="collapsed")
+
+@st.dialog("Manage Health")
+def hp_manager_dialog(char, max_hp, save_callback=None):
+    st.markdown("Manage Hit Points.")
+    current = char.get("hp_current", 0)
+    st.metric("Current HP", f"{current} / {max_hp}")
+    
+    amount = st.number_input("Amount", min_value=1, value=1, step=1, key="hp_dlg_amount")
+    
+    c_heal, c_dmg = st.columns(2)
+    if c_heal.button("➕ Heal", use_container_width=True, key="hp_dlg_heal"):
+        char["hp_current"] = min(max_hp, current + amount)
+        if save_callback: save_callback()
+        st.rerun()
+        
+    if c_dmg.button("➖ Damage", use_container_width=True, key="hp_dlg_dmg"):
+        char["hp_current"] = max(0, current - amount)
+        if save_callback: save_callback()
+        st.rerun()
+
+@st.dialog("Manage Stamina")
+def stamina_manager_dialog(char, max_sp, save_callback=None):
+    st.markdown("Manage Stamina Points.")
+    current = char.get("stamina_current", 0)
+    st.metric("Current SP", f"{current} / {max_sp}")
+    
+    amount = st.number_input("Amount", min_value=1, value=1, step=1, key="sp_dlg_amount")
+    
+    c_rec, c_spend = st.columns(2)
+    if c_rec.button("➕ Recover", use_container_width=True, key="sp_dlg_rec"):
+        char["stamina_current"] = min(max_sp, current + amount)
+        if save_callback: save_callback()
+        st.rerun()
+        
+    if c_spend.button("➖ Spend", use_container_width=True, key="sp_dlg_spend"):
+        char["stamina_current"] = max(0, current - amount)
+        if save_callback: save_callback()
+        st.rerun()
 
 @st.dialog("Manage Experience")
 def xp_manager_dialog(char, save_callback=None):
@@ -472,7 +617,7 @@ def crafting_manager_dialog(char, save_callback=None):
                     
                     st.success(f"Crafted {res_name}!")
                     if save_callback: save_callback()
-                    st.rerun()
+                    st.query_params["_update"] = str(uuid.uuid4())
 
 @st.dialog("Edit Item")
 def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_type=True):
@@ -485,7 +630,7 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
     sig_key = f"{dialog_id}_sig"
     
     # Initialize session state for this item if not already done
-    if f"{dialog_id}_initialized" not in st.session_state or st.session_state.get(sig_key) != current_sig:
+    if f"{dialog_id}_initialized" not in st.session_state or f"{dialog_id}_name" not in st.session_state or st.session_state.get(sig_key) != current_sig:
         desc = item.get("description", "")
         clean_desc, mod_strings = parse_modifiers(desc)
         
@@ -529,14 +674,6 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
     # Options: "Carried (Root)", "Stash (Root)", and any valid container
     # Prevent moving into itself or its children to avoid cycles
     
-    def get_descendants(pid, items_list):
-        desc = []
-        children = [i for i in items_list if i.get("parent_id") == pid]
-        for child in children:
-            desc.append(child["id"])
-            desc.extend(get_descendants(child["id"], items_list))
-        return desc
-
     invalid_targets = [item["id"]] + get_descendants(item["id"], all_items)
     potential_containers = [i for i in all_items if i.get("is_container") and i["id"] not in invalid_targets]
     
@@ -619,11 +756,23 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
                 
         if callback:
             callback()
-        st.rerun()
+        st.query_params["_update"] = str(uuid.uuid4())
 
 @st.dialog("Add Item")
-def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, callback=None):
+def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, callback=None, close_key=None):
     """Dialog to add items from database or custom."""
+    
+    # Check for cleanup flag from previous run
+    cleanup_key = f"{prefix}_cleanup_needed"
+    if st.session_state.get(cleanup_key):
+        st.session_state[f"{prefix}_dlg_name"] = ""
+        st.session_state[f"{prefix}_dlg_desc"] = ""
+        if label == "Equipment":
+            st.session_state[f"{prefix}_dlg_weight"] = 0.0
+            st.session_state[f"{prefix}_dlg_rn"] = 0
+            st.session_state[f"{prefix}_dlg_rl"] = 0
+        st.session_state[cleanup_key] = False
+
     show_load = (label == "Equipment")
     show_type = (label == "Equipment")
     data_list = load_data(file_path)
@@ -661,6 +810,7 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
             char[char_key].append(new_item)
             st.session_state[session_key] = char[char_key]
             if callback: callback()
+            st.query_params["_update"] = str(uuid.uuid4())
             st.rerun()
 
     st.divider()
@@ -677,7 +827,7 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
     # We can pass empty dict and let it use keys
     render_item_form(prefix + "_dlg", {}, mod_key, show_quantity=False, show_load=show_load, show_type=show_type)
 
-    def create_custom_callback():
+    if st.button("Create & Add", type="primary", use_container_width=True, key=f"{prefix}_btn_create_dlg"):
         name = st.session_state.get(f"{prefix}_dlg_name", "")
         if name:
             desc = st.session_state.get(f"{prefix}_dlg_desc", "")
@@ -707,19 +857,16 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
             if char_key not in char or not isinstance(char[char_key], list):
                 char[char_key] = []
             char[char_key].append(item_data)
+            st.session_state[session_key] = char[char_key]
             st.session_state[mod_key] = []
             
-            # Clear input fields to prevent data leaking to next item
-            st.session_state[f"{prefix}_dlg_name"] = ""
-            st.session_state[f"{prefix}_dlg_desc"] = ""
-            if label == "Equipment":
-                st.session_state[f"{prefix}_dlg_weight"] = 0.0
-                st.session_state[f"{prefix}_dlg_rn"] = 0
-                st.session_state[f"{prefix}_dlg_rl"] = 0
+            # Set flag to clear inputs on next open
+            st.session_state[cleanup_key] = True
 
             if callback: callback()
-
-    st.button("Create & Add", type="primary", use_container_width=True, key=f"{prefix}_btn_create_dlg", on_click=create_custom_callback)
+            if close_key: st.session_state[close_key] = False
+            st.query_params["_update"] = str(uuid.uuid4())
+            st.rerun()
 
 def render_database_manager(label, file_path, char, char_key, session_key, prefix):
     show_load = (label == "Equipment")
@@ -913,12 +1060,15 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                             st.caption(" | ".join(desc_parts))
 
                     with c_act:
-                        c_ed, c_del = st.columns(2)
-                        if c_ed.button("✏️", key=f"inv_ed_{item['id']}"):
-                            edit_item_dialog(item, item['id'], items, lambda: None, show_load=True)
-                        if c_del.button("🗑️", key=f"inv_del_{item['id']}"):
-                            items.remove(item)
-                            st.rerun()
+                        with st.popover("⚙️", use_container_width=True):
+                            if st.button("Edit", key=f"inv_ed_{item['id']}", use_container_width=True):
+                                edit_item_dialog(item, item['id'], items, lambda: None, show_load=True)
+                            
+                            render_move_menu(item, items, f"inv_mv_{item['id']}")
+
+                            if st.button("Delete", key=f"inv_del_{item['id']}", type="primary", use_container_width=True):
+                                items.remove(item)
+                                st.rerun()
                     
                     # Render Children
                     if item["id"] in tree:
@@ -962,15 +1112,12 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                 
                 # Actions
                 with c_act:
-                    ca, cb = st.columns(2)
-                    if ca.button("✏️", key=f"inv_ed_{item['id']}"):
-                        edit_item_dialog(item, item['id'], items, lambda: None, show_load=True)
-                    if cb.button("🗑️", key=f"inv_del_{item['id']}"):
-                        items.remove(item)
-                        st.rerun()
                     with st.popover("⚙️", use_container_width=True):
                         if st.button("Edit", key=f"inv_ed_{item['id']}", use_container_width=True):
                             edit_item_dialog(item, item['id'], items, lambda: None, show_load=True)
+                        
+                        render_move_menu(item, items, f"inv_mv_{item['id']}")
+
                         if st.button("Delete", key=f"inv_del_{item['id']}", type="primary", use_container_width=True):
                             items.remove(item)
                             st.rerun()
@@ -989,7 +1136,7 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                 </div>
                 """, unsafe_allow_html=True)
         with c_add:
-            if st.button("➕ Add Item", use_container_width=True, key="btn_open_add_item"):
+            if st.button("➕ Add Item", use_container_width=True, key=f"btn_open_add_{key}"):
                 add_db_item_dialog("Equipment", EQUIPMENT_FILE, char, key, "c_inv_db", "eq")
 
         # Tabs for Carried vs Stash
@@ -1025,92 +1172,100 @@ def update_stat_callback(target_dict, key, widget_key, save_callback=None):
     if save_callback:
         save_callback()
 
-@st.fragment
 def render_character_statblock(char, save_callback=None):
     """Renders the character sheet as a visual statblock with interactive elements."""
     # Ensure stats are up to date within the fragment
     _, _, _, effective_stats, effective_skills = calculate_stats(char)
     
+    primary = st.session_state.get("theme_primary", "#00ff00")
+    secondary = st.session_state.get("theme_secondary", "#00b300")
+    
     # --- FIXED LAYOUT CSS OVERRIDE ---
-    st.markdown("""
+    st.markdown(f"""
     <style>
         /* Target the Statblock Container */
-        div[data-testid="stVerticalBlockBorderWrapper"] {
-            padding: 10px !important;
+        div[data-testid="stVerticalBlockBorderWrapper"] {{
+            padding: 5px !important;
             background-color: #000000 !important;
-            border: 2px solid #00ff00 !important;
-        }
+            border: 2px solid {primary} !important;
+        }}
         
         /* Remove Gaps */
-        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stVerticalBlock"] {
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stVerticalBlock"] {{
             gap: 2px !important;
-        }
-        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] {
+        }}
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHorizontalBlock"] {{
             gap: 5px !important;
-        }
-        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"] {
+        }}
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"] {{
             padding: 0px !important;
-        }
+        }}
         
         /* Compact Inputs */
-        div[data-testid="stVerticalBlockBorderWrapper"] input {
+        div[data-testid="stVerticalBlockBorderWrapper"] input {{
             background-color: #0d1117 !important;
-            border: 1px solid #00b300 !important;
-            color: #00ff00 !important;
+            border: 1px solid {secondary} !important;
+            color: {primary} !important;
             height: 28px !important;
             min-height: 28px !important;
             font-size: 14px !important;
-        }
+        }}
         
-        .stat-label {
+        .stat-label {{
             font-size: 0.8em;
-            color: #00b300;
+            color: {secondary};
             margin-bottom: 0px;
-        }
+        }}
         
         /* Custom Status Buttons (Streamlit Widgets) */
-        div[data-testid="stVerticalBlockBorderWrapper"] button {
-            border: 1px solid #00b300 !important;
+        div[data-testid="stVerticalBlockBorderWrapper"] button {{
+        div[data-testid="stVerticalBlockBorderWrapper"] button,
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stPopover"] > button {{
+            border: 1px solid {secondary} !important;
             background-color: rgba(13, 17, 23, 0.8) !important;
-            color: #00ff00 !important;
+            color: {primary} !important;
             border-radius: 4px !important;
-            padding: 0px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
             min-height: 39px !important;
             height: 39px !important;
-            line-height: 1 !important;
             margin: 0px !important;
-        }
-        div[data-testid="stVerticalBlockBorderWrapper"] button:hover {
-            background-color: #00b300 !important;
+        }}
+        div[data-testid="stVerticalBlockBorderWrapper"] button:hover {{
+        div[data-testid="stVerticalBlockBorderWrapper"] button:hover,
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stPopover"] > button:hover {{
+            background-color: {secondary} !important;
             color: #0d1117 !important;
-            border-color: #00ff00 !important;
-        }
-        div[data-testid="stVerticalBlockBorderWrapper"] button p {
+            border-color: {primary} !important;
+        }}
+        div[data-testid="stVerticalBlockBorderWrapper"] button p {{
             font-size: 1.2em !important;
+            color: {primary} !important;
             padding-top: 0px !important;
-        }
+        }}
         
-        .stat-bar-container {
+        .stat-bar-container {{
             width: 100%;
             background-color: #0d1117;
-            border: 1px solid #00b300;
+            border: 1px solid {secondary};
             border-radius: 4px;
             height: 39px;
             position: relative;
             overflow: hidden;
             top: -8px;
-        }
-        .hp-fill { background-color: rgba(255, 50, 50, 0.7); }
-        .sp-fill { background-color: rgba(200, 255, 50, 0.7); }
-        .xp-fill { background-color: rgba(50, 100, 255, 0.7); }
+        }}
+        .hp-fill {{ background-color: rgba(255, 50, 50, 0.7); }}
+        .stamina-fill {{ background-color: rgba(200, 255, 50, 0.7); }}
+        .xp-fill {{ background-color: rgba(50, 100, 255, 0.7); }}
         
-        .stat-label-sm {
+        .stat-label-sm {{
             font-size: 0.7em;
-            color: #00b300;
+            color: {secondary};
             margin-bottom: 2px;
             text-transform: uppercase;
             text-align: center;
-        }
+        }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -1163,42 +1318,32 @@ def render_character_statblock(char, save_callback=None):
         if skill_list:
             skill_list.sort(key=lambda x: x[0]) # Sort alphabetically
             s_strs = [f"{name} {val}" for name, val in skill_list]
-            skills_html += f'<div><strong style="color: #00cc00;">{stat}:</strong> {", ".join(s_strs)}</div>'
+            skills_html += f'<div><strong style="color: {secondary};">{stat}:</strong> {", ".join(s_strs)}</div>'
     skills_html += '</div>'
 
     # --- RENDER CONTAINER ---
-    with st.container(border=True):
-        
-        # HEADER
-        header_html = (
-        f'<div class="statblock-header">'
-        f'<span class="statblock-title">{char.get("name", "Unnamed")}</span>'
-        f'<span class="statblock-meta">Lvl {char.get("level", 1)} {char.get("background", "Wastelander")}</span>'
-        f'</div>'
-        )
-        st.markdown(header_html + special_html, unsafe_allow_html=True)
-        
+    # HEADER
+    header_html = (
+    f'<div class="statblock-header">'
+    f'<span class="statblock-title">{char.get("name", "Unnamed")}</span>'
+    f'<span class="statblock-meta">Lvl {char.get("level", 1)} {char.get("background", "Wastelander")}</span>'
+    f'</div>'
+    )
+    st.markdown(header_html, unsafe_allow_html=True)
+    
+    unique_id = char.get("name", "char")
+    
+    tab_stats, tab_inv, tab_feat = st.tabs(["📊 Stats", "🎒 Inventory", "🧬 Features"])
+
+    with tab_stats:
+        st.markdown(special_html, unsafe_allow_html=True)
         # INTERACTIVE STATS ROW
         st.markdown('<div class="section-header">Status</div>', unsafe_allow_html=True)
         c1, c2, c3, c4 = st.columns(4)
 
-        unique_id = char.get("name", "char")
-        
         with c1:
             st.markdown('<div class="stat-label-sm">Hit Points</div>', unsafe_allow_html=True)
-            b_sub, b_bar, b_add = st.columns([1, 4.5, 1], vertical_alignment="center")
-            
-            with b_sub:
-                dec_hp = st.button("➖", key=f"btn_dec_hp_{unique_id}", use_container_width=True)
-            with b_add:
-                inc_hp = st.button("➕", key=f"btn_inc_hp_{unique_id}", use_container_width=True)
-            
-            if dec_hp:
-                char["hp_current"] = max(0, char.get("hp_current", 0) - 1)
-                if save_callback: save_callback()
-            if inc_hp:
-                char["hp_current"] = min(char.get("hp_max", 1), char.get("hp_current", 0) + 1)
-                if save_callback: save_callback()
+            b_bar, b_man = st.columns([6, 1], vertical_alignment="center")
 
             with b_bar:
                 curr = char.get("hp_current", 0)
@@ -1210,22 +1355,14 @@ def render_character_statblock(char, save_callback=None):
                     <div class="stat-bar-text">{curr} / {maxx}</div>
                 </div>
                 """, unsafe_allow_html=True)
+            
+            with b_man:
+                if st.button("⚙️", key=f"btn_man_hp_{unique_id}", use_container_width=True, help="Manage HP"):
+                    hp_manager_dialog(char, maxx, save_callback)
                 
         with c2:
             st.markdown('<div class="stat-label-sm">Stamina</div>', unsafe_allow_html=True)
-            b_sub, b_bar, b_add = st.columns([1, 4.5, 1], vertical_alignment="center")
-            
-            with b_sub:
-                dec_sp = st.button("➖", key=f"btn_dec_sp_{unique_id}", use_container_width=True)
-            with b_add:
-                inc_sp = st.button("➕", key=f"btn_inc_sp_{unique_id}", use_container_width=True)
-            
-            if dec_sp:
-                char["stamina_current"] = max(0, char.get("stamina_current", 0) - 1)
-                if save_callback: save_callback()
-            if inc_sp:
-                char["stamina_current"] = min(char.get("stamina_max", 1), char.get("stamina_current", 0) + 1)
-                if save_callback: save_callback()
+            b_bar, b_man = st.columns([6, 1], vertical_alignment="center")
 
             with b_bar:
                 curr = char.get("stamina_current", 0)
@@ -1233,14 +1370,18 @@ def render_character_statblock(char, save_callback=None):
                 pct = min(1.0, curr / maxx) if maxx > 0 else 0
                 st.markdown(f"""
                 <div class="stat-bar-container">
-                    <div class="stat-bar-fill sp-fill" style="width: {pct*100}%;"></div>
+                    <div class="stat-bar-fill stamina-fill" style="width: {pct*100}%;"></div>
                     <div class="stat-bar-text">{curr} / {maxx}</div>
                 </div>
                 """, unsafe_allow_html=True)
+            
+            with b_man:
+                if st.button("⚙️", key=f"btn_man_sp_{unique_id}", use_container_width=True, help="Manage Stamina"):
+                    stamina_manager_dialog(char, maxx, save_callback)
 
         with c3:
             st.markdown('<div class="stat-label-sm">Experience</div>', unsafe_allow_html=True)
-            b_bar, b_man = st.columns([2, 1], vertical_alignment="center")
+            b_bar, b_man = st.columns([6, 1], vertical_alignment="center")
             
             with b_bar:
                 curr_xp = char.get("xp", 0)
@@ -1258,15 +1399,14 @@ def render_character_statblock(char, save_callback=None):
         
         with c4:
             st.markdown('<div class="stat-label-sm">Caps</div>', unsafe_allow_html=True)
-            b_val, b_man = st.columns([2, 1], vertical_alignment="center")
+            b_val, b_man = st.columns([6, 1], vertical_alignment="center")
             with b_val:
-                st.markdown(f"<div style='text-align: center; font-weight: bold; color: #e6fffa; line-height: 39px;'>🪙 {char.get('caps', 0)}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align: center;margin-top: -20px; font-weight: bold; color: #e6fffa; line-height: 39px;'>🪙 {char.get('caps', 0)}</div>", unsafe_allow_html=True)
             with b_man:
                 if st.button("⚙️", key=f"btn_man_caps_{unique_id}", use_container_width=True, help="Manage Caps"):
                     caps_manager_dialog(char, save_callback)
 
         # CONDITIONS ROW
-        st.markdown('<div style="margin-top: 5px;"></div>', unsafe_allow_html=True)
         cond1, cond2, cond3, cond4 = st.columns(4)
         
         with cond1:
@@ -1311,6 +1451,7 @@ def render_character_statblock(char, save_callback=None):
 
         st.markdown(skills_html, unsafe_allow_html=True)
 
+    with tab_inv:
         # INVENTORY / EQUIPMENT
         st.markdown('<div class="section-header">Inventory & Equipment</div>', unsafe_allow_html=True)
         if "inventory" not in char:
@@ -1343,6 +1484,7 @@ def render_character_statblock(char, save_callback=None):
         with c_add:
             if st.button("➕ Add Item", use_container_width=True, key=f"sb_btn_add_{unique_id}"):
                 add_db_item_dialog("Equipment", EQUIPMENT_FILE, char, "inventory", f"sb_inv_sync_{unique_id}", f"sb_eq_{unique_id}", callback=save_callback)
+                if save_callback: save_callback()
 
         # Statblock Inventory View (Simplified Tree)
         # Only showing Carried items for statblock usually, but let's show all for management
@@ -1372,6 +1514,9 @@ def render_character_statblock(char, save_callback=None):
                         with st.popover("⚙️", use_container_width=True):
                             if st.button("Edit", key=f"sb_ed_{item['id']}", use_container_width=True):
                                 edit_item_dialog(item, item['id'], inventory, save_callback, show_load=True)
+                            
+                            render_move_menu(item, inventory, f"sb_mv_{item['id']}", callback=save_callback)
+
                             if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
                                 inventory.remove(item)
                                 if save_callback: save_callback()
@@ -1383,7 +1528,7 @@ def render_character_statblock(char, save_callback=None):
                                 render_sb_node(tree[item["id"]])
                 else:
                     # Item (Row)
-                    st.markdown('<div style="border-top: 1px dashed rgba(0, 255, 0, 0.2); margin-top: -5px; margin-bottom: 8px;"></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div style="border-top: 1px dashed {{secondary}}33; margin-top: -5px; margin-bottom: 8px;"></div>', unsafe_allow_html=True)
                     c_chk, c_lbl, c_act = st.columns([0.2, 8.2, 0.5], vertical_alignment="top")
                     
                     # Equip Checkbox
@@ -1410,12 +1555,12 @@ def render_character_statblock(char, save_callback=None):
                             sub = item.get("sub_type", "")
                             if sub: desc_parts.append(sub)
                             if sub in ["Guns", "Energy Weapons"]:
-                                desc_parts.append(f"Rng: {item.get('range_normal',0)}/{item.get('range_long',0)}")
+                                desc_parts.append(f"Range: {item.get('range_normal',0)}/{item.get('range_long',0)}")
                         
                         if float(item.get("weight", 0)) > 0: desc_parts.append(f"{float(item['weight'])} Load")
                         if item.get("description"): desc_parts.append(item["description"])
                         
-                        desc_html = f"<div style='font-size:0.85em; color:rgba(0, 255, 0, 0.6); line-height: 1.2; margin-top: 2px;'>{' | '.join(desc_parts)}</div>" if desc_parts else ""
+                        desc_html = f"<div style='font-size:0.85em; color:{secondary}; line-height: 1.2; margin-top: 2px;'>{' | '.join(desc_parts)}</div>" if desc_parts else ""
                         
                         st.markdown(f"<div style='line-height: 1.2; padding-top: 0px;'><span style='{style}'>{item.get('name')}{qty_str}</span>{desc_html}</div>", unsafe_allow_html=True)
                     
@@ -1423,6 +1568,9 @@ def render_character_statblock(char, save_callback=None):
                         with st.popover("⚙️", use_container_width=True):
                             if st.button("Edit", key=f"sb_ed_{item['id']}", use_container_width=True):
                                 edit_item_dialog(item, item['id'], inventory, save_callback, show_load=True)
+                            
+                            render_move_menu(item, inventory, f"sb_mv_{item['id']}", callback=save_callback)
+
                             if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
                                 inventory.remove(item)
                                 if save_callback: save_callback()
@@ -1445,6 +1593,7 @@ def render_character_statblock(char, save_callback=None):
             else:
                 st.caption("Stash is empty.")
 
+    with tab_feat:
         # FEATURES & TRAITS SECTION
         st.markdown('<div class="section-header">Features & Traits</div>', unsafe_allow_html=True)
         
@@ -1469,4 +1618,4 @@ def render_character_statblock(char, save_callback=None):
         st.markdown('<div class="section-header">Notes</div>', unsafe_allow_html=True)
         notes_key = f"sb_notes_{unique_id}"
         st.text_area("Notes", value=char.get("notes", ""), height=400, key=notes_key, label_visibility="collapsed",
-                     on_change=update_stat_callback, args=(char, "notes", notes_key, save_callback))
+                        on_change=update_stat_callback, args=(char, "notes", notes_key, save_callback))

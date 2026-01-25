@@ -99,6 +99,7 @@ def render_editor() -> None:
                 
                 # Determine which column this entry goes into (Left=0, Right=1)
                 col_index = i % 2
+                entry_key = f"enc_{i}_{entry.get('name', 'u')}"
                 
                 with grid_cols[col_index]:
                     name_disp = entry.get("name", "Unnamed")
@@ -113,15 +114,15 @@ def render_editor() -> None:
                         
                         col_a, col_b, col_c, col_d = st.columns([3, 1, 1, 1])
                         
-                        ed_name = col_a.text_input("Name", value=name_disp, key=f"ed_name_{i}")
-                        ed_count = col_b.text_input("Count", value=count_disp, key=f"ed_count_{i}")
-                        ed_weight = col_c.number_input("Weight", value=int(weight_disp), min_value=1, key=f"ed_weight_{i}")
-                        ed_cost = col_d.number_input("Cost", value=int(cost_disp), min_value=1, key=f"ed_cost_{i}")
+                        ed_name = col_a.text_input("Name", value=name_disp, key=f"ed_name_{entry_key}")
+                        ed_count = col_b.text_input("Count", value=count_disp, key=f"ed_count_{entry_key}")
+                        ed_weight = col_c.number_input("Weight", value=int(weight_disp), min_value=1, key=f"ed_weight_{entry_key}")
+                        ed_cost = col_d.number_input("Cost", value=int(cost_disp), min_value=1, key=f"ed_cost_{entry_key}")
                         
                         c_update, c_delete = st.columns([1, 1])
                         
                         with c_update:
-                            if st.button("💾 Update", key=f"btn_update_{i}", use_container_width=True):
+                            if st.button("💾 Update", key=f"btn_update_{entry_key}", use_container_width=True):
                                 st.session_state["expanded_index"] = i
                                 current_data[target_biome][i] = {
                                     "name": ed_name,
@@ -134,7 +135,7 @@ def render_editor() -> None:
                                 st.rerun()
 
                         with c_delete:
-                            if st.button("🗑️ Delete", key=f"btn_del_{i}", use_container_width=True):
+                            if st.button("🗑️ Delete", key=f"btn_del_{entry_key}", use_container_width=True):
                                 st.session_state["expanded_index"] = None
                                 current_data[target_biome].pop(i)
                                 save_data(target_file, current_data)

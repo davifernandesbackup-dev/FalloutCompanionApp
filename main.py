@@ -6,35 +6,67 @@ from constants import BESTIARY_FILE
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="Wasteland Assistant", page_icon="☢️", layout="wide")
 
+# --- THEME CONFIGURATION ---
+THEMES = {
+    "Default (Green)": {"primary": "#00ff00", "secondary": "#00b300"},
+    "Amber (New Vegas)": {"primary": "#FFB642", "secondary": "#B3802E"},
+    "Classic (Fallout 3)": {"primary": "#1AFF80", "secondary": "#12B359"},
+    "Blue (Cyan)": {"primary": "#2ECFFF", "secondary": "#2090B2"},
+    "White (Mint)": {"primary": "#C0FFFF", "secondary": "#86B3B3"},
+    "Green (Fallout 4)": {"primary": "#14FF80", "secondary": "#0EB359"},
+}
+
+if "app_theme" not in st.session_state:
+    st.session_state.app_theme = "Default (Green)"
+
+current_theme = THEMES.get(st.session_state.app_theme, THEMES["Default (Green)"])
+primary_color = current_theme["primary"]
+secondary_color = current_theme["secondary"]
+
+# Store for other modules to access
+st.session_state.theme_primary = primary_color
+st.session_state.theme_secondary = secondary_color
+
+
 # --- CUSTOM CSS ---
-st.markdown("""
+st.markdown(f"""
     <style>
-    .stApp {
+    /* Hide Streamlit Header */
+    header[data-testid="stHeader"],
+    .stAppHeader {{
+        display: none;
+    }}
+    /* Adjust top padding after header removal */
+    .block-container {{
+        padding-top: 0rem !important;
+        padding-bottom: 1rem !important;
+    }}
+    .stApp {{
         background-color: #0d1117;
-        color: #00b300;
-    }
-    .stButton>button {
-        color: #00b300;
+        color: {secondary_color};
+    }}
+    .stButton>button {{
+        color: {secondary_color};
         background-color: #161b22;
-        border-color: #00ff00;
+        border-color: {primary_color};
         width: 100%; 
-    }
-    .stNumberInput input, .stSelectbox div[data-baseweb="select"] > div {
-        color: #00b300;
+   }}
+    .stNumberInput input, .stSelectbox div[data-baseweb="select"] > div {{
+        color: {secondary_color};
         background-color: #161b22;
-        -webkit-text-fill-color: #00b300;
-    }
+        -webkit-text-fill-color: {secondary_color};
+    }}
     div[data-testid="stCaptionContainer"], 
-    div[data-testid="stCaptionContainer"] * {
-        color: #00b300 !important;
+    div[data-testid="stCaptionContainer"] * {{
+        color: {secondary_color} !important;
         opacity: 1 !important;
-        -webkit-text-fill-color: #00b300 !important;
-    }       
-    div[data-testid="column"] {
+        -webkit-text-fill-color: {secondary_color} !important;
+    }}       
+    div[data-testid="column"] {{
         padding: 10px;
         border-radius: 5px;
         background-color: #161b22; 
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -55,18 +87,74 @@ if "popout" in st.query_params:
             else:
                 st.error(f"Creature '{target_id}' not found.")
         st.stop()
-
-# --- MAIN APP LAYOUT ---
-st.title("📟 Wasteland Assistant")
+        
+def navigate_to(page):
+    st.session_state["navigation"] = page
 
 # --- SIDEBAR NAVIGATION ---
 with st.sidebar:
     st.title("Pip-Boy 3000")
     st.divider()
-    app_mode = st.radio("Select Module", ["☢️ Scanner", "📖 Bestiary", "🛠️ Utilities", "📝 Character Sheet", "🗃️ Database Editor"])
+    app_mode = st.radio("Select Module", ["🏠 Home", "☢️ Scanner", "📖 Bestiary", "🛠️ Utilities", "📝 Character Sheet", "🗃️ Database Editor"], key="navigation")
+    st.divider()
+    st.selectbox("Interface Color", list(THEMES.keys()), key="app_theme")
     st.divider()
 
-if app_mode == "☢️ Scanner":
+# Global Back Button
+if app_mode != "🏠 Home":
+    c_back, c_title = st.columns([1, 5], vertical_alignment="center")
+    with c_back:
+        st.button("⬅️ Back to Title", key="global_back_home", on_click=navigate_to, args=("🏠 Home",))
+    with c_title:
+        if app_mode == "☢️ Scanner":
+            st.subheader("⚔️ Encounter Database (Threats & Loot)")
+        elif app_mode == "📖 Bestiary":
+            st.subheader("📖 Wasteland Bestiary")
+        elif app_mode == "🛠️ Utilities":
+            st.subheader("🛠️ Utilities")
+        elif app_mode == "📝 Character Sheet":
+            st.subheader("📝 Character Sheet")
+        elif app_mode == "🗃️ Database Editor":
+            st.subheader("🛠️ General Database Editor")
+
+if app_mode == "🏠 Home":
+    st.title("📟 Wasteland Assistant")
+    st.markdown("Welcome to the Wasteland Assistant. Select a module from the Pip-Boy menu to begin.")
+    
+    st.divider()
+    c1, c2 = st.columns(2)
+    
+    with c1:
+        st.button("☢️ Scanner", use_container_width=True, on_click=navigate_to, args=("☢️ Scanner",))
+        st.caption("Generate encounters and loot.")
+        
+        st.button("📖 Bestiary", use_container_width=True, on_click=navigate_to, args=("📖 Bestiary",))
+        st.caption("Browse creature database.")
+        
+        st.button("🛠️ Utilities", use_container_width=True, on_click=navigate_to, args=("🛠️ Utilities",))
+        st.caption("Calculators and tools.")
+
+    with c2:
+        st.button("📝 Character Sheet", use_container_width=True, on_click=navigate_to, args=("📝 Character Sheet",))
+        st.caption("Manage characters and inventory.")
+        
+        st.button("🗃️ Database Editor", use_container_width=True, on_click=navigate_to, args=("🗃️ Database Editor",))
+        st.caption("Edit game data content.")
+    
+    st.divider()
+    st.subheader("System Settings")
+    
+    def update_theme_home():
+        st.session_state.app_theme = st.session_state.home_theme_select
+        
+    try:
+        current_index = list(THEMES.keys()).index(st.session_state.app_theme)
+    except ValueError:
+        current_index = 0
+        
+    st.selectbox("Interface Color", list(THEMES.keys()), index=current_index, key="home_theme_select", on_change=update_theme_home)
+
+elif app_mode == "☢️ Scanner":
     encounters.render()
 elif app_mode == "📖 Bestiary":
     bestiary.render_bestiary()

@@ -145,8 +145,9 @@ def render() -> None:
     ]
     
     for i, item in filtered_list:
+        item_key = f"db_item_{item.get('name', 'unknown')}"
         with st.expander(f"**{item.get('name')}**"):
-            mod_key = f"db_item_mods_{i}"
+            mod_key = f"{item_key}_mods"
             # Initialize modifiers from description if not already in session state
             if mod_key not in st.session_state:
                 clean_desc, mod_strings = parse_modifiers(item.get("description", ""))
@@ -172,12 +173,12 @@ def render() -> None:
             
             show_load = (db_type == "Equipment")
             show_type = (db_type == "Equipment")
-            form_result = render_item_form(f"db_item_{i}", display_values, mod_key, show_quantity=False, show_load=show_load, show_type=show_type)
+            form_result = render_item_form(item_key, display_values, mod_key, show_quantity=False, show_load=show_load, show_type=show_type)
             
             c_save, c_del = st.columns([1, 1])
             
             with c_save:
-                if st.button("Save Changes", key=f"save_item_{i}", use_container_width=True):
+                if st.button("Save Changes", key=f"save_{item_key}", use_container_width=True):
                     final_desc = join_modifiers(form_result["description"], st.session_state[mod_key])
                     
                     item["name"] = form_result["name"]
@@ -194,7 +195,7 @@ def render() -> None:
                     st.success("Saved!")
                 
             with c_del:
-                if st.button("🗑️ Delete", key=f"del_item_{i}", type="primary", use_container_width=True):
+                if st.button("🗑️ Delete", key=f"del_{item_key}", type="primary", use_container_width=True):
                     # Remove from main list
                     data_list.remove(item)
                     save_data(target_file, data_list)

@@ -21,6 +21,25 @@ def join_modifiers(description, mod_list):
 
 def render_modifier_builder(key_prefix, mod_list_key):
     """Renders the UI for adding stat modifiers."""
+    
+    # Toggle state for builder visibility
+    builder_visible_key = f"{key_prefix}_mod_builder_visible"
+    if builder_visible_key not in st.session_state:
+        st.session_state[builder_visible_key] = False
+
+    def open_builder():
+        st.session_state[builder_visible_key] = True
+
+    def close_builder():
+        st.session_state[builder_visible_key] = False
+
+    if not st.session_state[builder_visible_key]:
+        st.button("➕ Add Modifier", key=f"{key_prefix}_btn_open_mod_builder", on_click=open_builder)
+        return
+
+    st.markdown("---")
+    st.caption("Construct Modifier")
+
     mod_categories = {
         "S.P.E.C.I.A.L.": ["STR", "PER", "END", "CHA", "INT", "AGI", "LUC"],
         "Skills": sorted(get_default_character()["skills"].keys()),
@@ -33,13 +52,22 @@ def render_modifier_builder(key_prefix, mod_list_key):
     stat_sel = c_stat.selectbox("Stat", mod_categories[cat_sel], key=f"{key_prefix}_mod_target")
     op_sel = c_op.selectbox("Op", list(operator_map.keys()), key=f"{key_prefix}_mod_op")
     
-    c_val, c_btn = st.columns([1, 1], vertical_alignment="bottom")
+    c_val, c_act = st.columns([1, 1], vertical_alignment="bottom")
     val_in = c_val.number_input("Val", value=1.0, step=0.5, key=f"{key_prefix}_mod_val")
     
-    if c_btn.button("Add Modifier", key=f"{key_prefix}_btn_add_mod", use_container_width=True):
-        val_fmt = int(val_in) if val_in.is_integer() else val_in
+    def add_modifier():
+        curr_stat = st.session_state[f"{key_prefix}_mod_target"]
+        curr_op = st.session_state[f"{key_prefix}_mod_op"]
+        curr_val = st.session_state[f"{key_prefix}_mod_val"]
+        val_fmt = int(curr_val) if curr_val.is_integer() else curr_val
         if mod_list_key not in st.session_state: st.session_state[mod_list_key] = []
-        st.session_state[mod_list_key].append(f"{{{stat_sel} {operator_map[op_sel]}{val_fmt}}}")
+        st.session_state[mod_list_key].append(f"{{{curr_stat} {operator_map[curr_op]}{val_fmt}}}")
+
+    with c_act:
+        c_confirm, c_cancel = st.columns(2)
+        c_confirm.button("✅ Add", key=f"{key_prefix}_btn_add_mod", use_container_width=True, on_click=add_modifier)
+        c_cancel.button("❌ Cancel", key=f"{key_prefix}_btn_cancel_mod", use_container_width=True, on_click=close_builder)
+    st.markdown("---")
 
 def render_item_form(prefix, current_values, mod_list_key, show_quantity=False, show_load=True, show_type=True):
     """
@@ -149,10 +177,11 @@ def render_item_form(prefix, current_values, mod_list_key, show_quantity=False, 
             with row.container():
                 c1, c2 = st.columns([4, 1])
                 c1.code(mod)
-                if c2.button("🗑️", key=f"{prefix}_del_mod_{i}"):
-                    st.session_state[mod_list_key].pop(i)
-                    row.empty()
-                    st.rerun()
+                
+                def delete_mod(idx=i):
+                    st.session_state[mod_list_key].pop(idx)
+                
+                c2.button("🗑️", key=f"{prefix}_del_mod_{i}", on_click=delete_mod)
     else:
         st.caption("No modifiers.")
         

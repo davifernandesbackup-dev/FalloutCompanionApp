@@ -25,7 +25,6 @@ def update_skills_callback():
                         char["skills"][skill_name] = changes["Others"]
 
 def render_character_sheet() -> None:
-    st.header("📝 Character Sheet")
 
     # --- DATA LOADING ---
     saved_chars = load_data(CHARACTERS_FILE)
@@ -142,9 +141,31 @@ def render_character_sheet() -> None:
             else:
                 st.error("Error saving character.")
         
-        # Export Button
-        json_str = json.dumps(char, indent=4)
-        col_export.download_button("📤 Export JSON", json_str, file_name=f"{char.get('name','char')}.json", mime="application/json", use_container_width=True)
+        # Import/Export Dropdown
+        with col_export:
+            with st.popover("📥Import /📤Export", use_container_width=True, help="Import or Export Character Data"):
+                st.markdown("**Export**")
+                json_str = json.dumps(char, indent=4)
+                st.download_button("Download JSON", json_str, file_name=f"{char.get('name','char')}.json", mime="application/json", use_container_width=True)
+                
+                st.divider()
+                st.markdown("**Import**")
+                uploaded_file = st.file_uploader("Upload JSON", type=["json"], key="char_import_up")
+                if uploaded_file:
+                    if st.button("Load & Overwrite", type="primary", use_container_width=True):
+                        try:
+                            imported_char = json.load(uploaded_file)
+                            st.session_state.char_sheet = imported_char
+                            sync_char_widgets()
+                            
+                            if st.session_state.active_char_idx is not None and 0 <= st.session_state.active_char_idx < len(saved_chars):
+                                saved_chars[st.session_state.active_char_idx] = imported_char
+                                save_data(CHARACTERS_FILE, saved_chars)
+                            
+                            st.toast("Character Imported Successfully!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error importing: {e}")
 
         if col_delete.button("🗑️ Delete", use_container_width=True):
             if st.session_state.active_char_idx is not None:
@@ -342,9 +363,11 @@ def render_character_sheet() -> None:
                 render_inventory_management(char, "traits", "Perk")
                 
                 if len(char.get("traits", [])) < 2:
+                    trait_trig = "trig_add_trait"
                     if st.button("➕ Add Trait", key="btn_add_trait", use_container_width=True):
-                        # Reusing PERKS_FILE as a placeholder, or allows custom creation
-                        add_db_item_dialog("Trait", PERKS_FILE, char, "traits", "c_traits", "trait_dlg")
+                        st.session_state[trait_trig] = True
+                    if st.session_state.get(trait_trig):
+                        add_db_item_dialog("Trait", PERKS_FILE, char, "traits", "c_traits", "trait_dlg", close_key=trait_trig)
                 else:
                     st.caption("Trait limit reached.")
                 
@@ -354,14 +377,11 @@ def render_character_sheet() -> None:
                 st.markdown("**Perks**")
                 render_inventory_management(char, "perks", "Perk")
                 
-                render_database_manager(
-                    label="Perk",
-                    file_path=PERKS_FILE,
-                    char=char,
-                    char_key="perks",
-                    session_key="c_perks",
-                    prefix="pk"
-                )
+                perk_trig = "trig_add_perk"
+                if st.button("➕ Add Perk", key="btn_add_perk", use_container_width=True):
+                    st.session_state[perk_trig] = True
+                if st.session_state.get(perk_trig):
+                    add_db_item_dialog("Perk", PERKS_FILE, char, "perks", "c_perks", "perk_dlg", close_key=perk_trig)
                 
                 st.divider()
                 st.markdown("**Inventory**")
