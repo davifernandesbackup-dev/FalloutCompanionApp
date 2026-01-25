@@ -5,11 +5,13 @@ from constants import EQUIPMENT_FILE, PERKS_FILE, RECIPES_FILE
 from utils.item_components import render_item_form, parse_modifiers, join_modifiers
 from utils.character_logic import SKILL_MAP
 
+BACKGROUNDS_FILE = "data/backgrounds.json"
+
 def render() -> None:
     st.subheader("🎒 Item & Recipe Database")
 
-    db_type = st.radio("Select Category:", ["Equipment", "Perks", "Recipes"], horizontal=True, key="db_item_type")
-    target_file = EQUIPMENT_FILE if db_type == "Equipment" else (PERKS_FILE if db_type == "Perks" else RECIPES_FILE)
+    db_type = st.radio("Select Category:", ["Equipment", "Perks", "Backgrounds", "Recipes"], horizontal=True, key="db_item_type")
+    target_file = EQUIPMENT_FILE if db_type == "Equipment" else (PERKS_FILE if db_type == "Perks" else (BACKGROUNDS_FILE if db_type == "Backgrounds" else RECIPES_FILE))
     
     data_list = load_data(target_file)
     if not isinstance(data_list, list):
@@ -107,6 +109,15 @@ def render() -> None:
                     sub_type = st.session_state.get("new_db_item_sub", None)
                     range_normal = st.session_state.get("new_db_item_rn", 0)
                     range_long = st.session_state.get("new_db_item_rl", 0)
+                    dmg_n = st.session_state.get("new_db_item_dmg_n", 1)
+                    dmg_s = st.session_state.get("new_db_item_dmg_s", 6)
+                    ammo_item = st.session_state.get("new_db_item_ammo", "")
+                    uses_ammo = st.session_state.get("new_db_item_uses_ammo", False)
+                    ammo_cap = st.session_state.get("new_db_item_ammo_cap", 0)
+                    decay = st.session_state.get("new_db_item_decay", 0)
+                    crit_t = st.session_state.get("new_db_item_crit_t", 20)
+                    crit_d = st.session_state.get("new_db_item_crit_d", "")
+                    crit_e = st.session_state.get("new_db_item_crit_e", "")
                     
                     final_desc = join_modifiers(desc, st.session_state[mod_key])
                     new_item = {
@@ -117,7 +128,16 @@ def render() -> None:
                         "item_type": item_type,
                         "sub_type": sub_type,
                         "range_normal": range_normal,
-                        "range_long": range_long
+                        "range_long": range_long,
+                        "damage_dice_count": dmg_n,
+                        "damage_dice_sides": dmg_s,
+                        "uses_ammo": uses_ammo,
+                        "ammo_item": ammo_item,
+                        "ammo_capacity": ammo_cap,
+                        "decay": decay,
+                        "crit_threshold": crit_t,
+                        "crit_damage": crit_d,
+                        "crit_effect": crit_e
                     }
                     data_list.append(new_item)
                     save_data(target_file, data_list)
@@ -188,6 +208,15 @@ def render() -> None:
                     item["sub_type"] = form_result["sub_type"]
                     item["range_normal"] = form_result["range_normal"]
                     item["range_long"] = form_result["range_long"]
+                    item["damage_dice_count"] = form_result["damage_dice_count"]
+                    item["damage_dice_sides"] = form_result["damage_dice_sides"]
+                    item["uses_ammo"] = form_result["uses_ammo"]
+                    item["ammo_item"] = form_result["ammo_item"]
+                    item["ammo_capacity"] = form_result["ammo_capacity"]
+                    item["decay"] = form_result["decay"]
+                    item["crit_threshold"] = form_result["crit_threshold"]
+                    item["crit_damage"] = form_result["crit_damage"]
+                    item["crit_effect"] = form_result["crit_effect"]
                     # is_container is not editable here yet, defaults to False for DB items
                     
                     # We need to save the full 'data_list' which contains this 'item' object

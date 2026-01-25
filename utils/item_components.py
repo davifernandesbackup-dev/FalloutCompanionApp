@@ -121,12 +121,16 @@ def render_item_form(prefix, current_values, mod_list_key, show_quantity=False, 
         else:
             new_type = c_type.selectbox("Type", types, index=types.index(curr_type), key=k_type)
         
+        uses_ammo = False
+        new_ammo = ""
+        new_cap = 0
+        
         new_subtype = current_values.get("sub_type")
         new_rn = int(current_values.get("range_normal", 0))
         new_rl = int(current_values.get("range_long", 0))
         
         if new_type == "Weapon":
-            subs = ["Guns", "Melee", "Unarmed", "Explosives", "Energy Weapons"]
+            subs = ["Guns", "Melee", "Unarmed", "Explosives", "Energy Weapons", "Archery"]
             curr_sub = new_subtype if new_subtype in subs else "Guns"
             
             # Ensure session state has a valid value for the selectbox to avoid crashes
@@ -139,7 +143,22 @@ def render_item_form(prefix, current_values, mod_list_key, show_quantity=False, 
             else:
                 new_subtype = c_sub.selectbox("Weapon Type", subs, index=subs.index(curr_sub), key=sb_key)
             
-            if new_subtype in ["Guns", "Energy Weapons"]:
+            # Damage Inputs
+            c_dmg_n, c_dmg_s = st.columns(2)
+            k_dn = f"{prefix}_dmg_n"
+            k_ds = f"{prefix}_dmg_s"
+            
+            if k_dn in st.session_state:
+                new_dn = c_dmg_n.number_input("Damage Dice Count", min_value=1, step=1, key=k_dn)
+            else:
+                new_dn = c_dmg_n.number_input("Damage Dice Count", min_value=1, step=1, value=int(current_values.get("damage_dice_count", 1)), key=k_dn)
+
+            if k_ds in st.session_state:
+                new_ds = c_dmg_s.number_input("Damage Dice Sides", min_value=2, step=2, key=k_ds)
+            else:
+                new_ds = c_dmg_s.number_input("Damage Dice Sides", min_value=2, step=2, value=int(current_values.get("damage_dice_sides", 6)), key=k_ds)
+
+            if new_subtype in ["Guns", "Energy Weapons", "Archery", "Explosives"]:
                 c_rn, c_rl = st.columns(2)
                 k_rn = f"{prefix}_rn"
                 k_rl = f"{prefix}_rl"
@@ -153,13 +172,63 @@ def render_item_form(prefix, current_values, mod_list_key, show_quantity=False, 
                     new_rl = c_rl.number_input("Long Range", step=1, min_value=0, key=k_rl)
                 else:
                     new_rl = c_rl.number_input("Long Range", value=new_rl, step=1, min_value=0, key=k_rl)
+                
+            # Ammo Toggle
+            k_uses_ammo = f"{prefix}_uses_ammo"
+            if k_uses_ammo in st.session_state:
+                uses_ammo = st.checkbox("Uses Ammo?", key=k_uses_ammo)
+            else:
+                # Default to False unless data suggests otherwise
+                default_ua = current_values.get("uses_ammo", False)
+                if "uses_ammo" not in current_values and (current_values.get("ammo_item") or current_values.get("ammo_capacity", 0) > 0):
+                    default_ua = True
+                uses_ammo = st.checkbox("Uses Ammo?", value=default_ua, key=k_uses_ammo)
+
+            if uses_ammo:
+                c_ammo, c_cap = st.columns([2, 1])
+                k_ammo = f"{prefix}_ammo"
+                if k_ammo in st.session_state:
+                    new_ammo = c_ammo.text_input("Ammo Item Name", key=k_ammo, help="Exact name of the ammunition item in inventory")
+                else:
+                    new_ammo = c_ammo.text_input("Ammo Item Name", value=current_values.get("ammo_item", ""), key=k_ammo, help="Exact name of the ammunition item in inventory")
+                
+                k_cap = f"{prefix}_ammo_cap"
+                if k_cap in st.session_state:
+                    new_cap = c_cap.number_input("Mag. Size", min_value=0, step=1, key=k_cap, help="0 = Direct Feed")
+                else:
+                    new_cap = c_cap.number_input("Mag. Size", value=int(current_values.get("ammo_capacity", 0)), min_value=0, step=1, key=k_cap, help="0 = Direct Feed")
+            
+            # Critical Hit Fields
+            st.caption("Critical Hit Stats")
+            c_crit_t, c_crit_d = st.columns([1, 2])
+            k_crit_t = f"{prefix}_crit_t"
+            k_crit_d = f"{prefix}_crit_d"
+            k_crit_e = f"{prefix}_crit_e"
+            
+            new_crit_t = c_crit_t.number_input("Crit Threshold", min_value=1, max_value=20, value=int(current_values.get("crit_threshold", 20)), key=k_crit_t, help="Roll required to crit (e.g. 20)")
+            new_crit_d = c_crit_d.text_input("Crit Damage", value=current_values.get("crit_damage", ""), key=k_crit_d, help="Extra damage dice (e.g. 1d6)")
+            new_crit_e = st.text_input("Crit Effect", value=current_values.get("crit_effect", ""), key=k_crit_e, help="Additional effect on crit")
+
         else:
             new_subtype = None
+            new_dn = 1
+            new_ds = 6
+            new_crit_t = 20
+            new_crit_d = ""
+            new_crit_e = ""
     else:
         new_type = "Misc"
         new_subtype = None
+        new_ammo = ""
+        new_cap = 0
+        new_crit_t = 20
+        new_crit_d = ""
+        new_crit_e = ""
+        uses_ammo = False
         new_rn = 0
         new_rl = 0
+        new_dn = 1
+        new_ds = 6
         
     k_desc = f"{prefix}_desc"
     if k_desc in st.session_state:
@@ -167,6 +236,15 @@ def render_item_form(prefix, current_values, mod_list_key, show_quantity=False, 
     else:
         new_desc = st.text_input("Description", value=current_values.get("description", ""), key=k_desc)
     
+    # Decay Input
+    new_decay = 0
+    if new_type in ["Weapon", "Apparel"]:
+        k_decay = f"{prefix}_decay"
+        if k_decay in st.session_state:
+            new_decay = st.number_input("Decay", min_value=0, step=1, key=k_decay)
+        else:
+            new_decay = st.number_input("Decay", value=int(current_values.get("decay", 0)), min_value=0, step=1, key=k_decay)
+
     st.markdown("**Modifiers**")
     render_modifier_builder(prefix, mod_list_key)
     
@@ -193,5 +271,14 @@ def render_item_form(prefix, current_values, mod_list_key, show_quantity=False, 
         "sub_type": new_subtype,
         "range_normal": new_rn,
         "range_long": new_rl,
-        "description": new_desc
+        "description": new_desc,
+        "damage_dice_count": new_dn,
+        "damage_dice_sides": new_ds,
+        "uses_ammo": uses_ammo,
+        "ammo_item": new_ammo if uses_ammo else "",
+        "ammo_capacity": new_cap if uses_ammo else 0,
+        "decay": new_decay,
+        "crit_threshold": new_crit_t,
+        "crit_damage": new_crit_d,
+        "crit_effect": new_crit_e
     }

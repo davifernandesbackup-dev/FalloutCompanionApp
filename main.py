@@ -16,6 +16,18 @@ THEMES = {
     "Green (Fallout 4)": {"primary": "#14FF80", "secondary": "#0EB359"},
 }
 
+# Sync session_state with query_params to persist theme across reloads
+# If a theme is selected via a widget, session_state is updated first.
+# We then set the query_param to match, which triggers a rerun.
+# On the next run, the query_param is present and sets the initial session_state.
+if "app_theme" in st.session_state and st.session_state.app_theme != st.query_params.get("theme"):
+    st.query_params["theme"] = st.session_state.app_theme
+
+# On initial load or refresh, set session_state from query_params if they exist
+if "theme" in st.query_params and st.query_params["theme"] in THEMES:
+    st.session_state.app_theme = st.query_params["theme"]
+
+# Default theme if none is set
 if "app_theme" not in st.session_state:
     st.session_state.app_theme = "Default (Green)"
 

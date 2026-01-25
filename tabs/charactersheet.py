@@ -7,6 +7,8 @@ from constants import CHARACTERS_FILE, EQUIPMENT_FILE, PERKS_FILE
 from utils.character_logic import get_default_character, sync_char_widgets, calculate_stats, roll_skill, migrate_character, SKILL_MAP
 from utils.character_components import render_css, render_bars, render_database_manager, render_inventory_management, render_character_statblock, caps_manager_dialog, crafting_manager_dialog, add_db_item_dialog
 
+BACKGROUNDS_FILE = "data/backgrounds.json"
+
 def update_skills_callback():
     """Callback to update skills immediately on edit to fix desync."""
     if "skill_editor" in st.session_state:
@@ -184,9 +186,8 @@ def render_character_sheet() -> None:
             st.session_state["c_level"] = new_level
 
             # ROW 1: BASIC INFO
-            col_name, col_background, col_level, col_experience = st.columns(4)
+            col_name, col_level, col_experience = st.columns([2, 1, 1])
             char["name"] = col_name.text_input("Name", key="c_name")
-            char["background"] = col_background.text_input("Background", key="c_background")
             # Level is derived from XP, so we disable manual input or just show it
             col_level.text_input("Level", value=str(char.get("level", 1)), disabled=True, help="Derived from XP (1000 XP per level)")
             char["xp"] = col_experience.number_input("XP", min_value=0, key="c_xp")
@@ -358,6 +359,20 @@ def render_character_sheet() -> None:
                 )
             
             with col_right:
+                # --- BACKGROUNDS ---
+                st.markdown("**Background** (Max 1)")
+                render_inventory_management(char, "backgrounds", "Perk")
+                
+                if len(char.get("backgrounds", [])) < 1:
+                    bg_trig = "trig_add_bg"
+                    if st.button("➕ Set Background", key="btn_add_bg", use_container_width=True):
+                        st.session_state[bg_trig] = True
+                    if st.session_state.get(bg_trig):
+                        add_db_item_dialog("Background", BACKGROUNDS_FILE, char, "backgrounds", "c_backgrounds", "bg_dlg", close_key=bg_trig)
+                else:
+                    st.caption("Background set.")
+                
+                st.divider()
                 # --- TRAITS ---
                 st.markdown("**Traits** (Max 2)")
                 render_inventory_management(char, "traits", "Perk")
@@ -393,7 +408,8 @@ def render_character_sheet() -> None:
                 render_inventory_management(
                     char, "inventory", "Equipment",
                     max_load=char.get("carry_load", 0),
-                    current_load=char.get("current_load", 0)
+                    current_load=char.get("current_load", 0),
+                    effective_stats=effective_stats
                 )
                 
                 st.markdown("**Caps**")

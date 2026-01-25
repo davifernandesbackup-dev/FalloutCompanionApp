@@ -2,9 +2,11 @@ import streamlit as st
 import streamlit.components.v1 as components
 import re
 import uuid
+import random
 from utils.data_manager import load_data, save_data
 from utils.character_logic import get_default_character, calculate_stats, SKILL_MAP
 from utils.item_components import render_item_form, render_modifier_builder, parse_modifiers, join_modifiers
+from utils.dice import roll_dice
 from constants import EQUIPMENT_FILE, PERKS_FILE, RECIPES_FILE
 
 def render_css(compact=True):
@@ -648,17 +650,43 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
         st.session_state[f"{dialog_id}_subtype"] = item.get("sub_type", None)
         st.session_state[f"{dialog_id}_range_normal"] = int(item.get("range_normal", 0))
         st.session_state[f"{dialog_id}_range_long"] = int(item.get("range_long", 0))
+        st.session_state[f"{dialog_id}_dmg_n"] = int(item.get("damage_dice_count", 1))
+        st.session_state[f"{dialog_id}_dmg_s"] = int(item.get("damage_dice_sides", 6))
+        st.session_state[f"{dialog_id}_ammo"] = item.get("ammo_item", "")
+        st.session_state[f"{dialog_id}_ammo_cap"] = int(item.get("ammo_capacity", 0))
+        
+        # Infer uses_ammo if not present
+        default_ua = item.get("uses_ammo", False)
+        if "uses_ammo" not in item and (item.get("ammo_item") or item.get("ammo_capacity", 0) > 0):
+            default_ua = True
+        st.session_state[f"{dialog_id}_uses_ammo"] = default_ua
+        
+        st.session_state[f"{dialog_id}_decay"] = int(item.get("decay", 0))
+        st.session_state[f"{dialog_id}_ammo_curr"] = int(item.get("ammo_current", 0))
+        st.session_state[f"{dialog_id}_reloads"] = int(item.get("reloads_count", 0))
+        st.session_state[f"{dialog_id}_crit_t"] = int(item.get("crit_threshold", 20))
+        st.session_state[f"{dialog_id}_crit_d"] = item.get("crit_damage", "")
+        st.session_state[f"{dialog_id}_crit_e"] = item.get("crit_effect", "")
 
     # Prepare values for form
     current_values = {
-        "name": st.session_state[f"{dialog_id}_name"],
-        "quantity": st.session_state[f"{dialog_id}_qty"],
-        "weight": st.session_state[f"{dialog_id}_weight"],
-        "item_type": st.session_state[f"{dialog_id}_type"],
-        "sub_type": st.session_state[f"{dialog_id}_subtype"],
-        "range_normal": st.session_state[f"{dialog_id}_range_normal"],
-        "range_long": st.session_state[f"{dialog_id}_range_long"],
-        "description": st.session_state[f"{dialog_id}_desc"]
+        "name": st.session_state.get(f"{dialog_id}_name", ""),
+        "quantity": st.session_state.get(f"{dialog_id}_qty", 1),
+        "weight": st.session_state.get(f"{dialog_id}_weight", 0.0),
+        "item_type": st.session_state.get(f"{dialog_id}_type", "Misc"),
+        "sub_type": st.session_state.get(f"{dialog_id}_subtype"),
+        "range_normal": st.session_state.get(f"{dialog_id}_range_normal", 0),
+        "range_long": st.session_state.get(f"{dialog_id}_range_long", 0),
+        "description": st.session_state.get(f"{dialog_id}_desc", ""),
+        "damage_dice_count": st.session_state.get(f"{dialog_id}_dmg_n", 1),
+        "damage_dice_sides": st.session_state.get(f"{dialog_id}_dmg_s", 6),
+        "ammo_item": st.session_state.get(f"{dialog_id}_ammo", ""),
+        "ammo_capacity": st.session_state.get(f"{dialog_id}_ammo_cap", 0),
+        "uses_ammo": st.session_state.get(f"{dialog_id}_uses_ammo", False),
+        "decay": st.session_state.get(f"{dialog_id}_decay", 0),
+        "crit_threshold": st.session_state.get(f"{dialog_id}_crit_t", 20),
+        "crit_damage": st.session_state.get(f"{dialog_id}_crit_d", ""),
+        "crit_effect": st.session_state.get(f"{dialog_id}_crit_e", "")
     }
     mods_key = f"{dialog_id}_mods"
     
@@ -666,6 +694,12 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
 
     st.divider()
     
+    # Instance Specific State (Ammo/Reloads)
+    if form_result["item_type"] == "Weapon" and form_result["ammo_capacity"] > 0:
+        c_ac, c_rc = st.columns(2)
+        new_ammo_curr = c_ac.number_input("Current Ammo", min_value=0, max_value=form_result["ammo_capacity"], value=st.session_state[f"{dialog_id}_ammo_curr"], key=f"{dialog_id}_in_ac")
+        new_reloads = c_rc.number_input("Reloads Count", min_value=0, value=st.session_state[f"{dialog_id}_reloads"], key=f"{dialog_id}_in_rc")
+
     # Container & Location Logic
     c_cont, c_loc = st.columns(2)
     is_container = c_cont.checkbox("Is Container?", value=st.session_state[f"{dialog_id}_is_cont"], key=f"{dialog_id}_chk_cont")
@@ -735,6 +769,19 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
         item["sub_type"] = form_result["sub_type"]
         item["range_normal"] = form_result["range_normal"]
         item["range_long"] = form_result["range_long"]
+        item["damage_dice_count"] = form_result["damage_dice_count"]
+        item["damage_dice_sides"] = form_result["damage_dice_sides"]
+        item["uses_ammo"] = form_result["uses_ammo"]
+        item["ammo_item"] = form_result["ammo_item"]
+        item["ammo_capacity"] = form_result["ammo_capacity"]
+        item["decay"] = form_result["decay"]
+        item["crit_threshold"] = form_result["crit_threshold"]
+        item["crit_damage"] = form_result["crit_damage"]
+        item["crit_effect"] = form_result["crit_effect"]
+        
+        if form_result["item_type"] == "Weapon" and form_result["ammo_capacity"] > 0:
+            item["ammo_current"] = new_ammo_curr
+            item["reloads_count"] = new_reloads
         
         # Update Location
         if move_selection == "carried":
@@ -756,7 +803,7 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
                 
         if callback:
             callback()
-        st.query_params["_update"] = str(uuid.uuid4())
+        st.rerun()
 
 @st.dialog("Add Item")
 def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, callback=None, close_key=None):
@@ -771,6 +818,15 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
             st.session_state[f"{prefix}_dlg_weight"] = 0.0
             st.session_state[f"{prefix}_dlg_rn"] = 0
             st.session_state[f"{prefix}_dlg_rl"] = 0
+            st.session_state[f"{prefix}_dlg_dmg_n"] = 1
+            st.session_state[f"{prefix}_dlg_dmg_s"] = 6
+            st.session_state[f"{prefix}_dlg_ammo"] = ""
+            st.session_state[f"{prefix}_dlg_ammo_cap"] = 0
+            st.session_state[f"{prefix}_dlg_uses_ammo"] = False
+            st.session_state[f"{prefix}_dlg_decay"] = 0
+            st.session_state[f"{prefix}_dlg_crit_t"] = 20
+            st.session_state[f"{prefix}_dlg_crit_d"] = ""
+            st.session_state[f"{prefix}_dlg_crit_e"] = ""
         st.session_state[cleanup_key] = False
 
     show_load = (label == "Equipment")
@@ -836,6 +892,15 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
             sub_type = st.session_state.get(f"{prefix}_dlg_sub", None)
             range_normal = st.session_state.get(f"{prefix}_dlg_rn", 0)
             range_long = st.session_state.get(f"{prefix}_dlg_rl", 0)
+            dmg_n = st.session_state.get(f"{prefix}_dlg_dmg_n", 1)
+            dmg_s = st.session_state.get(f"{prefix}_dlg_dmg_s", 6)
+            ammo_item = st.session_state.get(f"{prefix}_dlg_ammo", "")
+            ammo_cap = st.session_state.get(f"{prefix}_dlg_ammo_cap", 0)
+            uses_ammo = st.session_state.get(f"{prefix}_dlg_uses_ammo", False)
+            decay = st.session_state.get(f"{prefix}_dlg_decay", 0)
+            crit_t = st.session_state.get(f"{prefix}_dlg_crit_t", 20)
+            crit_d = st.session_state.get(f"{prefix}_dlg_crit_d", "")
+            crit_e = st.session_state.get(f"{prefix}_dlg_crit_e", "")
             
             final_desc = join_modifiers(desc, st.session_state[mod_key])
             item_data = {
@@ -852,7 +917,18 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
                 "item_type": item_type,
                 "sub_type": sub_type,
                 "range_normal": range_normal,
-                "range_long": range_long
+                "range_long": range_long,
+                "damage_dice_count": dmg_n,
+                "damage_dice_sides": dmg_s,
+                "uses_ammo": uses_ammo,
+                "ammo_item": ammo_item,
+                "ammo_capacity": ammo_cap,
+                "ammo_current": 0,
+                "decay": decay,
+                "reloads_count": 0,
+                "crit_threshold": crit_t,
+                "crit_damage": crit_d,
+                "crit_effect": crit_e
             }
             if char_key not in char or not isinstance(char[char_key], list):
                 char[char_key] = []
@@ -933,6 +1009,15 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
             sub_type = st.session_state.get(f"{prefix}_sub", None)
             range_normal = st.session_state.get(f"{prefix}_rn", 0)
             range_long = st.session_state.get(f"{prefix}_rl", 0)
+            dmg_n = st.session_state.get(f"{prefix}_dmg_n", 1)
+            dmg_s = st.session_state.get(f"{prefix}_dmg_s", 6)
+            ammo_item = st.session_state.get(f"{prefix}_ammo", "")
+            ammo_cap = st.session_state.get(f"{prefix}_ammo_cap", 0)
+            uses_ammo = st.session_state.get(f"{prefix}_uses_ammo", False)
+            decay = st.session_state.get(f"{prefix}_decay", 0)
+            crit_t = st.session_state.get(f"{prefix}_crit_t", 20)
+            crit_d = st.session_state.get(f"{prefix}_crit_d", "")
+            crit_e = st.session_state.get(f"{prefix}_crit_e", "")
             
             final_desc = join_modifiers(desc, st.session_state[mod_key])
             
@@ -950,7 +1035,18 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
                 "item_type": item_type,
                 "sub_type": sub_type,
                 "range_normal": range_normal,
-                "range_long": range_long
+                "range_long": range_long,
+                "damage_dice_count": dmg_n,
+                "damage_dice_sides": dmg_s,
+                "uses_ammo": uses_ammo,
+                "ammo_item": ammo_item,
+                "ammo_capacity": ammo_cap,
+                "ammo_current": 0,
+                "decay": decay,
+                "reloads_count": 0,
+                "crit_threshold": crit_t,
+                "crit_damage": crit_d,
+                "crit_effect": crit_e
             }
 
         def add_local_callback():
@@ -984,7 +1080,7 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
         c_local.button("Add to Character Only", key=f"{prefix}_btn_add_local", on_click=add_local_callback)
         c_db.button("Save to DB & Add", key=f"{prefix}_btn_save_db", on_click=save_db_callback)
 
-def render_inventory_management(char, key, label, max_load=None, current_load=None):
+def render_inventory_management(char, key, label, max_load=None, current_load=None, effective_stats=None):
     """Renders the inventory with Carried/Stash sections and nesting."""
     items = char.get(key, [])
     if not isinstance(items, list):
@@ -1100,13 +1196,37 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                     if i_type == "Weapon":
                         sub = item.get("sub_type", "")
                         if sub: desc_parts.append(sub)
-                        if sub in ["Guns", "Energy Weapons"]:
-                            desc_parts.append(f"Rng: {item.get('range_normal',0)}/{item.get('range_long',0)}")
+                        if sub in ["Guns", "Energy Weapons", "Archery", "Explosives"]:
+                            rn = int(item.get('range_normal', 0))
+                            rl = int(item.get('range_long', 0))
+                            if rn > 0:
+                                if effective_stats:
+                                    # Calculate Range
+                                    range_attr_map = {"Guns": "PER", "Energy Weapons": "PER", "Archery": "STR", "Explosives": "STR"}
+                                    stat_key = range_attr_map.get(sub, "PER")
+                                    stat_val = effective_stats.get(stat_key, 5)
+                                    
+                                    rn_ft = int(stat_val * rn)
+                                    rl_ft = int(stat_val * rl)
+                                    rn_m = round(rn_ft * 0.3)
+                                    rl_m = round(rl_ft * 0.3)
+                                    desc_parts.append(f"Range: Normal - {rn_m}m ({rn_ft}f, {rn}x) / Long - {rl_m}m ({rl_ft}f, {rl}x)")
+                                    
+                                    # Ammo Status
+                                    if item.get("ammo_capacity", 0) > 0:
+                                        desc_parts.append(f"Ammo: {item.get('ammo_current', 0)}/{item.get('ammo_capacity', 0)}")
+                                else:
+                                    desc_parts.append(f"Range: {rn}/{rl}")
                     elif i_type != "Misc":
                         desc_parts.append(i_type)
 
                     if float(item.get("weight", 0)) > 0: desc_parts.append(f"{float(item['weight'])} Load")
                     if item.get("description"): desc_parts.append(item["description"])
+                    if item.get("decay", 0) > 0: desc_parts.append(f"Decay: {item['decay']}")
+                    
+                    if i_type == "Weapon" and item.get("crit_threshold", 20) < 20:
+                        desc_parts.append(f"Crit: {item['crit_threshold']}+")
+
                     if desc_parts:
                         st.caption(" | ".join(desc_parts))
                 
@@ -1171,6 +1291,83 @@ def update_stat_callback(target_dict, key, widget_key, save_callback=None):
     target_dict[key] = st.session_state[widget_key]
     if save_callback:
         save_callback()
+
+@st.dialog("Attack Result")
+def show_attack_result(weapon, char, attack_total, attack_roll, attack_mod, damage_total, damage_formula, is_crit=False, crit_damage_val=0, crit_effect="", save_callback=None):
+    if isinstance(weapon, dict):
+        name = weapon.get("name", "Weapon")
+    else:
+        name = str(weapon)
+        
+    st.markdown(f"### {name}")
+    
+    if is_crit:
+        st.markdown(f"**Attack:** :red[CRITICAL HIT!] ({attack_total})")
+        st.caption(f"Rolled {attack_roll} + {attack_mod}")
+        if crit_effect:
+            st.info(f"**Effect:** {crit_effect}")
+    else:
+        st.markdown(f"**Attack:** {attack_total} (d20({attack_roll}) + {attack_mod})")
+    st.markdown(f"**Damage:** {damage_total} ({damage_formula})")
+    
+    if isinstance(weapon, dict) and weapon.get("uses_ammo", False):
+        st.divider()
+        c_fire, c_reload = st.columns(2)
+        
+        ammo_cap = weapon.get("ammo_capacity", 0)
+        ammo_item_name = weapon.get("ammo_item", "")
+        
+        # Magazine System
+        if ammo_cap > 0:
+            current_ammo = weapon.get("ammo_current", 0)
+            st.caption(f"Ammo: {current_ammo}/{ammo_cap}")
+            
+            # Fire Button
+            if c_fire.button("🔥 Fire", key=f"pop_fire_{weapon['id']}", use_container_width=True, disabled=(current_ammo <= 0)):
+                weapon["ammo_current"] -= 1
+                if save_callback: save_callback()
+                st.rerun()
+            
+            # Reload Button
+            if c_reload.button("🔄 Reload", key=f"pop_reload_{weapon['id']}", use_container_width=True):
+                missing = ammo_cap - current_ammo
+                if missing > 0:
+                    ammo_inv = next((i for i in char.get("inventory", []) if i.get("name") == ammo_item_name), None)
+                    if ammo_inv and ammo_inv.get("quantity", 0) > 0:
+                        to_load = min(missing, ammo_inv["quantity"])
+                        weapon["ammo_current"] = current_ammo + to_load
+                        ammo_inv["quantity"] -= to_load
+                        if ammo_inv["quantity"] <= 0:
+                            char["inventory"].remove(ammo_inv)
+                        
+                        # Decay Logic
+                        weapon["reloads_count"] = weapon.get("reloads_count", 0) + 1
+                        if weapon["reloads_count"] % 10 == 0:
+                            weapon["decay"] = weapon.get("decay", 0) + 1
+                            st.toast(f"{weapon['name']} decay increased!")
+                        
+                        if save_callback: save_callback()
+                        st.rerun()
+                    else:
+                        st.error(f"No {ammo_item_name} found!")
+                else:
+                    st.info("Magazine full!")
+        
+        # Direct Feed System
+        elif ammo_item_name:
+            ammo_inv = next((i for i in char.get("inventory", []) if i.get("name") == ammo_item_name), None)
+            qty = ammo_inv.get("quantity", 0) if ammo_inv else 0
+            st.caption(f"Ammo ({ammo_item_name}): {qty}")
+            
+            if c_fire.button("🔥 Fire", key=f"pop_fire_{weapon['id']}", use_container_width=True, disabled=(qty <= 0)):
+                if ammo_inv and qty > 0:
+                    ammo_inv["quantity"] -= 1
+                    if ammo_inv["quantity"] <= 0:
+                        char["inventory"].remove(ammo_inv)
+                    if save_callback: save_callback()
+                    st.rerun()
+                else:
+                    st.error(f"Out of {ammo_item_name}!")
 
 def render_character_statblock(char, save_callback=None):
     """Renders the character sheet as a visual statblock with interactive elements."""
@@ -1313,6 +1510,7 @@ def render_character_statblock(char, save_callback=None):
             skills_by_stat[best_stat].append((skill, effective_skills[skill]))
 
     skills_html = '<div style="margin-bottom: 10px; font-size: 0.9em;">'
+    skills_html += f'<div style="border-bottom: 1px solid {secondary}; margin-bottom: 4px; font-weight: bold; color: {primary};">SKILLS</div>'
     for stat in ["STR", "PER", "END", "CHA", "INT", "AGI", "LUC"]:
         skill_list = skills_by_stat.get(stat, [])
         if skill_list:
@@ -1323,10 +1521,13 @@ def render_character_statblock(char, save_callback=None):
 
     # --- RENDER CONTAINER ---
     # HEADER
+    bg_list = char.get("backgrounds", [])
+    bg_name = bg_list[0].get("name", "Wastelander") if bg_list else "Wastelander"
+    
     header_html = (
     f'<div class="statblock-header">'
     f'<span class="statblock-title">{char.get("name", "Unnamed")}</span>'
-    f'<span class="statblock-meta">Lvl {char.get("level", 1)} {char.get("background", "Wastelander")}</span>'
+    f'<span class="statblock-meta">Lvl {char.get("level", 1)} {bg_name}</span>'
     f'</div>'
     )
     st.markdown(header_html, unsafe_allow_html=True)
@@ -1449,7 +1650,164 @@ def render_character_statblock(char, save_callback=None):
         st.markdown(grid_html, unsafe_allow_html=True)
         st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
 
-        st.markdown(skills_html, unsafe_allow_html=True)
+        c_skills, c_attacks = st.columns(2)
+        with c_skills:
+            st.markdown(skills_html, unsafe_allow_html=True)
+        with c_attacks:
+            st.markdown(f'<div style="border-bottom: 1px solid {secondary}; margin-bottom: 4px; font-weight: bold; color: {primary};">ATTACKS</div>', unsafe_allow_html=True)
+            
+            equipped_weapons = [
+                i for i in char.get("inventory", []) 
+                if i.get("equipped") and i.get("item_type") == "Weapon" and i.get("location") == "carried" and i.get("parent_id") is None
+            ]
+            
+            if not equipped_weapons:
+                # Add Unarmed default
+                unarmed_skill = effective_skills.get("Unarmed", 0)
+                str_stat = effective_stats.get("STR", 5)
+                dmg_bonus = str_stat - 5
+                dmg_sign = "+" if dmg_bonus >= 0 else ""
+                
+                c_atk_info, c_atk_roll = st.columns([4, 1], vertical_alignment="center")
+                with c_atk_info:
+                    st.markdown(
+                        f'<div style="margin-bottom: 4px;">'
+                        f'<div style="font-weight: bold; color: #e6fffa;">Unarmed <span style="color: {secondary};">+{unarmed_skill}</span></div>'
+                        f'<div style="font-size: 0.85em; color: {secondary};">Damage: 1d2{dmg_sign}{dmg_bonus}</div>'
+                        f'</div>', unsafe_allow_html=True
+                    )
+                with c_atk_roll:
+                    if st.button("🎲", key=f"btn_roll_unarmed_{unique_id}", use_container_width=True):
+                        atk_roll = random.randint(1, 20)
+                        atk_total = atk_roll + unarmed_skill
+                        dmg_roll = roll_dice("1d2")
+                        
+                        # Unarmed Crit Logic
+                        eff_luc = effective_stats.get("LUC", 5)
+                        luc_mod = eff_luc - 5
+                        luck_reduction = int(luc_mod // 2)
+                        base_crit = 20
+                        crit_threshold = min(20, base_crit - luck_reduction)
+                        is_crit = atk_roll >= crit_threshold
+                        
+                        dmg_total = max(1, dmg_roll + dmg_bonus)
+                        show_attack_result("Unarmed", char, atk_total, atk_roll, unarmed_skill, dmg_total, f"1d2{dmg_sign}{dmg_bonus}", is_crit=is_crit, save_callback=save_callback)
+            else:
+                for w in equipped_weapons:
+                    sub = w.get("sub_type", "Melee")
+                    
+                    # Skill Mapping
+                    skill_map = {
+                        "Archery": "Survival",
+                        "Guns": "Guns",
+                        "Melee": "Melee Weapons",
+                        "Unarmed": "Unarmed",
+                        "Energy Weapons": "Energy Weapons",
+                        "Explosives": "Explosives"
+                    }
+                    skill_name = skill_map.get(sub, "Melee Weapons")
+                    atk_bonus = effective_skills.get(skill_name, 0)
+                    
+                    # Damage Mapping
+                    dmg_attr_map = {"Archery": "END", "Guns": "AGI", "Melee": "STR", "Unarmed": "STR", "Energy Weapons": "PER", "Explosives": "PER"}
+                    attr_key = dmg_attr_map.get(sub, "STR")
+                    attr_val = effective_stats.get(attr_key, 5)
+                    dmg_bonus = attr_val - 5
+                    dmg_sign = "+" if dmg_bonus >= 0 else ""
+                    
+                    # Range Calc
+                    range_str = ""
+                    rn = int(w.get("range_normal", 0))
+                    rl = int(w.get("range_long", 0))
+                    if rn > 0:
+                        range_attr_map = {"Guns": "PER", "Energy Weapons": "PER", "Archery": "STR", "Explosives": "STR"}
+                        stat_key = range_attr_map.get(sub, "PER")
+                        stat_val = effective_stats.get(stat_key, 5)
+                        rn_ft = int(stat_val * rn)
+                        rl_ft = int(stat_val * rl)
+                        rn_m = round(rn_ft * 0.3)
+                        rl_m = round(rl_ft * 0.3)
+                        range_str = f" | Range: Normal - {rn_m}m ({rn_ft}f, {rn}x) / Long - {rl_m}m ({rl_ft}f, {rl}x)"
+                    
+                    # Decay & Ammo Info
+                    decay_val = w.get("decay", 0)
+                    decay_str = f" | Decay: {decay_val}" if decay_val > 0 else ""
+                    
+                    ammo_str = ""
+                    if w.get("ammo_capacity", 0) > 0:
+                        ammo_str = f" | Ammo: {w.get('ammo_current', 0)}/{w.get('ammo_capacity', 0)}"
+                    
+                    crit_val = w.get("crit_threshold", 20)
+                    crit_str = f" | Crit: {crit_val}+" if crit_val < 20 else ""
+                    
+                    c_atk_info, c_atk_act = st.columns([3.5, 1.5], vertical_alignment="center")
+                    with c_atk_info:
+                        st.markdown(
+                            f'<div style="margin-bottom: 6px;">'
+                            f'<div style="font-weight: bold; color: #e6fffa;">{w.get("name")} <span style="color: {secondary};">+{atk_bonus}</span></div>'
+                            f'<div style="font-size: 0.85em; color: {secondary};">Damage: {w.get("damage_dice_count", 1)}d{w.get("damage_dice_sides", 6)}{dmg_sign}{dmg_bonus}{range_str}{ammo_str}{decay_str}{crit_str}</div>'
+                            f'</div>', unsafe_allow_html=True
+                        )
+                    with c_atk_act:
+                        c_roll, c_reload = st.columns(2)
+                        
+                        # Reload Button
+                        if w.get("ammo_capacity", 0) > 0 and w.get("ammo_item"):
+                            with c_reload:
+                                if st.button("🔄", key=f"btn_reload_{w['id']}", help=f"Reload {w['name']}", use_container_width=True):
+                                    current_ammo = w.get("ammo_current", 0)
+                                    capacity = w.get("ammo_capacity", 0)
+                                    missing = capacity - current_ammo
+                                    
+                                    if missing > 0:
+                                        ammo_inv = next((i for i in char.get("inventory", []) if i.get("name") == w["ammo_item"]), None)
+                                        if ammo_inv and ammo_inv.get("quantity", 0) > 0:
+                                            to_load = min(missing, ammo_inv["quantity"])
+                                            w["ammo_current"] = current_ammo + to_load
+                                            ammo_inv["quantity"] -= to_load
+                                            if ammo_inv["quantity"] <= 0:
+                                                char["inventory"].remove(ammo_inv)
+                                            
+                                            # Decay Logic
+                                            w["reloads_count"] = w.get("reloads_count", 0) + 1
+                                            if w["reloads_count"] % 10 == 0:
+                                                w["decay"] = w.get("decay", 0) + 1
+                                                st.toast(f"{w['name']} decay increased!")
+                                            
+                                            if save_callback: save_callback()
+                                            st.rerun()
+                                        else:
+                                            st.toast(f"No {w['ammo_item']} found!", icon="⚠️")
+                                    else:
+                                        st.toast("Magazine full!", icon="ℹ️")
+
+                        with c_roll:
+                            if st.button("🎲", key=f"btn_roll_{w['id']}", use_container_width=True):
+                                atk_roll = random.randint(1, 20)
+                                atk_total = atk_roll + atk_bonus
+                                
+                                # Crit Logic
+                                eff_luc = effective_stats.get("LUC", 5)
+                                luc_mod = eff_luc - 5
+                                luck_reduction = int(luc_mod // 2)
+                                base_crit = w.get("crit_threshold", 20)
+                                crit_threshold = min(20, base_crit - luck_reduction)
+                                is_crit = atk_roll >= crit_threshold
+                                
+                                d_count = w.get("damage_dice_count", 1)
+                                d_sides = w.get("damage_dice_sides", 6)
+                                dmg_roll = roll_dice(f"{d_count}d{d_sides}")
+                                
+                                crit_dmg_val = 0
+                                if is_crit and w.get("crit_damage"):
+                                    crit_dmg_val = roll_dice(w.get("crit_damage"))
+                                
+                                dmg_total = max(1, dmg_roll + dmg_bonus + crit_dmg_val)
+                                dmg_formula = f"{d_count}d{d_sides}{dmg_sign}{dmg_bonus}"
+                                if is_crit and crit_dmg_val > 0:
+                                    dmg_formula += f" + {crit_dmg_val} (Crit)"
+                                
+                                show_attack_result(w, char, atk_total, atk_roll, atk_bonus, dmg_total, dmg_formula, is_crit, crit_dmg_val, w.get("crit_effect", ""), save_callback)
 
     with tab_inv:
         # INVENTORY / EQUIPMENT
@@ -1554,11 +1912,30 @@ def render_character_statblock(char, save_callback=None):
                         if i_type == "Weapon":
                             sub = item.get("sub_type", "")
                             if sub: desc_parts.append(sub)
-                            if sub in ["Guns", "Energy Weapons"]:
-                                desc_parts.append(f"Range: {item.get('range_normal',0)}/{item.get('range_long',0)}")
+                            if sub in ["Guns", "Energy Weapons", "Archery", "Explosives"]:
+                                rn = int(item.get('range_normal', 0))
+                                rl = int(item.get('range_long', 0))
+                                if rn > 0:
+                                    # Calculate Range using effective_stats from closure
+                                    range_attr_map = {"Guns": "PER", "Energy Weapons": "PER", "Archery": "STR", "Explosives": "STR"}
+                                    stat_key = range_attr_map.get(sub, "PER")
+                                    stat_val = effective_stats.get(stat_key, 5)
+                                    
+                                    rn_ft = int(stat_val * rn)
+                                    rl_ft = int(stat_val * rl)
+                                    rn_m = round(rn_ft * 0.3)
+                                    rl_m = round(rl_ft * 0.3)
+                                    desc_parts.append(f"Range: Normal - {rn_m}m ({rn_ft}f, {rn}x) / Long - {rl_m}m ({rl_ft}f, {rl}x)")
+                                    
+                                    if item.get("ammo_capacity", 0) > 0:
+                                        desc_parts.append(f"Ammo: {item.get('ammo_current', 0)}/{item.get('ammo_capacity', 0)}")
                         
                         if float(item.get("weight", 0)) > 0: desc_parts.append(f"{float(item['weight'])} Load")
                         if item.get("description"): desc_parts.append(item["description"])
+                        if item.get("decay", 0) > 0: desc_parts.append(f"Decay: {item['decay']}")
+                        
+                        if i_type == "Weapon" and item.get("crit_threshold", 20) < 20:
+                            desc_parts.append(f"Crit: {item['crit_threshold']}+")
                         
                         desc_html = f"<div style='font-size:0.85em; color:{secondary}; line-height: 1.2; margin-top: 2px;'>{' | '.join(desc_parts)}</div>" if desc_parts else ""
                         
@@ -1598,9 +1975,9 @@ def render_character_statblock(char, save_callback=None):
         st.markdown('<div class="section-header">Features & Traits</div>', unsafe_allow_html=True)
         
         # Background
-        bg_name = char.get("background", "Wastelander")
-        if bg_name:
-            st.markdown(f"**Background: {bg_name}**")
+        backgrounds = char.get("backgrounds", [])
+        for bg in backgrounds:
+            st.markdown(f"**Background: {bg.get('name')}**: {bg.get('description', '')}")
         
         # Traits
         traits = char.get("traits", [])

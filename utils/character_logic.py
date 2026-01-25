@@ -24,7 +24,7 @@ def get_default_character():
     return {
         "name": "New Character",
         "level": 1,
-        "background": "Vault Dweller",
+        "backgrounds": [],
         "xp": 0,
         "stats": {
             "STR": 5, "PER": 5, "END": 5, "CHA": 5, "INT": 5, "AGI": 5, "LUC": 5
@@ -51,7 +51,7 @@ def sync_char_widgets():
     
     # Basic Info
     st.session_state["c_name"] = char.get("name", "")
-    st.session_state["c_background"] = char.get("background", "")
+    st.session_state["c_backgrounds"] = char.get("backgrounds", [])
     st.session_state["c_level"] = char.get("level", 1)
     st.session_state["c_xp"] = char.get("xp", 0)
     st.session_state["c_hp_curr"] = char.get("hp_current", 10)
@@ -75,9 +75,18 @@ def sync_char_widgets():
 
 def migrate_character(char):
     """Converts legacy string-based inventory/perks to list-based objects."""
-    # Migrate Origin -> Background
+    # Migrate Origin -> Background (String)
     if "origin" in char and "background" not in char:
         char["background"] = char.pop("origin")
+    
+    # Migrate Background (String) -> Backgrounds (List)
+    if "background" in char and isinstance(char["background"], str):
+        bg_name = char.pop("background")
+        if bg_name:
+            char["backgrounds"] = [{"id": str(uuid.uuid4()), "name": bg_name, "description": "Legacy background", "active": True}]
+            
+    if "backgrounds" not in char:
+        char["backgrounds"] = []
 
     # Migrate Inventory
     if isinstance(char.get("inventory"), str):
@@ -125,6 +134,10 @@ def migrate_character(char):
     # Migrate Traits
     if "traits" not in char:
         char["traits"] = []
+        
+    # Ensure Backgrounds have IDs
+    for bg in char.get("backgrounds", []):
+        if "id" not in bg: bg["id"] = str(uuid.uuid4())
     for trait in char.get("traits", []):
         if "id" not in trait: trait["id"] = str(uuid.uuid4())
 
@@ -175,8 +188,10 @@ def calculate_stats(char):
         if trait.get("active", True):
             full_text += f" {trait.get('description', '')}"
             
-    # Process Background
-    full_text += f" {char.get('background', '')}"
+    # Process Backgrounds
+    for bg in char.get("backgrounds", []):
+        if bg.get("active", True):
+            full_text += f" {bg.get('description', '')}"
 
     # Process Inventory
     for item in char.get("inventory", []):
