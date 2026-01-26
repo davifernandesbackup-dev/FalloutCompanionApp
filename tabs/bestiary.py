@@ -1,243 +1,7 @@
 import streamlit as st
-import streamlit.components.v1 as components
-from typing import Dict, Any
-import urllib.parse
 from utils.data_manager import load_data
+from utils.statblock import render_statblock, view_statblock_dialog
 from constants import BESTIARY_FILE
-
-# --- UI: STATBLOCK DISPLAY ---
-def render_statblock(name: str, data: Dict[str, Any], container: Any = st) -> None:
-    # Renders a creature's statblock into a given Streamlit container.
-    
-    if not data:
-        container.warning(f"No statblock data found for **{name}**.")
-        return
-
-    primary = st.session_state.get("theme_primary", "#00ff00")
-    secondary = st.session_state.get("theme_secondary", "#00b300")
-
-    # --- CSS STYLING ---
-    statblock_css = f"""
-    <style>
-        .statblock-container {{
-            border: 2px solid {secondary};
-            border-radius: 8px;
-            padding: 15px;
-            background-color: rgba(13, 17, 23, 0.9);
-            font-family: "Source Sans Pro", sans-serif;
-            box-shadow: 0 0 10px {primary}33;
-            margin-bottom: 10px;
-        }}
-        .statblock-header {{
-            border-bottom: 2px solid {secondary};
-            margin-bottom: 10px;
-            padding-bottom: 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-        }}
-        .statblock-title {{
-            font-size: 1.4em;
-            font-weight: bold;
-            color: {primary};
-            text-transform: uppercase;
-            text-shadow: 0 0 5px {primary}B3;
-        }}
-        .statblock-meta {{
-            font-style: italic;
-            color: {secondary};
-            font-size: 0.9em;
-        }}
-        .special-grid {{
-            display: flex;
-            width: 100%;
-            border: 2px solid {secondary};
-            border-radius: 6px;
-            overflow: hidden;
-            margin: 10px 0;
-        }}
-        .special-box {{
-            text-align: center;
-            flex: 1;
-            border-right: 1px solid {secondary};
-            background-color: #0d1117;
-        }}
-        .special-box:last-child {{
-            border-right: none;
-        }}
-        .special-label {{
-            background-color: {secondary};
-            color: #0d1117;
-            font-weight: bold;
-            font-size: 0.75em;
-            padding: 2px 0;
-            text-shadow: none;
-        }}
-        .special-value {{
-            font-size: 1.1em;
-            font-weight: bold;
-            padding: 4px 0;
-            color: {primary};
-        }}
-        .derived-row {{
-            display: flex;
-            justify-content: space-around;
-            background-color: rgba(0, 179, 0, 0.15);
-            padding: 6px;
-            border-radius: 4px;
-            margin-bottom: 12px;
-            font-weight: bold;
-            color: #e6fffa;
-        }}
-        .section-header {{
-            border-bottom: 1px solid {secondary};
-            color: {primary};
-            font-weight: bold;
-            margin-top: 12px;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            font-size: 0.9em;
-        }}
-        .attack-row {{
-            margin-bottom: 6px;
-            padding-left: 8px;
-            border-left: 3px solid {secondary};
-        }}
-        /* CRT SCANLINE EFFECT */
-        .scanlines {{
-            background: linear-gradient(
-                to bottom,
-                rgba(255,255,255,0),
-                rgba(255,255,255,0) 50%,
-                rgba(0,0,0,0.2) 50%,
-                rgba(0,0,0,0.2)
-            );
-            background-size: 100% 4px;
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            pointer-events: none;
-            z-index: 10;
-            opacity: 0.6;
-        }}
-    </style>
-    """
-
-    # --- HTML CONSTRUCTION ---
-    
-    # 1. SPECIAL Stats
-    stats = data.get('stats', {})
-    stat_keys = ["str", "per", "end", "cha", "int", "agi", "luc"]
-    stat_labels = ["STR", "PER", "END", "CHA", "INT", "AGI", "LUC"]
-    
-    special_html = '<div class="special-grid">'
-    for key, label in zip(stat_keys, stat_labels):
-        val = stats.get(key, 5)
-        special_html += (
-            f'<div class="special-box">'
-            f'<div class="special-label">{label}</div>'
-            f'<div class="special-value">{val}</div>'
-            f'</div>'
-        )
-    special_html += '</div>'
-
-    # 2. Derived Stats
-    derived_html = (
-        f'<div class="derived-row">'
-        f'<span>HP: {data.get("hp", 10)}</span>'
-        f'<span>DEF: {data.get("defense", 1)}</span>'
-        f'<span>INIT: {data.get("initiative", stats.get("per", 5) + stats.get("agi", 5))}</span>'
-        f'</div>'
-    )
-
-    # 3. Skills
-    skills_str = ", ".join(data.get('skills', []))
-    skills_html = f'<div style="margin-bottom: 10px;"><strong>Skills:</strong> {skills_str}</div>' if skills_str else ""
-
-    # 4. Attacks
-    attacks_html = ""
-    attacks = data.get('attacks', [])
-    if attacks:
-        attacks_html += '<div class="section-header">Attacks</div>'
-        for atk in attacks:
-            dmg = atk.get('damage', '').replace('$CD$', '🎲')
-            effect = atk.get('effect', '-')
-            attacks_html += (
-                f'<div class="attack-row">'
-                f'<div><strong>{atk["name"]}</strong></div>'
-                f'<div style="font-size: 0.9em; color: #ccffcc;">{dmg} <span style="font-style: italic; opacity: 0.8;">({effect})</span></div>'
-                f'</div>'
-            )
-
-    # Assemble Full HTML
-    full_html = (
-        f'<div class="statblock-container">'
-        f'<div class="scanlines"></div>' # Add scanline overlay
-        f'<div class="statblock-header">'
-        f'<span class="statblock-title">{name}</span>'
-        f'<span class="statblock-meta">Lvl {data.get("level", "?")} {data.get("type", "Normal")}</span>'
-        f'</div>'
-        f'{special_html}'
-        f'{derived_html}'
-        f'{skills_html}'
-        f'{attacks_html}'
-        f'</div>'
-    )
-
-    container.markdown(statblock_css + full_html, unsafe_allow_html=True)
-
-    with container.expander("Raw Data"):
-        st.json(data)
-
-# --- DIALOG WRAPPER ---
-@st.dialog("Creature Intel")
-def view_statblock_dialog(name: str, data: Dict[str, Any]) -> None:
-    safe_name = urllib.parse.quote(name)
-    
-    primary = st.session_state.get("theme_primary", "#00ff00")
-    secondary = st.session_state.get("theme_secondary", "#00b300")
-    
-    # Use JavaScript window.open to create a "popout" style window (no toolbar, etc.)
-    # We use a component to inject the HTML/JS button.
-    window_name = f"sb_{safe_name.replace('%', '')}"
-    
-    html_code = f"""
-    <html>
-    <head>
-    <style>
-        body {{ margin: 0; padding: 0; background-color: transparent; }}
-        button {{
-            width: 100%;
-            background-color: #161b22;
-            color: {secondary};
-            border: 1px solid {primary};
-            border-radius: 0.5rem;
-            padding: 0.25rem 0.75rem;
-            min-height: 38.4px;
-            font-size: 1rem;
-            cursor: pointer;
-            font-family: "Source Sans Pro", sans-serif;
-        }}
-        button:hover {{
-            border-color: {secondary};
-            color: {primary};
-        }}
-    </style>
-    </head>
-    <body>
-        <script>
-            function openPopout() {{
-                // Construct URL relative to the parent window
-                const url = "?popout=statblock&id={safe_name}";
-                window.open(url, '{window_name}', 'width=700,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
-            }}
-        </script>
-        <button onclick="openPopout()">Open in New Window ⧉</button>
-    </body>
-    </html>
-    """
-    components.html(html_code, height=50)
-    
-    render_statblock(name, data)
 
 # --- MAIN RENDERER ---
 def render_bestiary() -> None:
@@ -248,6 +12,18 @@ def render_bestiary() -> None:
     if not bestiary_data:
         st.error("Bestiary data (`bestiary.json`) not found in `data` folder!")
         return
+        
+    if not isinstance(bestiary_data, dict):
+        st.error("⚠️ Error: Bestiary data is formatted as a List, but must be a Dictionary. If you pasted new creatures, ensure they are inside the main `{}` object and keyed by name.")
+        return
+
+    # --- PREPARE FILTER DATA ---
+    all_sources = sorted({item.get("source", "Unknown") for item in bestiary_data.values() if isinstance(item, dict)})
+    all_types = sorted({item.get("type", "Unknown") for item in bestiary_data.values() if isinstance(item, dict)})
+    all_sizes = sorted({item.get("size", "Unknown") for item in bestiary_data.values() if isinstance(item, dict) if "size" in item})
+    all_biomes = sorted({b for item in bestiary_data.values() if isinstance(item, dict) for b in item.get("biomes", [])})
+    all_sites = sorted({s for item in bestiary_data.values() if isinstance(item, dict) for s in item.get("sites", [])})
+    all_factions = sorted({f for item in bestiary_data.values() if isinstance(item, dict) for f in item.get("factions", [])})
 
     # --- LAYOUT & SEARCH ---
     left_col, right_col = st.columns([1, 2])
@@ -255,12 +31,65 @@ def render_bestiary() -> None:
     with left_col:
         st.subheader("Creatures")
         search_term = st.text_input("Search Creatures...", key="bestiary_search")
+        
+        with st.expander("Filters", expanded=False):
+            filter_source = st.multiselect("Source", options=all_sources, key="bestiary_filter_source")
+            filter_size = st.multiselect("Size", options=all_sizes, key="bestiary_filter_size")
+            filter_type = st.multiselect("Type", options=all_types, key="bestiary_filter_type")
+            filter_biome = st.multiselect("Biome", options=all_biomes, key="bestiary_filter_biome")
+            filter_site = st.multiselect("Site", options=all_sites, key="bestiary_filter_site")
+            filter_faction = st.multiselect("Faction", options=all_factions, key="bestiary_filter_faction")
+            
+            # Dynamic Subtypes based on Type selection
+            if filter_type:
+                relevant_subtypes = {
+                    item.get("subtype") 
+                    for item in bestiary_data.values() 
+                    if isinstance(item, dict) and item.get("type", "Unknown") in filter_type and item.get("subtype")
+                }
+                all_subtypes = sorted(relevant_subtypes)
+            else:
+                all_subtypes = []
+            
+            filter_subtype = st.multiselect("Subtype", options=all_subtypes, key="bestiary_filter_subtype", disabled=(not all_subtypes))
+            filter_level = st.slider("Level Range", 0, 100, (0, 100), key="bestiary_filter_level")
 
-        # Filter creatures based on search term
-        if search_term:
-            filtered_creatures = {k: v for k, v in bestiary_data.items() if search_term.lower() in k.lower()}
-        else:
-            filtered_creatures = bestiary_data
+        # Filter Logic
+        filtered_creatures = {}
+        for name, data in bestiary_data.items():
+            # Text Search
+            if search_term and search_term.lower() not in name.lower():
+                continue
+            # Source Filter
+            if filter_source and data.get("source", "Unknown") not in filter_source:
+                continue
+            # Size Filter
+            if filter_size and data.get("size", "Unknown") not in filter_size:
+                continue
+            # Type Filter
+            if filter_type and data.get("type", "Unknown") not in filter_type:
+                continue
+            # Biome Filter
+            if filter_biome:
+                if not set(data.get("biomes", [])).intersection(filter_biome):
+                    continue
+            # Site Filter
+            if filter_site:
+                if not set(data.get("sites", [])).intersection(filter_site):
+                    continue
+            # Faction Filter
+            if filter_faction:
+                if not set(data.get("factions", [])).intersection(filter_faction):
+                    continue
+            # Subtype Filter
+            if filter_subtype and data.get("subtype") not in filter_subtype:
+                continue
+            # Level Filter
+            level = data.get("level", 0)
+            if not (filter_level[0] <= level <= filter_level[1]):
+                continue
+            
+            filtered_creatures[name] = data
         
         sorted_creatures = sorted(filtered_creatures.keys())
         

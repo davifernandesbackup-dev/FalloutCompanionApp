@@ -2,7 +2,7 @@ import streamlit as st
 import json
 import os
 from typing import Any, Union, Dict, List
-from constants import THREAT_FILE, LOOT_FILE, BESTIARY_FILE, SAVED_FILE
+from constants import BESTIARY_FILE, SAVED_FILE
 
 # --- DATA MANAGEMENT ---
 @st.cache_data
@@ -10,7 +10,7 @@ def load_data(filepath: str) -> Union[Dict, List]:
     if not os.path.exists(filepath):
         return {}
     try:
-        with open(filepath, "r") as f:
+        with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError:
         st.error(f"Error decoding JSON from {filepath}. The file might be corrupted.")
@@ -20,7 +20,7 @@ def load_data(filepath: str) -> Union[Dict, List]:
         return {}
 
 def save_data(filepath: str, data: Any) -> None:
-    with open(filepath, "w") as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
     # Clear the cache so the next load gets the updated data
     load_data.clear()

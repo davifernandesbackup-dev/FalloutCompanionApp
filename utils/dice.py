@@ -31,3 +31,27 @@ def roll_dice(dice_str: str) -> int:
 
     # Fallback for unrecognized format
     return 1
+
+def parse_and_roll_loot(loot_str: str) -> tuple[str, int, str, int, str]:
+    """Parses a loot string into name, qty, qty_str, decay_val, decay_str."""
+    qty_str = "1"
+    name = loot_str.strip()
+    
+    # 1. Parse Quantity prefix "x..."
+    match_qty = re.match(r"^x(\d+d\d+[+\-]?\d*|\d+)\s+(.*)", name, re.IGNORECASE)
+    if match_qty:
+        qty_str = match_qty.group(1)
+        name = match_qty.group(2).strip()
+    
+    qty = roll_dice(qty_str)
+    
+    # 2. Parse Decay suffix "(... levels of decay)"
+    decay_val = 0
+    decay_str = ""
+    match_decay = re.search(r"\(([\dd+\-\s]+)\s+levels? of decay\)", name, re.IGNORECASE)
+    if match_decay:
+        decay_str = match_decay.group(1).strip()
+        decay_val = roll_dice(decay_str)
+        name = name.replace(match_decay.group(0), "").strip()
+        
+    return name, qty, qty_str, decay_val, decay_str

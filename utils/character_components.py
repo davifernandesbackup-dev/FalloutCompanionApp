@@ -5,9 +5,9 @@ import uuid
 import random
 from utils.data_manager import load_data, save_data
 from utils.character_logic import get_default_character, calculate_stats, SKILL_MAP
-from utils.item_components import render_item_form, render_modifier_builder, parse_modifiers, join_modifiers
+from utils.item_components import render_item_form, render_modifier_builder, parse_modifiers, join_modifiers, get_item_data_from_form
 from utils.dice import roll_dice
-from constants import EQUIPMENT_FILE, PERKS_FILE, RECIPES_FILE
+from constants import ITEM_FILE, PERKS_FILE, RECIPES_FILE
 
 def render_css(compact=True):
     primary = st.session_state.get("theme_primary", "#00ff00")
@@ -79,7 +79,7 @@ def render_css(compact=True):
             height: 38px;
             position: relative;
             overflow: hidden;
-            margin-top: -16px;
+            margin-top: -0px;
         }}
         .stat-bar-text {{
             position: absolute;
@@ -341,7 +341,6 @@ def render_move_menu(item, all_items, key_prefix, callback=None):
     ]
     
     if valid_containers:
-        st.divider()
         st.caption("Move To:")
         valid_containers.sort(key=lambda x: x.get("name", ""))
         
@@ -365,6 +364,30 @@ def render_move_menu(item, all_items, key_prefix, callback=None):
                     item["equipped"] = False
                     if callback: callback()
                     st.rerun()
+
+@st.dialog("Confirm Deletion")
+def confirm_delete_item_dialog(item, all_items, callback=None):
+    st.markdown(f"Are you sure you want to delete **{item.get('name', 'Unknown')}**?")
+    
+    if item.get("is_container", False):
+        descendants = get_descendants(item["id"], all_items)
+        if descendants:
+            st.warning(f"⚠️ This container contains {len(descendants)} items. They will also be deleted.")
+    
+    if st.button("Confirm Delete", type="primary", use_container_width=True):
+        to_remove = get_descendants(item["id"], all_items) + [item["id"]]
+        all_items[:] = [i for i in all_items if i["id"] not in to_remove]
+        if callback: callback()
+        st.rerun()
+
+@st.dialog("Confirm Deletion")
+def confirm_delete_simple_dialog(item, item_list, callback=None):
+    st.markdown(f"Are you sure you want to delete **{item.get('name', 'Unknown')}**?")
+    if st.button("Confirm Delete", type="primary", use_container_width=True):
+        if item in item_list:
+            item_list.remove(item)
+        if callback: callback()
+        st.rerun()
 
 def render_bars(char, effective_health_max, effective_stamina_max):
     col_health_bar, col_stamina_bar = st.columns(2)
@@ -599,8 +622,8 @@ def crafting_manager_dialog(char, save_callback=None):
                     
                     # Check if we can stack
                     # For simplicity, just add new item. The user can stack manually or we implement auto-stack later.
-                    # We should try to find item data from EQUIPMENT_FILE to get weight/desc
-                    eq_db = load_data(EQUIPMENT_FILE)
+                    # We should try to find item data from ITEM_FILE to get weight/desc
+                    eq_db = load_data(ITEM_FILE)
                     db_item = next((i for i in eq_db if i["name"] == res_name), None)
                     
                     new_item = {
@@ -621,6 +644,81 @@ def crafting_manager_dialog(char, save_callback=None):
                     if save_callback: save_callback()
                     st.query_params["_update"] = str(uuid.uuid4())
 
+def convert_nested_to_flat(nested_item):
+    """Converts a new schema item (nested props) to the flat inventory format."""
+    props = nested_item.get("props", {})
+    category = nested_item.get("category", "gear")
+    
+    # Map Category to Item Type
+    cat_map = {
+        "weapon": "Weapon", "armor": "Armor", "power_armor": "Power Armor", "bag": "Bag",
+        "ammo": "Ammo", "ammo_mod": "Mod", "explosive": "Weapon", "food": "Food", "drink": "Drink",
+        "medicine": "Medicine", "chem": "Chem", "mod": "Mod", "gear": "Gear",
+        "program": "Program", "magazine": "Magazine"
+    }
+    item_type = cat_map.get(category, "Misc")
+    
+    flat_item = {
+        "name": nested_item.get("name", "Unknown"),
+        "description": nested_item.get("description", ""),
+        "weight": float(nested_item.get("load", 0.0)),
+        "cost": int(nested_item.get("cost", 0)),
+        "quantity": int(nested_item.get("quantity", 1)),
+        "item_type": item_type,
+        "category": category
+    }
+    
+    # Weapon Specifics
+    if category in ["weapon", "explosive"]:
+        w_type = props.get("weaponType", "")
+        if w_type == "ballistic": flat_item["sub_type"] = "Guns"
+        elif w_type == "energy": flat_item["sub_type"] = "Energy Weapons"
+        elif w_type == "melee": flat_item["sub_type"] = "Melee"
+        elif category == "explosive": flat_item["sub_type"] = "Explosives"
+        
+        dmg = str(props.get("damage", "1d6"))
+        if "d" in dmg:
+            parts = dmg.split("d")
+            if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                flat_item["damage_dice_count"] = int(parts[0])
+                flat_item["damage_dice_sides"] = int(parts[1])
+        elif dmg.isdigit():
+            flat_item["damage_dice_count"] = int(dmg)
+            flat_item["damage_dice_sides"] = 1
+        
+        rng = str(props.get("range", ""))
+        if "/" in rng:
+            parts = rng.replace("x", "").split("/")
+            if len(parts) == 2:
+                # Handle potential whitespace
+                p0 = parts[0].strip()
+                p1 = parts[1].strip()
+                flat_item["range_normal"] = int(p0) if p0.isdigit() else 0
+                flat_item["range_long"] = int(p1) if p1.isdigit() else 0
+        
+        flat_item["ammo_item"] = props.get("ammoType", "")
+        flat_item["ammo_capacity"] = props.get("magazineSize", 0)
+        if flat_item["ammo_capacity"] > 0:
+            flat_item["uses_ammo"] = True
+            
+    # Bag Specifics
+    if category == "bag":
+        flat_item["load_worn"] = float(props.get("loadWorn", 0.0))
+        flat_item["carry_bonus"] = int(props.get("carryCapacityBonus", 0))
+        try:
+            flat_item["encumbrance_rule"] = int(props.get("encumbranceRule", 0))
+        except (ValueError, TypeError):
+            flat_item["encumbrance_rule"] = 0
+
+    # Armor Specifics
+    if category in ["armor", "power_armor"]:
+        flat_item["ac_bonus"] = props.get("ac", 0)
+        flat_item["dt"] = props.get("dt", 0)
+        flat_item["sub_type"] = props.get("type", "")
+        flat_item["load_worn"] = float(props.get("loadWorn", 0.0))
+        
+    return flat_item
+
 @st.dialog("Edit Item")
 def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_type=True):
     """Dialog to edit an item's name, description, weight, and modifiers."""
@@ -636,69 +734,80 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
         desc = item.get("description", "")
         clean_desc, mod_strings = parse_modifiers(desc)
         
+        # --- MAP FLAT -> NESTED FOR FORM INITIALIZATION ---
+        cat_map_rev = {
+            "Weapon": "weapon", "Apparel": "armor", "Ammo": "ammo",
+            "Aid": "chem", "Mod": "mod", "Misc": "gear", "Currency": "gear", "Ammo Mod": "ammo_mod"
+        }
+        # Try to use existing category, fallback to mapping from item_type
+        category = item.get("category", cat_map_rev.get(item.get("item_type"), "gear"))
+        
         st.session_state[f"{dialog_id}_name"] = item.get("name", "")
         st.session_state[f"{dialog_id}_desc"] = clean_desc
-        st.session_state[f"{dialog_id}_weight"] = float(item.get("weight", 0.0))
+        st.session_state[f"{dialog_id}_load"] = float(item.get("weight", 0.0))
+        st.session_state[f"{dialog_id}_cost"] = int(item.get("cost", 0))
+        st.session_state[f"{dialog_id}_qty"] = int(item.get("quantity", 1))
+        st.session_state[f"{dialog_id}_category"] = category
         st.session_state[f"{dialog_id}_mods"] = mod_strings
         st.session_state[f"{dialog_id}_initialized"] = True
         st.session_state[sig_key] = current_sig
-        st.session_state[f"{dialog_id}_qty"] = item.get("quantity", 1)
+        
+        # Instance specific fields (not in props)
         st.session_state[f"{dialog_id}_is_cont"] = item.get("is_container", False)
         st.session_state[f"{dialog_id}_loc"] = item.get("location", "carried")
         st.session_state[f"{dialog_id}_pid"] = item.get("parent_id", None)
-        st.session_state[f"{dialog_id}_type"] = item.get("item_type", "Misc")
-        st.session_state[f"{dialog_id}_subtype"] = item.get("sub_type", None)
-        st.session_state[f"{dialog_id}_range_normal"] = int(item.get("range_normal", 0))
-        st.session_state[f"{dialog_id}_range_long"] = int(item.get("range_long", 0))
-        st.session_state[f"{dialog_id}_dmg_n"] = int(item.get("damage_dice_count", 1))
-        st.session_state[f"{dialog_id}_dmg_s"] = int(item.get("damage_dice_sides", 6))
-        st.session_state[f"{dialog_id}_ammo"] = item.get("ammo_item", "")
-        st.session_state[f"{dialog_id}_ammo_cap"] = int(item.get("ammo_capacity", 0))
-        
-        # Infer uses_ammo if not present
-        default_ua = item.get("uses_ammo", False)
-        if "uses_ammo" not in item and (item.get("ammo_item") or item.get("ammo_capacity", 0) > 0):
-            default_ua = True
-        st.session_state[f"{dialog_id}_uses_ammo"] = default_ua
-        
-        st.session_state[f"{dialog_id}_decay"] = int(item.get("decay", 0))
         st.session_state[f"{dialog_id}_ammo_curr"] = int(item.get("ammo_current", 0))
         st.session_state[f"{dialog_id}_reloads"] = int(item.get("reloads_count", 0))
-        st.session_state[f"{dialog_id}_crit_t"] = int(item.get("crit_threshold", 20))
-        st.session_state[f"{dialog_id}_crit_d"] = item.get("crit_damage", "")
-        st.session_state[f"{dialog_id}_crit_e"] = item.get("crit_effect", "")
+        st.session_state[f"{dialog_id}_decay"] = int(item.get("decay", 0))
+        
+        # Map Flat Props -> Session State Props
+        if category == "weapon":
+            st.session_state[f"{dialog_id}_p_damage"] = f"{item.get('damage_dice_count', 1)}d{item.get('damage_dice_sides', 6)}"
+            st.session_state[f"{dialog_id}_p_range"] = f"x{item.get('range_normal', 0)}/x{item.get('range_long', 0)}"
+            st.session_state[f"{dialog_id}_p_ammoType"] = item.get("ammo_item", "")
+            st.session_state[f"{dialog_id}_p_magazineSize"] = int(item.get("ammo_capacity", 0))
+            
+            ct = item.get("crit_threshold", 20)
+            cd = item.get("crit_damage", "")
+            st.session_state[f"{dialog_id}_p_critical"] = f"{ct}, {cd}" if cd else f"{ct}, x2"
+            
+            w_type_map = {"Guns": "ballistic", "Energy Weapons": "energy", "Melee": "melee", "Explosives": "explosive"}
+            st.session_state[f"{dialog_id}_p_weaponType"] = w_type_map.get(item.get("sub_type"), "ballistic")
+        
+        elif category in ["armor", "power_armor"]:
+            st.session_state[f"{dialog_id}_p_ac"] = int(item.get("ac_bonus", 0))
+            st.session_state[f"{dialog_id}_p_dt"] = int(item.get("dt", 0))
+            st.session_state[f"{dialog_id}_p_type"] = item.get("sub_type", "Light")
+            st.session_state[f"{dialog_id}_p_loadWorn"] = float(item.get("load_worn", 0.0))
+
+        elif category == "bag":
+            st.session_state[f"{dialog_id}_p_loadWorn"] = float(item.get("load_worn", 0.0))
+            st.session_state[f"{dialog_id}_p_carryCapacityBonus"] = int(item.get("carry_bonus", 0))
+            st.session_state[f"{dialog_id}_p_encumbranceRule"] = str(item.get("encumbrance_rule", 0))
 
     # Prepare values for form
-    current_values = {
-        "name": st.session_state.get(f"{dialog_id}_name", ""),
-        "quantity": st.session_state.get(f"{dialog_id}_qty", 1),
-        "weight": st.session_state.get(f"{dialog_id}_weight", 0.0),
-        "item_type": st.session_state.get(f"{dialog_id}_type", "Misc"),
-        "sub_type": st.session_state.get(f"{dialog_id}_subtype"),
-        "range_normal": st.session_state.get(f"{dialog_id}_range_normal", 0),
-        "range_long": st.session_state.get(f"{dialog_id}_range_long", 0),
-        "description": st.session_state.get(f"{dialog_id}_desc", ""),
-        "damage_dice_count": st.session_state.get(f"{dialog_id}_dmg_n", 1),
-        "damage_dice_sides": st.session_state.get(f"{dialog_id}_dmg_s", 6),
-        "ammo_item": st.session_state.get(f"{dialog_id}_ammo", ""),
-        "ammo_capacity": st.session_state.get(f"{dialog_id}_ammo_cap", 0),
-        "uses_ammo": st.session_state.get(f"{dialog_id}_uses_ammo", False),
-        "decay": st.session_state.get(f"{dialog_id}_decay", 0),
-        "crit_threshold": st.session_state.get(f"{dialog_id}_crit_t", 20),
-        "crit_damage": st.session_state.get(f"{dialog_id}_crit_d", ""),
-        "crit_effect": st.session_state.get(f"{dialog_id}_crit_e", "")
-    }
+    # We pass an empty dict because we've already populated session state keys
+    # render_item_form will use the session state keys
+    current_values = {} 
     mods_key = f"{dialog_id}_mods"
     
-    form_result = render_item_form(dialog_id, current_values, mods_key, show_quantity=True, show_load=show_load, show_type=show_type)
+    db_items = load_data(ITEM_FILE)
+    render_item_form(dialog_id, current_values, mods_key, db_items, show_quantity=True)
+    
+    # Retrieve updated data
+    updated_nested = get_item_data_from_form(dialog_id, mods_key)
 
     st.divider()
     
     # Instance Specific State (Ammo/Reloads)
-    if form_result["item_type"] == "Weapon" and form_result["ammo_capacity"] > 0:
+    # Check props from updated_nested
+    props = updated_nested.get("props", {})
+    if updated_nested["category"] == "weapon" and int(props.get("magazineSize", 0)) > 0:
         c_ac, c_rc = st.columns(2)
-        new_ammo_curr = c_ac.number_input("Current Ammo", min_value=0, max_value=form_result["ammo_capacity"], value=st.session_state[f"{dialog_id}_ammo_curr"], key=f"{dialog_id}_in_ac")
+        new_ammo_curr = c_ac.number_input("Current Ammo", min_value=0, max_value=int(props.get("magazineSize", 0)), value=st.session_state[f"{dialog_id}_ammo_curr"], key=f"{dialog_id}_in_ac")
         new_reloads = c_rc.number_input("Reloads Count", min_value=0, value=st.session_state[f"{dialog_id}_reloads"], key=f"{dialog_id}_in_rc")
+        
+    new_decay = st.number_input("Decay", min_value=0, value=st.session_state[f"{dialog_id}_decay"], key=f"{dialog_id}_in_decay")
 
     # Container & Location Logic
     c_cont, c_loc = st.columns(2)
@@ -756,30 +865,17 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
     st.divider()
     
     if st.button("💾 Save Changes", type="primary"):
-        # Reconstruct description
-        final_desc = join_modifiers(form_result["description"], st.session_state[mods_key])
+        # Convert Nested -> Flat
+        flat_update = convert_nested_to_flat(updated_nested)
         
-        # Update item
-        item["name"] = form_result["name"]
-        item["description"] = final_desc
-        item["weight"] = form_result["weight"]
-        item["quantity"] = form_result["quantity"]
+        # Update item in place
+        item.update(flat_update)
+        
+        # Update Instance Specifics
         item["is_container"] = is_container
-        item["item_type"] = form_result["item_type"]
-        item["sub_type"] = form_result["sub_type"]
-        item["range_normal"] = form_result["range_normal"]
-        item["range_long"] = form_result["range_long"]
-        item["damage_dice_count"] = form_result["damage_dice_count"]
-        item["damage_dice_sides"] = form_result["damage_dice_sides"]
-        item["uses_ammo"] = form_result["uses_ammo"]
-        item["ammo_item"] = form_result["ammo_item"]
-        item["ammo_capacity"] = form_result["ammo_capacity"]
-        item["decay"] = form_result["decay"]
-        item["crit_threshold"] = form_result["crit_threshold"]
-        item["crit_damage"] = form_result["crit_damage"]
-        item["crit_effect"] = form_result["crit_effect"]
+        item["decay"] = new_decay
         
-        if form_result["item_type"] == "Weapon" and form_result["ammo_capacity"] > 0:
+        if updated_nested["category"] == "weapon" and int(props.get("magazineSize", 0)) > 0:
             item["ammo_current"] = new_ammo_curr
             item["reloads_count"] = new_reloads
         
@@ -815,18 +911,8 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
         st.session_state[f"{prefix}_dlg_name"] = ""
         st.session_state[f"{prefix}_dlg_desc"] = ""
         if label == "Equipment":
-            st.session_state[f"{prefix}_dlg_weight"] = 0.0
-            st.session_state[f"{prefix}_dlg_rn"] = 0
-            st.session_state[f"{prefix}_dlg_rl"] = 0
-            st.session_state[f"{prefix}_dlg_dmg_n"] = 1
-            st.session_state[f"{prefix}_dlg_dmg_s"] = 6
-            st.session_state[f"{prefix}_dlg_ammo"] = ""
-            st.session_state[f"{prefix}_dlg_ammo_cap"] = 0
-            st.session_state[f"{prefix}_dlg_uses_ammo"] = False
-            st.session_state[f"{prefix}_dlg_decay"] = 0
-            st.session_state[f"{prefix}_dlg_crit_t"] = 20
-            st.session_state[f"{prefix}_dlg_crit_d"] = ""
-            st.session_state[f"{prefix}_dlg_crit_e"] = ""
+            st.session_state[f"{prefix}_dlg_load"] = 0.0
+            # Clear other props if needed, but they default safely
         st.session_state[cleanup_key] = False
 
     show_load = (label == "Equipment")
@@ -847,18 +933,100 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
         if selected_item:
             entry = next((e for e in data_list if e["name"] == selected_item), None)
             
+            # --- SCHEMA MAPPING (New items.json -> Inventory) ---
+            props = entry.get("props", {})
+            category = entry.get("category", "misc")
+            
+            # Map Category to Item Type
+            cat_map = {
+                "weapon": "Weapon", "armor": "Armor", "power_armor": "Power Armor", "bag": "Bag",
+                "ammo": "Ammo", "ammo_mod": "Mod", "explosive": "Weapon", "food": "Food", "drink": "Drink",
+                "medicine": "Medicine", "chem": "Chem", "mod": "Mod", "gear": "Gear",
+                "program": "Program", "magazine": "Magazine"
+            }
+            item_type = cat_map.get(category, "Misc")
+            
+            # Construct Description
+            desc_parts = []
+            if entry.get("description"): desc_parts.append(entry["description"])
+            if "special" in props: desc_parts.extend(props["special"])
+            if "effects" in props: desc_parts.extend(props["effects"])
+            if "specialText" in props: desc_parts.append(props["specialText"])
+            if "specialEffect" in props: desc_parts.append(props["specialEffect"])
+            description = " | ".join(desc_parts)
+            
+            is_bag = (category == "bag")
             new_item = {
                 "name": selected_item,
-                "description": entry.get("description", "") if entry else "",
-                "weight": entry.get("weight", 0.0) if entry else 0.0,
+                "description": description,
+                "weight": float(entry.get("load", 0.0)) if entry else 0.0,
+                "cost": entry.get("cost", 0),
                 "equipped": False if label == "Equipment" else True,
                 "active": True,
                 "quantity": 1,
                 "id": str(uuid.uuid4()),
                 "parent_id": None,
                 "location": "carried",
-                "is_container": False
+                "is_container": is_bag,
+                "item_type": item_type,
+                "category": category
             }
+            
+            # Weapon Specifics
+            if category in ["weapon", "explosive"]:
+                w_type = props.get("weaponType", "")
+                if w_type == "ballistic": new_item["sub_type"] = "Guns"
+                elif w_type == "energy": new_item["sub_type"] = "Energy Weapons"
+                elif w_type == "melee": new_item["sub_type"] = "Melee"
+                elif category == "explosive": new_item["sub_type"] = "Explosives"
+                
+                # Damage
+                dmg = str(props.get("damage", "1d6"))
+                if "d" in dmg:
+                    parts = dmg.split("d")
+                    if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                        new_item["damage_dice_count"] = int(parts[0])
+                        new_item["damage_dice_sides"] = int(parts[1])
+                elif dmg.isdigit():
+                    new_item["damage_dice_count"] = int(dmg)
+                    new_item["damage_dice_sides"] = 1
+                
+                # Range
+                rng = str(props.get("range", ""))
+                if "/" in rng:
+                    parts = rng.replace("x", "").split("/")
+                    if len(parts) == 2:
+                        new_item["range_normal"] = int(parts[0]) if parts[0].isdigit() else 0
+                        new_item["range_long"] = int(parts[1]) if parts[1].isdigit() else 0
+                
+                # Ammo & Crit
+                new_item["ammo_item"] = props.get("ammoType", "")
+                new_item["ammo_capacity"] = props.get("magazineSize", 0)
+                if new_item["ammo_capacity"] > 0:
+                    new_item["uses_ammo"] = True
+                    new_item["ammo_current"] = new_item["ammo_capacity"]
+                
+                crit = str(props.get("critical", ""))
+                if "," in crit:
+                    c_parts = crit.split(",")
+                    new_item["crit_threshold"] = int(c_parts[0].strip()) if c_parts[0].strip().isdigit() else 20
+                    if len(c_parts) > 1: new_item["crit_damage"] = c_parts[1].strip()
+
+            # Bag Specifics
+            if category == "bag":
+                new_item["load_worn"] = float(props.get("loadWorn", 0.0))
+                new_item["carry_bonus"] = int(props.get("carryCapacityBonus", 0))
+                try:
+                    new_item["encumbrance_rule"] = int(props.get("encumbranceRule", 0))
+                except (ValueError, TypeError):
+                    new_item["encumbrance_rule"] = 0
+
+            # Armor Specifics
+            if category in ["armor", "power_armor"]:
+                new_item["ac_bonus"] = props.get("ac", 0)
+                new_item["dt"] = props.get("dt", 0)
+                new_item["sub_type"] = props.get("type", "")
+                new_item["load_worn"] = float(props.get("loadWorn", 0.0))
             
             if char_key not in char or not isinstance(char[char_key], list):
                 char[char_key] = []
@@ -881,55 +1049,28 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
     
     # Use render_item_form but we need to manage the values manually since it's not bound to an existing item
     # We can pass empty dict and let it use keys
-    render_item_form(prefix + "_dlg", {}, mod_key, show_quantity=False, show_load=show_load, show_type=show_type)
+    render_item_form(prefix + "_dlg", {}, mod_key, data_list, show_quantity=False)
 
     if st.button("Create & Add", type="primary", use_container_width=True, key=f"{prefix}_btn_create_dlg"):
-        name = st.session_state.get(f"{prefix}_dlg_name", "")
-        if name:
-            desc = st.session_state.get(f"{prefix}_dlg_desc", "")
-            weight = st.session_state.get(f"{prefix}_dlg_weight", 0.0) if show_load else 0.0
-            item_type = st.session_state.get(f"{prefix}_dlg_type", "Misc")
-            sub_type = st.session_state.get(f"{prefix}_dlg_sub", None)
-            range_normal = st.session_state.get(f"{prefix}_dlg_rn", 0)
-            range_long = st.session_state.get(f"{prefix}_dlg_rl", 0)
-            dmg_n = st.session_state.get(f"{prefix}_dlg_dmg_n", 1)
-            dmg_s = st.session_state.get(f"{prefix}_dlg_dmg_s", 6)
-            ammo_item = st.session_state.get(f"{prefix}_dlg_ammo", "")
-            ammo_cap = st.session_state.get(f"{prefix}_dlg_ammo_cap", 0)
-            uses_ammo = st.session_state.get(f"{prefix}_dlg_uses_ammo", False)
-            decay = st.session_state.get(f"{prefix}_dlg_decay", 0)
-            crit_t = st.session_state.get(f"{prefix}_dlg_crit_t", 20)
-            crit_d = st.session_state.get(f"{prefix}_dlg_crit_d", "")
-            crit_e = st.session_state.get(f"{prefix}_dlg_crit_e", "")
+        nested_data = get_item_data_from_form(prefix + "_dlg", mod_key)
+        
+        if nested_data["name"]:
+            item_data = convert_nested_to_flat(nested_data)
             
-            final_desc = join_modifiers(desc, st.session_state[mod_key])
-            item_data = {
-                "name": name,
-                "description": final_desc,
-                "weight": weight,
-                "equipped": False if label == "Equipment" else True,
-                "active": True,
-                "quantity": 1,
+            is_bag = (nested_data.get("category") == "bag")
+            # Add instance defaults
+            item_data.update({
                 "id": str(uuid.uuid4()),
                 "parent_id": None,
                 "location": "carried",
-                "is_container": False,
-                "item_type": item_type,
-                "sub_type": sub_type,
-                "range_normal": range_normal,
-                "range_long": range_long,
-                "damage_dice_count": dmg_n,
-                "damage_dice_sides": dmg_s,
-                "uses_ammo": uses_ammo,
-                "ammo_item": ammo_item,
-                "ammo_capacity": ammo_cap,
+                "is_container": is_bag,
+                "equipped": False if label == "Equipment" else True,
+                "active": True,
                 "ammo_current": 0,
-                "decay": decay,
-                "reloads_count": 0,
-                "crit_threshold": crit_t,
-                "crit_damage": crit_d,
-                "crit_effect": crit_e
-            }
+                "decay": 0,
+                "reloads_count": 0
+            })
+            
             if char_key not in char or not isinstance(char[char_key], list):
                 char[char_key] = []
             char[char_key].append(item_data)
@@ -960,20 +1101,89 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
             selected_item = st.session_state.get(f"{prefix}_select")
             if selected_item:
                 entry = next((e for e in data_list if e["name"] == selected_item), None)
-                description = f" ({entry['description']})" if entry and entry.get("description") else ""
                 
+                # --- SCHEMA MAPPING (New items.json -> Inventory) ---
+                props = entry.get("props", {})
+                category = entry.get("category", "misc")
+                
+                cat_map = {
+                    "weapon": "Weapon", "armor": "Armor", "power_armor": "Power Armor", "bag": "Bag",
+                    "ammo": "Ammo", "ammo_mod": "Mod", "explosive": "Weapon", "food": "Food", "drink": "Drink",
+                    "medicine": "Medicine", "chem": "Chem", "mod": "Mod", "gear": "Gear",
+                    "program": "Program", "magazine": "Magazine"
+                }
+                item_type = cat_map.get(category, "Misc")
+                
+                # Construct Description
+                desc_parts = []
+                if entry.get("description"): desc_parts.append(entry["description"])
+                if "special" in props: desc_parts.extend(props["special"])
+                if "effects" in props: desc_parts.extend(props["effects"])
+                if "specialText" in props: desc_parts.append(props["specialText"])
+                if "specialEffect" in props: desc_parts.append(props["specialEffect"])
+                description = " | ".join(desc_parts)
+                
+                is_bag = (category == "bag")
                 new_item = {
                     "name": selected_item,
-                    "description": entry.get("description", "") if entry else "",
-                    "weight": entry.get("weight", 0.0) if entry else 0.0,
+                    "description": description,
+                    "weight": float(entry.get("load", 0.0)) if entry else 0.0,
+                    "cost": entry.get("cost", 0),
                     "equipped": False if label == "Equipment" else True,
                     "active": True,
                     "quantity": 1,
                     "id": str(uuid.uuid4()),
                     "parent_id": None,
                     "location": "carried",
-                    "is_container": False
+                    "is_container": is_bag,
+                    "item_type": item_type,
+                    "category": category
                 }
+                
+                # Weapon Specifics
+                if category in ["weapon", "explosive"]:
+                    w_type = props.get("weaponType", "")
+                    if w_type == "ballistic": new_item["sub_type"] = "Guns"
+                    elif w_type == "energy": new_item["sub_type"] = "Energy Weapons"
+                    elif w_type == "melee": new_item["sub_type"] = "Melee"
+                    elif category == "explosive": new_item["sub_type"] = "Explosives"
+                    
+                    dmg = str(props.get("damage", "1d6"))
+                    if "d" in dmg:
+                        parts = dmg.split("d")
+                        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                            new_item["damage_dice_count"] = int(parts[0])
+                            new_item["damage_dice_sides"] = int(parts[1])
+                    elif dmg.isdigit():
+                        new_item["damage_dice_count"] = int(dmg)
+                        new_item["damage_dice_sides"] = 1
+                    
+                    rng = str(props.get("range", ""))
+                    if "/" in rng:
+                        parts = rng.replace("x", "").split("/")
+                        if len(parts) == 2:
+                            new_item["range_normal"] = int(parts[0]) if parts[0].isdigit() else 0
+                            new_item["range_long"] = int(parts[1]) if parts[1].isdigit() else 0
+                    
+                    new_item["ammo_item"] = props.get("ammoType", "")
+                    new_item["ammo_capacity"] = props.get("magazineSize", 0)
+                    if new_item["ammo_capacity"] > 0:
+                        new_item["uses_ammo"] = True
+                        new_item["ammo_current"] = new_item["ammo_capacity"]
+
+                if category == "bag":
+                    new_item["load_worn"] = float(props.get("loadWorn", 0.0))
+                    new_item["carry_bonus"] = int(props.get("carryCapacityBonus", 0))
+                    try:
+                        new_item["encumbrance_rule"] = int(props.get("encumbranceRule", 0))
+                    except (ValueError, TypeError):
+                        new_item["encumbrance_rule"] = 0
+
+                if category in ["armor", "power_armor"]:
+                    new_item["ac_bonus"] = props.get("ac", 0)
+                    new_item["dt"] = props.get("dt", 0)
+                    new_item["sub_type"] = props.get("type", "")
+                    new_item["load_worn"] = float(props.get("loadWorn", 0.0))
                 
                 if char_key not in char or not isinstance(char[char_key], list):
                     char[char_key] = []
@@ -990,7 +1200,7 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
         mod_key = f"{prefix}_modifiers"
         if mod_key not in st.session_state: st.session_state[mod_key] = []
         
-        render_item_form(prefix, {}, mod_key, show_quantity=False, show_load=show_load, show_type=show_type)
+        render_item_form(prefix, {}, mod_key, data_list, show_quantity=False)
         
         c_local, c_db = st.columns(2)
         
@@ -1001,79 +1211,58 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
                 st.session_state[f"{prefix}_weight"] = 0.0
             st.session_state[mod_key] = []
 
-        def get_item_data_from_state():
-            name = st.session_state.get(f"{prefix}_name", "")
-            desc = st.session_state.get(f"{prefix}_desc", "")
-            weight = st.session_state.get(f"{prefix}_weight", 0.0) if show_load else 0.0
-            item_type = st.session_state.get(f"{prefix}_type", "Misc")
-            sub_type = st.session_state.get(f"{prefix}_sub", None)
-            range_normal = st.session_state.get(f"{prefix}_rn", 0)
-            range_long = st.session_state.get(f"{prefix}_rl", 0)
-            dmg_n = st.session_state.get(f"{prefix}_dmg_n", 1)
-            dmg_s = st.session_state.get(f"{prefix}_dmg_s", 6)
-            ammo_item = st.session_state.get(f"{prefix}_ammo", "")
-            ammo_cap = st.session_state.get(f"{prefix}_ammo_cap", 0)
-            uses_ammo = st.session_state.get(f"{prefix}_uses_ammo", False)
-            decay = st.session_state.get(f"{prefix}_decay", 0)
-            crit_t = st.session_state.get(f"{prefix}_crit_t", 20)
-            crit_d = st.session_state.get(f"{prefix}_crit_d", "")
-            crit_e = st.session_state.get(f"{prefix}_crit_e", "")
-            
-            final_desc = join_modifiers(desc, st.session_state[mod_key])
-            
-            return name, {
-                "name": name,
-                "description": final_desc,
-                "weight": weight,
-                "equipped": False if label == "Equipment" else True,
-                "active": True,
-                "quantity": 1,
-                "id": str(uuid.uuid4()),
-                "parent_id": None,
-                "location": "carried",
-                "is_container": False,
-                "item_type": item_type,
-                "sub_type": sub_type,
-                "range_normal": range_normal,
-                "range_long": range_long,
-                "damage_dice_count": dmg_n,
-                "damage_dice_sides": dmg_s,
-                "uses_ammo": uses_ammo,
-                "ammo_item": ammo_item,
-                "ammo_capacity": ammo_cap,
-                "ammo_current": 0,
-                "decay": decay,
-                "reloads_count": 0,
-                "crit_threshold": crit_t,
-                "crit_damage": crit_d,
-                "crit_effect": crit_e
-            }
-
         def add_local_callback():
-            name, item_data = get_item_data_from_state()
-            if name:
+            nested_data = get_item_data_from_form(prefix, mod_key)
+            if nested_data["name"]:
+                item_data = convert_nested_to_flat(nested_data)
+                item_data.update({
+                    "id": str(uuid.uuid4()), "parent_id": None, "location": "carried", "is_container": False,
+                    "equipped": False if label == "Equipment" else True, "active": True, "ammo_current": 0, "decay": 0, "reloads_count": 0
+                })
                 if char_key not in char or not isinstance(char[char_key], list):
                     char[char_key] = []
                 char[char_key].append(item_data)
-                st.toast(f"Added {name} to Character")
+                st.toast(f"Added {nested_data['name']} to Character")
                 clear_inputs()
 
         def save_db_callback():
-            name, item_data = get_item_data_from_state()
-            if name:
+            nested_data = get_item_data_from_form(prefix, mod_key)
+            if nested_data["name"]:
+                # 1. Create Flat Item for Character
+                item_data = convert_nested_to_flat(nested_data)
+                is_bag = (nested_data.get("category") == "bag")
+                item_data.update({
+                    "id": str(uuid.uuid4()), "parent_id": None, "location": "carried", "is_container": is_bag,
+                    "equipped": False if label == "Equipment" else True, "active": True, "ammo_current": 0, "decay": 0, "reloads_count": 0
+                })
+                
                 # Add to Char
                 if char_key not in char or not isinstance(char[char_key], list):
                     char[char_key] = []
                 char[char_key].append(item_data)
 
                 # Add to DB
-                db_entry = {k: v for k, v in item_data.items() if k not in ["equipped", "active"]}
-                if not any(e['name'] == name for e in data_list):
+                if label == "Equipment":
+                    # Use the nested data directly for DB entry
+                    db_entry = {
+                        "id": str(uuid.uuid4()),
+                        "name": nested_data["name"],
+                        "description": nested_data["description"],
+                        "load": nested_data["load"],
+                        "cost": nested_data["cost"],
+                        "strReq": nested_data["strReq"],
+                        "category": nested_data["category"],
+                        "props": nested_data["props"]
+                    }
+                else:
+                    db_entry = {k: v for k, v in item_data.items() if k not in ["equipped", "active"]}
+
+                if not any(e['name'] == nested_data["name"] for e in data_list):
                     data_list.append(db_entry)
                     save_data(file_path, data_list)
-                    st.toast(f"Added {name} to Database & Character")
+                    st.toast(f"Added {nested_data['name']} to Database & Character")
                 else:
-                    st.toast(f"Item {name} already in database (Added to Character only)")
+                    st.toast(f"Item {nested_data['name']} already in database (Added to Character only)")
                 
                 clear_inputs()
 
@@ -1090,7 +1279,7 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
     # --- FILTER & SORT UI ---
     if label == "Equipment":
         c_filter, c_sort = st.columns(2)
-        filter_types = c_filter.multiselect("Filter by Type", ["Weapon", "Apparel", "Aid", "Misc", "Currency"], key=f"inv_filter_{key}")
+        filter_types = c_filter.multiselect("Filter by Type", ["Weapon", "Armor", "Power Armor", "Bag", "Food", "Drink", "Medicine", "Chem", "Gear", "Ammo", "Mod", "Program", "Magazine", "Currency", "Misc"], key=f"inv_filter_{key}")
         sort_option = c_sort.selectbox("Sort by", ["Name (A-Z)", "Load (Low-High)", "Load (High-Low)", "Type"], key=f"inv_sort_{key}")
         
         # Apply Filter
@@ -1123,8 +1312,7 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                 if ca.button("✏️", key=f"{key}_edit_{i}"):
                     edit_item_dialog(item, item.get("id", str(i)), items, lambda: None, show_load=False, show_type=False)
                 if cb.button("🗑️", key=f"{key}_del_{i}"):
-                    items.pop(i)
-                    st.rerun()
+                    confirm_delete_simple_dialog(item, items)
         return
 
     # --- INVENTORY TREE LOGIC ---
@@ -1143,11 +1331,24 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
             if is_container:
                 # --- CONTAINER (EXPANDER) ---
                 qty_str = f" (x{item.get('quantity', 1)})" if item.get('quantity', 1) > 1 else ""
-                label = f"📦 {item.get('name')}{qty_str}"
+                
+                # Visual indicator for equipped state
+                eq_prefix = "🔗 " if item.get("equipped", False) else ""
+                label = f"{eq_prefix}📦 {item.get('name')}{qty_str}"
                 
                 with st.expander(label):
                     # Container Actions & Details
-                    c_desc, c_act = st.columns([3, 1])
+                    c_chk, c_desc, c_act = st.columns([0.2, 4, 1])
+                    
+                    with c_chk:
+                        can_equip = (item.get("parent_id") is None and item.get("location") == "carried")
+                        if can_equip:
+                            is_equipped = item.get("equipped", False)
+                            if st.checkbox("Eq", value=is_equipped, key=f"cont_eq_{item['id']}", label_visibility="collapsed"):
+                                item["equipped"] = True
+                            else:
+                                item["equipped"] = False
+
                     with c_desc:
                         desc_parts = []
                         if float(item.get("weight", 0)) > 0: desc_parts.append(f"{float(item['weight'])} Load")
@@ -1157,14 +1358,13 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
 
                     with c_act:
                         with st.popover("⚙️", use_container_width=True):
+                            if st.button("Delete", key=f"inv_del_{item['id']}", type="primary", use_container_width=True):
+                                confirm_delete_item_dialog(item, items)
+                            st.divider()
                             if st.button("Edit", key=f"inv_ed_{item['id']}", use_container_width=True):
                                 edit_item_dialog(item, item['id'], items, lambda: None, show_load=True)
-                            
                             render_move_menu(item, items, f"inv_mv_{item['id']}")
-
-                            if st.button("Delete", key=f"inv_del_{item['id']}", type="primary", use_container_width=True):
-                                items.remove(item)
-                                st.rerun()
+                            
                     
                     # Render Children
                     if item["id"] in tree:
@@ -1233,14 +1433,15 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                 # Actions
                 with c_act:
                     with st.popover("⚙️", use_container_width=True):
+                        if st.button("Delete", key=f"inv_del_{item['id']}", type="primary", use_container_width=True):
+                            confirm_delete_item_dialog(item, items)
+                        
+                        st.divider()
+
                         if st.button("Edit", key=f"inv_ed_{item['id']}", use_container_width=True):
                             edit_item_dialog(item, item['id'], items, lambda: None, show_load=True)
-                        
                         render_move_menu(item, items, f"inv_mv_{item['id']}")
 
-                        if st.button("Delete", key=f"inv_del_{item['id']}", type="primary", use_container_width=True):
-                            items.remove(item)
-                            st.rerun()
 
     # --- RENDER UI ---
     if label == "Equipment":
@@ -1257,7 +1458,7 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                 """, unsafe_allow_html=True)
         with c_add:
             if st.button("➕ Add Item", use_container_width=True, key=f"btn_open_add_{key}"):
-                add_db_item_dialog("Equipment", EQUIPMENT_FILE, char, key, "c_inv_db", "eq")
+                add_db_item_dialog("Equipment", ITEM_FILE, char, key, "c_inv_db", "eq")
 
         # Tabs for Carried vs Stash
         tab_carried, tab_stash = st.tabs(["🎒 Carried", "📦 Stash"])
@@ -1415,7 +1616,6 @@ def render_character_statblock(char, save_callback=None):
         }}
         
         /* Custom Status Buttons (Streamlit Widgets) */
-        div[data-testid="stVerticalBlockBorderWrapper"] button {{
         div[data-testid="stVerticalBlockBorderWrapper"] button,
         div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stPopover"] > button {{
             border: 1px solid {secondary} !important;
@@ -1429,7 +1629,6 @@ def render_character_statblock(char, save_callback=None):
             height: 39px !important;
             margin: 0px !important;
         }}
-        div[data-testid="stVerticalBlockBorderWrapper"] button:hover {{
         div[data-testid="stVerticalBlockBorderWrapper"] button:hover,
         div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stPopover"] > button:hover {{
             background-color: {secondary} !important;
@@ -1467,7 +1666,7 @@ def render_character_statblock(char, save_callback=None):
     """, unsafe_allow_html=True)
 
     # 1. SPECIAL Stats
-    stat_keys = ["STR", "PER", "END", "CHA", "INT", "AGI", "LUC"]
+    stat_keys = ["STR", "PER", "END", "CHA", "INT", "AGI", "LCK"]
     
     special_html = '<div class="special-grid">'
     for key in stat_keys:
@@ -1484,7 +1683,7 @@ def render_character_statblock(char, save_callback=None):
     # We will render these using Streamlit columns to allow interactivity for HP/Stamina/XP
     
     # 3. Skills HTML
-    skills_by_stat = {k: [] for k in ["STR", "PER", "END", "CHA", "INT", "AGI", "LUC"]}
+    skills_by_stat = {k: [] for k in ["STR", "PER", "END", "CHA", "INT", "AGI", "LCK"]}
     
     # Helper for grid boxes
     def make_box(label, value, help_text=""):
@@ -1511,7 +1710,7 @@ def render_character_statblock(char, save_callback=None):
 
     skills_html = '<div style="margin-bottom: 10px; font-size: 0.9em;">'
     skills_html += f'<div style="border-bottom: 1px solid {secondary}; margin-bottom: 4px; font-weight: bold; color: {primary};">SKILLS</div>'
-    for stat in ["STR", "PER", "END", "CHA", "INT", "AGI", "LUC"]:
+    for stat in ["STR", "PER", "END", "CHA", "INT", "AGI", "LCK"]:
         skill_list = skills_by_stat.get(stat, [])
         if skill_list:
             skill_list.sort(key=lambda x: x[0]) # Sort alphabetically
@@ -1633,7 +1832,7 @@ def render_character_statblock(char, save_callback=None):
         # Row 1: Combat
         grid_html = '<div class="special-grid">'
         grid_html += make_box("AC", char.get("ac", 10), "Armor Class")
-        grid_html += make_box("SEQ", char.get("combat_sequence", 0), "Combat Sequence (10 + PER Mod)")
+        grid_html += make_box("SEQ", char.get("combat_sequence", 0), "Combat Sequence (PER Mod)")
         grid_html += make_box("AP", char.get("action_points", 0), "Action Points (AGI + 5)")
         grid_html += make_box("LOAD", f"{char.get('current_weight', 0)}/{char.get('carry_load', 0)}", "Current Load / Max Load")
         grid_html += '</div>'
@@ -1683,7 +1882,7 @@ def render_character_statblock(char, save_callback=None):
                         dmg_roll = roll_dice("1d2")
                         
                         # Unarmed Crit Logic
-                        eff_luc = effective_stats.get("LUC", 5)
+                        eff_luc = effective_stats.get("LCK", 5)
                         luc_mod = eff_luc - 5
                         luck_reduction = int(luc_mod // 2)
                         base_crit = 20
@@ -1787,7 +1986,7 @@ def render_character_statblock(char, save_callback=None):
                                 atk_total = atk_roll + atk_bonus
                                 
                                 # Crit Logic
-                                eff_luc = effective_stats.get("LUC", 5)
+                                eff_luc = effective_stats.get("LCK", 5)
                                 luc_mod = eff_luc - 5
                                 luck_reduction = int(luc_mod // 2)
                                 base_crit = w.get("crit_threshold", 20)
@@ -1822,14 +2021,22 @@ def render_character_statblock(char, save_callback=None):
         # Load Bar (Full Width)
         max_load = char.get("carry_load", 0)
         curr_load = char.get("current_load", 0)
+        is_over = char.get("is_overencumbered", False)
+        
+        bar_color = "load-fill"
+        text_style = "font-weight: bold;"
+        if is_over:
+            bar_color = "hp-fill" # Red
+            text_style = "font-weight: bold; color: #ff4444;"
+            
         pct = min(1.0, curr_load / max_load) if max_load > 0 else 1.0
         st.markdown(f"""
-        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-weight: bold;">
-            <span>Load</span>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; {text_style}">
+            <span>Load{' (OVERENCUMBERED)' if is_over else ''}</span>
             <span>{curr_load} / {max_load}</span>
         </div>
         <div class="custom-bar-bg" style="height: 12px; margin-bottom: 8px;">
-            <div class="custom-bar-fill load-fill" style="width: {pct*100}%;"></div>
+            <div class="custom-bar-fill {bar_color}" style="width: {pct*100}%;"></div>
         </div>
         """, unsafe_allow_html=True)
         
@@ -1841,7 +2048,7 @@ def render_character_statblock(char, save_callback=None):
 
         with c_add:
             if st.button("➕ Add Item", use_container_width=True, key=f"sb_btn_add_{unique_id}"):
-                add_db_item_dialog("Equipment", EQUIPMENT_FILE, char, "inventory", f"sb_inv_sync_{unique_id}", f"sb_eq_{unique_id}", callback=save_callback)
+                add_db_item_dialog("Equipment", ITEM_FILE, char, "inventory", f"sb_inv_sync_{unique_id}", f"sb_eq_{unique_id}", callback=save_callback)
                 if save_callback: save_callback()
 
         # Statblock Inventory View (Simplified Tree)
@@ -1864,21 +2071,34 @@ def render_character_statblock(char, save_callback=None):
                     weight_val = float(item.get('weight', 0))
                     weight_str = f" | {weight_val} Load" if weight_val > 0 else ""
                     desc_str = f" | {item.get('description')}" if item.get("description") else ""
-                    label = f"📦 {item.get('name')}{qty_str}{weight_str}{desc_str}"
                     
-                    c_exp, c_act = st.columns([10, 0.5], vertical_alignment="top")
+                    # Visual indicator for equipped state in label
+                    eq_prefix = "🔗 " if item.get("equipped", False) else ""
+                    label = f"{eq_prefix}📦 {item.get('name')}{qty_str}{weight_str}{desc_str}"
                     
-                    with c_act:
-                        with st.popover("⚙️", use_container_width=True):
-                            if st.button("Edit", key=f"sb_ed_{item['id']}", use_container_width=True):
-                                edit_item_dialog(item, item['id'], inventory, save_callback, show_load=True)
-                            
-                            render_move_menu(item, inventory, f"sb_mv_{item['id']}", callback=save_callback)
-
-                            if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
-                                inventory.remove(item)
+                    c_chk, c_exp, c_act = st.columns([0.23, 9.5, 0.58], vertical_alignment="top")
+                    
+                    with c_chk:
+                        can_equip = (item.get("parent_id") is None and item.get("location") == "carried")
+                        if can_equip:
+                            is_equipped = item.get("equipped", False)
+                            button_type = "primary" if is_equipped else "secondary"
+                            if st.button(" ", key=f"sb_cont_eq_{item['id']}", help="Toggle Equip", use_container_width=True, type=button_type):
+                                item["equipped"] = not is_equipped
                                 if save_callback: save_callback()
                                 st.rerun()
+
+                    with c_act:
+                        with st.popover("⚙️", use_container_width=True):
+                            if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
+                                confirm_delete_item_dialog(item, inventory, callback=save_callback)
+                            
+                            st.divider()
+
+                            if st.button("Edit", key=f"sb_ed_{item['id']}", use_container_width=True):
+                                edit_item_dialog(item, item['id'], inventory, save_callback, show_load=True)
+                            render_move_menu(item, inventory, f"sb_mv_{item['id']}", callback=save_callback)
+                            
 
                     with c_exp:
                         with st.expander(label, expanded=True):
@@ -1943,15 +2163,16 @@ def render_character_statblock(char, save_callback=None):
                     
                     with c_act:
                         with st.popover("⚙️", use_container_width=True):
+                            if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
+                                confirm_delete_item_dialog(item, inventory, callback=save_callback)
+                            
+                            st.divider()
+
                             if st.button("Edit", key=f"sb_ed_{item['id']}", use_container_width=True):
                                 edit_item_dialog(item, item['id'], inventory, save_callback, show_load=True)
-                            
                             render_move_menu(item, inventory, f"sb_mv_{item['id']}", callback=save_callback)
 
-                            if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
-                                inventory.remove(item)
-                                if save_callback: save_callback()
-                                st.rerun()
+                            
 
         # Tabs for Carried vs Stash
         tab_carried, tab_stash = st.tabs(["🎒 Carried", "📦 Stash"])
@@ -1977,19 +2198,23 @@ def render_character_statblock(char, save_callback=None):
         # Background
         backgrounds = char.get("backgrounds", [])
         for bg in backgrounds:
-            st.markdown(f"**Background: {bg.get('name')}**: {bg.get('description', '')}")
+            st.markdown(f'<span style="color: {primary}; font-weight: bold;">Background</span>: **{bg.get("name")}**: {bg.get("description", "")}', unsafe_allow_html=True)
         
         # Traits
         traits = char.get("traits", [])
         if traits:
+            if backgrounds:
+                st.markdown(f'<div style="border-top: 1px dashed {secondary}33; margin-top: 5px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
             for t in traits:
-                st.markdown(f"**{t.get('name')}**: {t.get('description', '')}")
+                st.markdown(f'<span style="color: {primary}; font-weight: bold;">Trait</span>: **{t.get("name")}**: {t.get("description", "")}', unsafe_allow_html=True)
         
         # Perks
         perks = char.get("perks", [])
         if perks:
+            if backgrounds or traits:
+                st.markdown(f'<div style="border-top: 1px dashed {secondary}33; margin-top: 5px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
             for p in perks:
-                st.markdown(f"**{p.get('name')}**: {p.get('description', '')}")
+                st.markdown(f'<span style="color: {primary}; font-weight: bold;">Perk</span>: **{p.get("name")}**: {p.get("description", "")}', unsafe_allow_html=True)
 
         # NOTES SECTION
         st.markdown('<div class="section-header">Notes</div>', unsafe_allow_html=True)

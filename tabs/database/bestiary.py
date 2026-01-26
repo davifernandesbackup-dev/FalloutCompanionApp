@@ -1,7 +1,16 @@
 import streamlit as st
 import json
 from utils.data_manager import load_data, save_data
+from utils.statblock import calculate_cr
 from constants import BESTIARY_FILE
+
+@st.dialog("Delete Creature")
+def delete_creature_dialog(key, data):
+    st.warning(f"Are you sure you want to delete **{key}**?")
+    if st.button("Yes, Delete", type="primary", use_container_width=True):
+        del data[key]
+        save_data(BESTIARY_FILE, data)
+        st.rerun()
 
 def render() -> None:
     st.subheader("📖 Bestiary Database (Monster Statblocks)")
@@ -20,11 +29,23 @@ def render() -> None:
                 else:
                     # Default Template
                     data[new_id] = {
+                        "name": new_id,
                         "level": 1,
                         "type": "Normal",
+                        "biomes": [],
+                        "sites": [],
+                        "factions": [],
+                        "description": "",
                         "hp": 10,
-                        "stats": {"str": 5, "per": 5, "end": 5, "cha": 5, "int": 5, "agi": 5, "luc": 5},
-                        "attacks": []
+                        "sp": 10,
+                        "ac": 10,
+                        "dt": 0,
+                        "special": {"STR": 5, "PER": 5, "END": 5, "CHA": 5, "INT": 5, "AGI": 5, "LCK": 5},
+                        "skills": "",
+                        "senses": "",
+                        "traits": [],
+                        "actions": [],
+                        "loot": []
                     }
                     save_data(BESTIARY_FILE, data)
                     st.success(f"Created {new_id}")
@@ -46,6 +67,15 @@ def render() -> None:
         json_str = json.dumps(creature_data, indent=4)
         new_json_str = st.text_area("JSON Data", value=json_str, height=400)
         
+        if st.button("🧮 Calculate CR", help="Estimate the Combat Rating (Cost) based on current stats."):
+            try:
+                # Parse the JSON from the text area to get the most up-to-date values
+                temp_data = json.loads(new_json_str)
+                cr = calculate_cr(temp_data)
+                st.info(f"Estimated Combat Rating: **{cr}**")
+            except json.JSONDecodeError:
+                st.error("Invalid JSON. Please fix errors before calculating.")
+        
         c_save, c_del = st.columns([1, 1])
         
         with c_save:
@@ -60,9 +90,7 @@ def render() -> None:
         
         with c_del:
             if st.button("🗑️ Delete Creature", type="primary", use_container_width=True):
-                del data[selected_creature]
-                save_data(BESTIARY_FILE, data)
-                st.rerun()
+                delete_creature_dialog(selected_creature, data)
                 
         # Preview
         with st.expander("Preview Statblock"):

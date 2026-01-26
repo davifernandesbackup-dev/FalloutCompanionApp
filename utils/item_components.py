@@ -69,181 +69,109 @@ def render_modifier_builder(key_prefix, mod_list_key):
         c_cancel.button("❌ Cancel", key=f"{key_prefix}_btn_cancel_mod", use_container_width=True, on_click=close_builder)
     st.markdown("---")
 
-def render_item_form(prefix, current_values, mod_list_key, show_quantity=False, show_load=True, show_type=True):
+def render_item_form(prefix, current_values, mod_list_key, all_db_items, show_quantity=False):
     """
-    Renders a standardized item form.
-    current_values: dict with keys (name, weight, item_type, sub_type, range_normal, range_long, description, quantity)
+    Renders a standardized item form based on the new items.json schema.
+    current_values: dict representing a single item from items.json.
     mod_list_key: session state key for the list of modifiers
+    all_db_items: The full list of items from the database, for lookups (e.g., ammo).
     """
     
-    if show_quantity and show_load:
-        c_name, c_load, c_qty = st.columns([3, 1, 1])
-    elif show_load:
-        c_name, c_load = st.columns([3, 1])
-        c_qty = None
-    else:
-        c_name = st.container()
-        c_load = None
-        c_qty = None
+    # --- Universal Fields ---
+    c_name, c_load, c_cost, c_str = st.columns(4)
+    c_name.text_input("Name", value=current_values.get("name", ""), key=f"{prefix}_name")
+    c_load.number_input("Load", min_value=0.0, step=0.1, value=float(current_values.get("load", 0.0)), key=f"{prefix}_load")
+    c_cost.number_input("Cost", min_value=0, value=int(current_values.get("cost", 0)), key=f"{prefix}_cost")
+    c_str.number_input("STR Req", min_value=0, value=int(current_values.get("strReq", 0)), key=f"{prefix}_strReq")
     
-    k_name = f"{prefix}_name"
-    if k_name in st.session_state:
-        new_name = c_name.text_input("Name", key=k_name)
-    else:
-        new_name = c_name.text_input("Name", value=current_values.get("name", ""), key=k_name)
+    if show_quantity:
+        st.number_input("Quantity", min_value=1, step=1, value=int(current_values.get("quantity", 1)), key=f"{prefix}_qty")
 
-    if show_load and c_load:
-        k_weight = f"{prefix}_weight"
-        if k_weight in st.session_state:
-            new_weight = c_load.number_input("Load", min_value=0.0, step=0.1, key=k_weight)
-        else:
-            new_weight = c_load.number_input("Load", min_value=0.0, step=0.1, value=float(current_values.get("weight", 0.0)), key=k_weight)
-    else:
-        new_weight = 0.0
+    # --- Category & Props ---
+    categories = sorted([
+        "weapon", "armor", "power_armor", "ammo", "explosive", "mod", "ammo_mod",
+        "gear", "bag", "food", "drink", "magazine", "medicine", "chem", "program"
+    ])
     
-    new_qty = 1
-    if show_quantity and c_qty:
-        k_qty = f"{prefix}_qty"
-        if k_qty in st.session_state:
-            new_qty = c_qty.number_input("Qty", min_value=1, step=1, key=k_qty)
-        else:
-            new_qty = c_qty.number_input("Qty", min_value=1, step=1, value=int(current_values.get("quantity", 1)), key=k_qty)
+    default_cat = current_values.get("category", "gear")
+    if default_cat not in categories: default_cat = "gear"
     
-    if show_type:
-        c_type, c_sub = st.columns(2)
-        types = ["Misc", "Weapon", "Apparel", "Aid", "Currency"]
-        curr_type = current_values.get("item_type", "Misc")
-        if curr_type not in types: curr_type = "Misc"
-        
-        k_type = f"{prefix}_type"
-        if k_type in st.session_state:
-            new_type = c_type.selectbox("Type", types, key=k_type)
-        else:
-            new_type = c_type.selectbox("Type", types, index=types.index(curr_type), key=k_type)
-        
-        uses_ammo = False
-        new_ammo = ""
-        new_cap = 0
-        
-        new_subtype = current_values.get("sub_type")
-        new_rn = int(current_values.get("range_normal", 0))
-        new_rl = int(current_values.get("range_long", 0))
-        
-        if new_type == "Weapon":
-            subs = ["Guns", "Melee", "Unarmed", "Explosives", "Energy Weapons", "Archery"]
-            curr_sub = new_subtype if new_subtype in subs else "Guns"
-            
-            # Ensure session state has a valid value for the selectbox to avoid crashes
-            sb_key = f"{prefix}_sub"
-            if sb_key in st.session_state and st.session_state[sb_key] not in subs:
-                st.session_state[sb_key] = subs[0]
-                
-            if sb_key in st.session_state:
-                new_subtype = c_sub.selectbox("Weapon Type", subs, key=sb_key)
-            else:
-                new_subtype = c_sub.selectbox("Weapon Type", subs, index=subs.index(curr_sub), key=sb_key)
-            
-            # Damage Inputs
-            c_dmg_n, c_dmg_s = st.columns(2)
-            k_dn = f"{prefix}_dmg_n"
-            k_ds = f"{prefix}_dmg_s"
-            
-            if k_dn in st.session_state:
-                new_dn = c_dmg_n.number_input("Damage Dice Count", min_value=1, step=1, key=k_dn)
-            else:
-                new_dn = c_dmg_n.number_input("Damage Dice Count", min_value=1, step=1, value=int(current_values.get("damage_dice_count", 1)), key=k_dn)
+    new_category = st.selectbox("Category", categories, index=categories.index(default_cat), key=f"{prefix}_category")
 
-            if k_ds in st.session_state:
-                new_ds = c_dmg_s.number_input("Damage Dice Sides", min_value=2, step=2, key=k_ds)
-            else:
-                new_ds = c_dmg_s.number_input("Damage Dice Sides", min_value=2, step=2, value=int(current_values.get("damage_dice_sides", 6)), key=k_ds)
+    props = current_values.get("props", {})
 
-            if new_subtype in ["Guns", "Energy Weapons", "Archery", "Explosives"]:
-                c_rn, c_rl = st.columns(2)
-                k_rn = f"{prefix}_rn"
-                k_rl = f"{prefix}_rl"
-                
-                if k_rn in st.session_state:
-                    new_rn = c_rn.number_input("Normal Range", step=1, min_value=0, key=k_rn)
-                else:
-                    new_rn = c_rn.number_input("Normal Range", value=new_rn, step=1, min_value=0, key=k_rn)
-                    
-                if k_rl in st.session_state:
-                    new_rl = c_rl.number_input("Long Range", step=1, min_value=0, key=k_rl)
-                else:
-                    new_rl = c_rl.number_input("Long Range", value=new_rl, step=1, min_value=0, key=k_rl)
-                
-            # Ammo Toggle
-            k_uses_ammo = f"{prefix}_uses_ammo"
-            if k_uses_ammo in st.session_state:
-                uses_ammo = st.checkbox("Uses Ammo?", key=k_uses_ammo)
-            else:
-                # Default to False unless data suggests otherwise
-                default_ua = current_values.get("uses_ammo", False)
-                if "uses_ammo" not in current_values and (current_values.get("ammo_item") or current_values.get("ammo_capacity", 0) > 0):
-                    default_ua = True
-                uses_ammo = st.checkbox("Uses Ammo?", value=default_ua, key=k_uses_ammo)
+    st.markdown("---")
+    st.caption(f"Properties for **{new_category.replace('_', ' ').title()}**")
 
-            if uses_ammo:
-                c_ammo, c_cap = st.columns([2, 1])
-                k_ammo = f"{prefix}_ammo"
-                if k_ammo in st.session_state:
-                    new_ammo = c_ammo.text_input("Ammo Item Name", key=k_ammo, help="Exact name of the ammunition item in inventory")
-                else:
-                    new_ammo = c_ammo.text_input("Ammo Item Name", value=current_values.get("ammo_item", ""), key=k_ammo, help="Exact name of the ammunition item in inventory")
-                
-                k_cap = f"{prefix}_ammo_cap"
-                if k_cap in st.session_state:
-                    new_cap = c_cap.number_input("Mag. Size", min_value=0, step=1, key=k_cap, help="0 = Direct Feed")
-                else:
-                    new_cap = c_cap.number_input("Mag. Size", value=int(current_values.get("ammo_capacity", 0)), min_value=0, step=1, key=k_cap, help="0 = Direct Feed")
-            
-            # Critical Hit Fields
-            st.caption("Critical Hit Stats")
-            c_crit_t, c_crit_d = st.columns([1, 2])
-            k_crit_t = f"{prefix}_crit_t"
-            k_crit_d = f"{prefix}_crit_d"
-            k_crit_e = f"{prefix}_crit_e"
-            
-            new_crit_t = c_crit_t.number_input("Crit Threshold", min_value=1, max_value=20, value=int(current_values.get("crit_threshold", 20)), key=k_crit_t, help="Roll required to crit (e.g. 20)")
-            new_crit_d = c_crit_d.text_input("Crit Damage", value=current_values.get("crit_damage", ""), key=k_crit_d, help="Extra damage dice (e.g. 1d6)")
-            new_crit_e = st.text_input("Crit Effect", value=current_values.get("crit_effect", ""), key=k_crit_e, help="Additional effect on crit")
+    if new_category == "weapon":
+        c1, c2, c3 = st.columns(3)
+        c1.selectbox("Weapon Type", ["ballistic", "energy", "melee"], index=["ballistic", "energy", "melee"].index(props.get("weaponType", "ballistic")), key=f"{prefix}_p_weaponType")
+        c2.number_input("Hands", min_value=1, max_value=2, value=int(props.get("hands", 1)), key=f"{prefix}_p_hands")
+        c3.number_input("AP Cost", min_value=0, value=int(props.get("apCost", 4)), key=f"{prefix}_p_apCost")
 
-        else:
-            new_subtype = None
-            new_dn = 1
-            new_ds = 6
-            new_crit_t = 20
-            new_crit_d = ""
-            new_crit_e = ""
-    else:
-        new_type = "Misc"
-        new_subtype = None
-        new_ammo = ""
-        new_cap = 0
-        new_crit_t = 20
-        new_crit_d = ""
-        new_crit_e = ""
-        uses_ammo = False
-        new_rn = 0
-        new_rl = 0
-        new_dn = 1
-        new_ds = 6
+        c1, c2 = st.columns(2)
+        c1.text_input("Damage", value=props.get("damage", "1d6"), key=f"{prefix}_p_damage")
+        c2.text_input("Damage Type", value=props.get("damageType", "ballistic"), key=f"{prefix}_p_damageType")
         
-    k_desc = f"{prefix}_desc"
-    if k_desc in st.session_state:
-        new_desc = st.text_input("Description", key=k_desc)
-    else:
-        new_desc = st.text_input("Description", value=current_values.get("description", ""), key=k_desc)
+        c1, c2 = st.columns(2)
+        c1.text_input("Range", value=props.get("range", "x6/x10"), help="e.g., x6/x10", key=f"{prefix}_p_range")
+        c2.text_input("Critical", value=str(props.get("critical", "20, x2")), help="e.g., 20, x2 or 19, 1d6", key=f"{prefix}_p_critical")
+
+        st.markdown("---")
+        c1, c2 = st.columns(2)
+        ammo_ids = [""] + sorted([i['id'] for i in all_db_items if i.get('category') == 'ammo'])
+        default_ammo = props.get("ammoType", "")
+        ammo_idx = ammo_ids.index(default_ammo) if default_ammo in ammo_ids else 0
+        c1.selectbox("Ammo ID", ammo_ids, index=ammo_idx, key=f"{prefix}_p_ammoType")
+        c2.number_input("Magazine Size", min_value=0, value=int(props.get("magazineSize", 0)), key=f"{prefix}_p_magazineSize")
+        
+        st.text_area("Special Rules (one per line)", value="\n".join(props.get("special", [])), key=f"{prefix}_p_special")
+
+    elif new_category in ["armor", "power_armor"]:
+        c1, c2, c3 = st.columns(3)
+        c1.number_input("AC Bonus", value=int(props.get("ac", 0)), key=f"{prefix}_p_ac")
+        c2.number_input("DT", value=int(props.get("dt", 0)), key=f"{prefix}_p_dt")
+        if new_category == "power_armor":
+             c2.number_input("DP", value=int(props.get("dp", 0)), key=f"{prefix}_p_dp")
+        c3.number_input("Slots", value=int(props.get("slots", 6)), key=f"{prefix}_p_slots")
+        
+        c1, c2 = st.columns(2)
+        c1.number_input("Load (Worn)", value=float(props.get("loadWorn", 0.0)), key=f"{prefix}_p_loadWorn")
+        if new_category == "armor":
+            c2.selectbox("Armor Type", ["Light", "Heavy"], index=["Light", "Heavy"].index(props.get("type", "Light")), key=f"{prefix}_p_type")
     
-    # Decay Input
-    new_decay = 0
-    if new_type in ["Weapon", "Apparel"]:
-        k_decay = f"{prefix}_decay"
-        if k_decay in st.session_state:
-            new_decay = st.number_input("Decay", min_value=0, step=1, key=k_decay)
-        else:
-            new_decay = st.number_input("Decay", value=int(current_values.get("decay", 0)), min_value=0, step=1, key=k_decay)
+    elif new_category == "ammo":
+        c1, c2 = st.columns(2)
+        c1.number_input("Pack Size", min_value=1, value=int(props.get("packSize", 1)), key=f"{prefix}_p_packSize")
+        c2.text_input("Load Rule", value=props.get("loadRule", "10 rounds = 1 load"), key=f"{prefix}_p_loadRule")
+
+    elif new_category == "bag":
+        c1, c2 = st.columns(2)
+        c1.number_input("Load (Worn)", value=float(props.get("loadWorn", 0.0)), key=f"{prefix}_p_loadWorn")
+        c2.number_input("Carry Bonus", value=int(props.get("carryCapacityBonus", 0)), key=f"{prefix}_p_carryCapacityBonus")
+        st.text_input("Encumbrance Rule", value=props.get("encumbranceRule", ""), key=f"{prefix}_p_encumbranceRule")
+        st.text_area("Special Text", value=props.get("specialText", ""), key=f"{prefix}_p_specialText")
+
+    elif new_category == "ammo_mod":
+        c1, c2 = st.columns(2)
+        c1.selectbox("Ammo Category", ["ballistic", "energy", "heavy", "explosive"], index=["ballistic", "energy", "heavy", "explosive"].index(props.get("ammoCategory", "ballistic")) if props.get("ammoCategory") in ["ballistic", "energy", "heavy", "explosive"] else 0, key=f"{prefix}_p_ammoCategory")
+        c2.number_input("Cost Multiplier", value=float(props.get("costMultiplier", 1.0)), key=f"{prefix}_p_costMultiplier")
+        
+        # Compatible Ammo (List)
+        comp_ammo = props.get("compatibleAmmo", [])
+        st.text_area("Compatible Ammo (one per line)", value="\n".join(comp_ammo) if isinstance(comp_ammo, list) else str(comp_ammo), key=f"{prefix}_p_compatibleAmmo")
+        
+        st.text_area("Special Effect", value=props.get("specialEffect", ""), key=f"{prefix}_p_specialEffect")
+
+    elif new_category == "chem":
+        st.text_input("Addiction Type", value=props.get("addictionType", ""), key=f"{prefix}_p_addictionType")
+        st.text_area("Chem Effect Description", value=props.get("description", ""), key=f"{prefix}_p_description")
+
+    else:
+        st.info(f"Form fields for category '{new_category}' are not yet implemented.")
+
+    st.markdown("---")
+    st.text_area("Description / Notes", value=current_values.get("description", ""), key=f"{prefix}_desc")
 
     st.markdown("**Modifiers**")
     render_modifier_builder(prefix, mod_list_key)
@@ -262,23 +190,32 @@ def render_item_form(prefix, current_values, mod_list_key, show_quantity=False, 
                 c2.button("🗑️", key=f"{prefix}_del_mod_{i}", on_click=delete_mod)
     else:
         st.caption("No modifiers.")
-        
+
+def get_item_data_from_form(prefix, mod_list_key):
+    """Constructs an item dictionary from session state based on form inputs."""
+    name = st.session_state.get(f"{prefix}_name", "")
+    load = st.session_state.get(f"{prefix}_load", 0.0)
+    cost = st.session_state.get(f"{prefix}_cost", 0)
+    strReq = st.session_state.get(f"{prefix}_strReq", 0)
+    category = st.session_state.get(f"{prefix}_category", "gear")
+    description = st.session_state.get(f"{prefix}_desc", "")
+    quantity = st.session_state.get(f"{prefix}_qty", 1)
+    
+    props = {}
+    prop_keys = [k for k in st.session_state if k.startswith(f"{prefix}_p_")]
+    for key in prop_keys:
+        prop_name = key.replace(f"{prefix}_p_", "")
+        props[prop_name] = st.session_state[key]
+
+    # Handle special cases like lists from text_area
+    if "special" in props and isinstance(props["special"], str):
+        props["special"] = [line.strip() for line in props["special"].split('\n') if line.strip()]
+    if "compatibleAmmo" in props and isinstance(props["compatibleAmmo"], str):
+        props["compatibleAmmo"] = [line.strip() for line in props["compatibleAmmo"].split('\n') if line.strip()]
+
+    final_desc = join_modifiers(description, st.session_state.get(mod_list_key, []))
+
     return {
-        "name": new_name,
-        "quantity": new_qty,
-        "weight": new_weight,
-        "item_type": new_type,
-        "sub_type": new_subtype,
-        "range_normal": new_rn,
-        "range_long": new_rl,
-        "description": new_desc,
-        "damage_dice_count": new_dn,
-        "damage_dice_sides": new_ds,
-        "uses_ammo": uses_ammo,
-        "ammo_item": new_ammo if uses_ammo else "",
-        "ammo_capacity": new_cap if uses_ammo else 0,
-        "decay": new_decay,
-        "crit_threshold": new_crit_t,
-        "crit_damage": new_crit_d,
-        "crit_effect": new_crit_e
+        "name": name, "load": load, "cost": cost, "strReq": strReq, "quantity": quantity,
+        "category": category, "description": final_desc, "props": props
     }

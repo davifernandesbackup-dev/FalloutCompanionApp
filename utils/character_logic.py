@@ -262,7 +262,12 @@ def calculate_stats(char):
         item = item_map.get(item_id)
         if not item: return 0.0
         # Self load
-        w = float(item.get("weight", 0.0)) * item.get("quantity", 1)
+        base_weight = float(item.get("weight", 0.0))
+        # Check if equipped and has load_worn property
+        if item.get("equipped", False) and "load_worn" in item:
+            base_weight = float(item["load_worn"])
+            
+        w = base_weight * item.get("quantity", 1)
         # Children load
         for child in children_map.get(item_id, []):
             w += get_total_load(child["id"])
@@ -270,11 +275,16 @@ def calculate_stats(char):
 
     current_load = 0.0
     carried_caps = 0
+    bonus_carry = 0
 
     for item in inventory:
         # Only count weight for root items in "carried"
         if item.get("parent_id") is None and item.get("location") == "carried":
             current_load += get_total_load(item["id"])
+            
+            # Calculate bonus carry from equipped items (must be root carried)
+            if item.get("equipped", False):
+                bonus_carry += item.get("carry_bonus", 0)
         
         # Count caps (anywhere in carried hierarchy)
         # We need to check if the item is effectively carried
@@ -296,12 +306,30 @@ def calculate_stats(char):
     char["current_load"] = round(current_load, 1)
     char["caps"] = carried_caps # Update display value
 
+    # Check Bag Encumbrance Rule
+    conflicting_bags = 0
+    for item in inventory:
+        # Check if item is a bag, equipped, and has items inside
+        if item.get("category") == "bag" and item.get("equipped"):
+            if item["id"] in children_map and len(children_map[item["id"]]) > 0:
+                # Check rule (default to 0 if missing)
+                rule = item.get("encumbrance_rule", 0)
+                if rule > 0:
+                    conflicting_bags += 1
+    
+    char["is_overencumbered"] = False
+    if conflicting_bags > 1:
+        str_stat = effective_stats.get("STR", 5)
+        end_stat = effective_stats.get("END", 5)
+        if str_stat < 8 and end_stat < 8:
+            char["is_overencumbered"] = True
+
     # 4. Derived Stats
-    base_carry_load = effective_stats.get("STR", 5) * 10
+    base_carry_load = (effective_stats.get("STR", 5) * 10) + bonus_carry
     char["carry_load"] = int(get_effective_value(base_carry_load, "Carry Load"))
     
-    base_combat_sequence = effective_stats.get("PER", 5) + 5
-    char["combat_sequence"] = int(get_effective_value(base_combat_sequence, "Combat Sequence")) # 10 + PER Mod (PER - 5) = 5 + PER
+    base_combat_sequence = effective_stats.get("PER", 5) - 5
+    char["combat_sequence"] = int(get_effective_value(base_combat_sequence, "Combat Sequence"))
     
     base_action_points = effective_stats.get("AGI", 5) + 5
     char["action_points"] = int(get_effective_value(base_action_points, "Action Points"))
@@ -328,6 +356,10 @@ def calculate_stats(char):
     # Passive Sense: 12 + (PER - 5)
     base_passive_sense = 12 + (effective_stats.get("PER", 5) - 5)
     char["passive_sense"] = int(get_effective_value(base_passive_sense, "Passive Sense"))
+
+    # Final check for standard weight limit
+    if char["current_load"] > char["carry_load"]:
+        char["is_overencumbered"] = True
 
     return effective_health_max, effective_stamina_max, effective_armor_class, effective_stats, effective_skills
 

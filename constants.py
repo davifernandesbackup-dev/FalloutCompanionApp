@@ -1,11 +1,10 @@
 import os
 
 DATA_DIR = "data"
-THREAT_FILE = os.path.join(DATA_DIR, "encounters.json")
-LOOT_FILE = os.path.join(DATA_DIR, "loot.json")
 BESTIARY_FILE = os.path.join(DATA_DIR, "bestiary.json")
 SAVED_FILE = os.path.join(DATA_DIR, "saved_encounters.json")
 CHARACTERS_FILE = os.path.join(DATA_DIR, "characters.json")
-EQUIPMENT_FILE = os.path.join(DATA_DIR, "equipment.json")
+ITEM_FILE = os.path.join(DATA_DIR, "items.json")
 PERKS_FILE = os.path.join(DATA_DIR, "perks.json")
 RECIPES_FILE = os.path.join(DATA_DIR, "recipes.json")
+DM_SCREEN_FILE = os.path.join(DATA_DIR, "dm_screen.json")

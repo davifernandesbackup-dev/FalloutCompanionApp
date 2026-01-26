@@ -25,27 +25,30 @@ def inject_focus_hack() -> None:
 
 # --- CALLBACKS (MOVEMENT MODULE) ---
 def update_from_feet() -> None:
+    ratio = st.session_state.get("feet_per_ap", 5)
     feet = st.session_state.feet_input
     raw_meters = feet * 0.3
     st.session_state.meters_input = round(raw_meters * 2) / 2
     if feet > 0:
-        st.session_state.ap_input = math.ceil(feet / 5)
+        st.session_state.ap_input = math.ceil(feet / ratio)
     else:
         st.session_state.ap_input = 0
 
 def update_from_meters() -> None:
+    ratio = st.session_state.get("feet_per_ap", 5)
     meters = st.session_state.meters_input
     raw_feet = meters / 0.3
     rounded_feet = float(round(raw_feet))
     st.session_state.feet_input = rounded_feet
     if rounded_feet > 0:
-        st.session_state.ap_input = math.ceil(rounded_feet / 5)
+        st.session_state.ap_input = math.ceil(rounded_feet / ratio)
     else:
         st.session_state.ap_input = 0
 
 def update_from_ap() -> None:
+    ratio = st.session_state.get("feet_per_ap", 5)
     ap = st.session_state.ap_input
-    new_feet = float(ap * 5)
+    new_feet = float(ap * ratio)
     st.session_state.feet_input = new_feet
     raw_meters = new_feet * 0.3
     st.session_state.meters_input = round(raw_meters * 2) / 2
@@ -75,15 +78,19 @@ def render() -> None:
             st.session_state.meters_input = 0.0
         if "ap_input" not in st.session_state:
             st.session_state.ap_input = 0
+        if "feet_per_ap" not in st.session_state:
+            st.session_state.feet_per_ap = 5
 
         st.caption("Convert Distances & AP")
         
         # Inputs
+        st.number_input("Feet per 1 AP:", min_value=1, key="feet_per_ap", on_change=update_from_ap)
         st.number_input("Feet:", step=1.0, min_value=0.0, key="feet_input", on_change=update_from_feet, format="%g")
         st.number_input("Meters:", step=0.5, min_value=0.0, key="meters_input", on_change=update_from_meters, format="%g")
         st.number_input("Action Points (AP):", step=1, min_value=0, key="ap_input", on_change=update_from_ap, format="%d")
         
-        st.caption("1 AP = 5 Feet | 1.5 Meters")
+        ratio = st.session_state.feet_per_ap
+        st.caption(f"1 AP = {ratio} Feet | {round(ratio * 0.3, 2)} Meters")
 
     # --- MODE B: WEAPON RANGE ---
     else:

@@ -1,0 +1,708 @@
+[
+  {
+    "id": "wpn_pipe_pistol",
+    "name": "Pipe Pistol",
+    "category": "weapon",
+    "cost": 90,
+    "load": 8,
+    "strReq": 3,
+    "props": {
+      "weaponType": "ballistic",
+      "hands": 1,
+      "apCost": 5,
+      "damage": "1d4",
+      "damageType": "ballistic",
+      "range": "x6/x10",
+      "critical": "20, 1d4",
+      "ammoType": "ammo_32",
+      "magazineSize": 12,
+      "special": ["Breakable", "Kickback", "Semi-Automatic"]
+    }
+  },
+  {
+    "id": "wpn_nail_gun",
+    "name": "H&H Tools Nail Gun",
+    "category": "weapon",
+    "cost": 100,
+    "load": 5,
+    "strReq": 4,
+    "props": {
+      "weaponType": "ballistic",
+      "hands": 2,
+      "apCost": 6,
+      "damage": "1",
+      "damageType": "piercing",
+      "range": "x3/x15",
+      "critical": "19, x3",
+      "ammoType": "ammo_nails",
+      "magazineSize": 90,
+      "special": ["Automatic (4)", "Unstable", "Silent", "Armor Piercing"]
+    }
+  },
+  {
+    "id": "wpn_board",
+    "name": "Board",
+    "category": "weapon",
+    "cost": 10,
+    "load": 10,
+    "strReq": 5,
+    "props": {
+      "weaponType": "melee",
+      "hands": 2,
+      "apCost": 4,
+      "damage": "1d8",
+      "damageType": "bludgeoning",
+      "critical": null,
+      "special": ["Weighted", "Breakable", "Improvised"]
+    }
+  },
+  {
+    "id": "ammo_32",
+    "name": ".32 Round",
+    "category": "ammo",
+    "cost": 1,
+    "load": 0.1,
+    "props": {
+      "packSize": 1,
+      "loadRule": "10 rounds = 1 load"
+    }
+  },
+  {
+    "id": "ammo_nails",
+    "name": "Nails (Pack of 5)",
+    "category": "ammo",
+    "cost": 2,
+    "load": 0.1,
+    "props": {
+      "packSize": 5,
+      "loadRule": "10 rounds = 1 load"
+    }
+  },
+  {
+    "id": "arm_leather",
+    "name": "Leather Armor",
+    "category": "armor",
+    "cost": 175,
+    "load": 15,
+    "strReq": 1,
+    "description": "A jacket, fittings around the arms, knee pads, and boots all fall under leather armor.",
+    "props": {
+      "ac": 11,
+      "dt": 1,
+      "slots": 6,
+      "loadWorn": 7,
+      "type": "Light"
+    }
+  },
+  {
+    "id": "pa_t45",
+    "name": "T-45 Power Armor",
+    "category": "power_armor",
+    "cost": 10050,
+    "load": 0,
+    "strReq": 0,
+    "props": {
+      "ac": 14,
+      "dp": 10,
+      "slots": 6,
+      "repairDc": 16,
+      "operationAp": 300,
+      "special": ["Clunky"]
+    }
+  },
+  {
+    "id": "exp_molotov",
+    "name": "Molotov Cocktail",
+    "category": "explosive",
+    "cost": 20,
+    "load": 4,
+    "strReq": 0,
+    "props": {
+      "explosiveType": "thrown",
+      "apCost": 6,
+      "damage": "3d10",
+      "damageType": "fire",
+      "rangeFormula": "STR x 6",
+      "aoe": "5 ft. radius",
+      "special": ["Incendiary", "Shattering"]
+    }
+  },
+  {
+    "id": "exp_frag_mine",
+    "name": "Frag Mine",
+    "category": "explosive",
+    "cost": 140,
+    "load": 8,
+    "strReq": 0,
+    "props": {
+      "explosiveType": "placed",
+      "apCost": 6,
+      "damage": "6d6",
+      "damageType": "explosive",
+      "armDcModifier": 4,
+      "aoe": "5 ft. / 10 ft. radius",
+      "special": ["Proximity", "Deafening (10 ft.)", "Destructive", "Dismember"]
+    }
+  },
+  {
+    "id": "mod_pocketed",
+    "name": "Pocketed",
+    "category": "mod",
+    "cost": 210,
+    "load": 0,
+    "strReq": 0,
+    "props": {
+      "modType": "armor",
+      "ranks": [
+        { "rank": 1, "effect": "+10 Carry Weight" },
+        { "rank": 2, "effect": "+15 Carry Weight" },
+        { "rank": 3, "effect": "+25 Carry Weight" }
+      ]
+    }
+  },
+  {
+    "id": "wpn_silenced_22",
+    "name": "Silenced .22 SMG",
+    "category": "weapon",
+    "cost": 120,
+    "load": 7,
+    "strReq": 4,
+    "props": {
+      "weaponType": "ballistic",
+      "hands": 2,
+      "apCost": 5,
+      "damage": "1d4",
+      "damageType": "ballistic",
+      "range": "x2/x6",
+      "critical": "19, 3d4",
+      "ammoType": "ammo_22lr",
+      "magazineSize": 180,
+      "special": ["Automatic (2)", "Unstable", "Silent"]
+    }
+  },
+  {
+    "id": "wpn_shiv",
+    "name": "Shiv",
+    "category": "weapon",
+    "cost": 15,
+    "load": 1,
+    "strReq": 1,
+    "props": {
+      "weaponType": "melee",
+      "hands": 1,
+      "apCost": 3,
+      "damage": "1d4",
+      "damageType": "piercing",
+      "critical": "20, x2",
+      "special": ["Fragile"]
+    }
+  },
+  {
+    "id": "wpn_paddle_ball",
+    "name": "Paddle Ball",
+    "category": "weapon",
+    "cost": 11,
+    "load": 1,
+    "strReq": 1,
+    "props": {
+      "weaponType": "melee",
+      "hands": 1,
+      "apCost": 2,
+      "damage": "1",
+      "damageType": "bludgeoning",
+      "critical": "20, +1",
+      "special": ["Fragile", "Weak", "Reach"]
+    }
+  },
+  {
+    "id": "exp_baseball_grenade",
+    "name": "Baseball Grenade",
+    "category": "explosive",
+    "cost": 20,
+    "load": 3,
+    "strReq": 0,
+    "props": {
+      "explosiveType": "thrown",
+      "apCost": 5,
+      "damage": "2d6",
+      "damageType": "explosive",
+      "rangeFormula": "STR x 12",
+      "aoe": "5 ft. / 10 ft. radius"
+    }
+  },
+  {
+    "id": "exp_dynamite_long",
+    "name": "Long Fuse Dynamite",
+    "category": "explosive",
+    "cost": 80,
+    "load": 3,
+    "strReq": 0,
+    "props": {
+      "explosiveType": "placed",
+      "apCost": 6,
+      "damage": "3d6",
+      "damageType": "explosive",
+      "armDcModifier": 1,
+      "aoe": "5 ft. / 15 ft. radius",
+      "special": ["Deafening (10 ft.)", "Destructive", "Slow (3 rounds)"]
+    }
+  },
+  {
+    "id": "arm_metal",
+    "name": "Metal Armor",
+    "category": "armor",
+    "cost": 250,
+    "load": 20,
+    "strReq": 5,
+    "description": "Combination of various pieces that have been welded or fitted around the body.",
+    "props": {
+      "ac": 12,
+      "dt": 0,
+      "slots": 4,
+      "loadWorn": 10,
+      "type": "Heavy"
+    }
+  },
+  {
+    "id": "arm_ballistic",
+    "name": "Ballistic Weave",
+    "category": "armor",
+    "cost": 800,
+    "load": 10,
+    "strReq": 3,
+    "description": "Pre-war synthetic fiber whose reproduction has been lost.",
+    "props": {
+      "ac": 12,
+      "dt": 3,
+      "slots": 2,
+      "loadWorn": 5,
+      "type": "Light"
+    }
+  },
+  {
+    "id": "gear_backpack",
+    "name": "Bag (Backpack)",
+    "category": "bag",
+    "cost": 20,
+    "load": 10,
+    "description": "A leather, burlap, or cloth bag with straps.",
+    "props": {
+      "loadWorn": 0,
+      "carryCapacityBonus": 50,
+      "encumbranceRule": "8",
+      "specialText": "If you wear more than one bag that has items stored in it, you are Encumbered unless STR or END >= 8."
+    }
+  },
+  {
+    "id": "gear_canteen",
+    "name": "Canteen",
+    "category": "gear",
+    "cost": 10,
+    "load": 1,
+    "props": {
+      "loadFull": 2,
+      "capacity": "32 oz",
+      "uses": 4,
+      "useType": "Drink"
+    }
+  },
+  {
+    "id": "gear_lockpick",
+    "name": "Lockpick",
+    "category": "gear",
+    "cost": 100,
+    "load": 4,
+    "props": {
+      "function": "Breach Skill Check DC -5",
+      "durability": 5,
+      "breakOnDeplete": true
+    }
+  },
+  {
+    "id": "gear_hazmat",
+    "name": "Hazmat Suit",
+    "category": "gear",
+    "cost": 150,
+    "load": 50,
+    "props": {
+      "loadWorn": 10,
+      "slots": 0,
+      "special": ["Rad DC -10", "Halve Rads gained", "Resistant to Radiation Damage", "Cannot wear other armor"]
+    }
+  },
+  {
+    "id": "food_mac_cheese",
+    "name": "BlamCo Mac & Cheese",
+    "category": "food",
+    "cost": 10,
+    "load": 4,
+    "props": {
+      "foodType": "pre-made",
+      "effects": ["Irradiated", "Filling", "Tasty"]
+    }
+  },
+  {
+    "id": "food_apple",
+    "name": "Apple",
+    "category": "food",
+    "cost": 5,
+    "load": 1,
+    "props": {
+      "foodType": "produce",
+      "effects": ["Irradiated", "Tasty", "Snack"]
+    }
+  },
+  {
+    "id": "food_ant_meat",
+    "name": "Ant Meat",
+    "category": "food",
+    "cost": 3,
+    "load": 4,
+    "props": {
+      "foodType": "raw",
+      "effects": ["Irradiated", "Bland", "Putrid", "Diseased"]
+    }
+  },
+  {
+    "id": "drink_beer",
+    "name": "Beer",
+    "category": "drink",
+    "cost": 10,
+    "load": 2,
+    "props": {
+      "effects": ["Alcoholic", "Addictive"]
+    }
+  },
+  {
+    "id": "mag_milsurp",
+    "name": "Milsurp Review",
+    "category": "magazine",
+    "cost": 50,
+    "load": 2,
+    "description": "Reviewing and discussing military firearms.",
+    "props": {
+      "targetSkill": "Guns",
+      "readTimeFormula": "5 - INT modifier (minutes)"
+    }
+  },
+  {
+    "id": "mag_future_weapons",
+    "name": "Future Weapons Today",
+    "category": "magazine",
+    "cost": 50,
+    "load": 2,
+    "props": {
+      "targetSkill": "Energy Weapons",
+      "readTimeFormula": "5 - INT modifier (minutes)"
+    }
+  },
+  {
+    "id": "med_addictol",
+    "name": "Addictol",
+    "category": "medicine",
+    "cost": 125,
+    "load": 1,
+    "description": "An experimental inhaled medicine that removes physical and psychological effects of addiction.",
+    "props": {
+      "useTime": "4 AP",
+      "effect": "Cure all addictions",
+      "sideEffect": "Gain 3 levels of Dehydration, Hunger, and Exhaustion"
+    }
+  },
+  {
+    "id": "med_antivenom",
+    "name": "Antivenom",
+    "category": "medicine",
+    "cost": 25,
+    "load": 3,
+    "props": {
+      "useTime": "5 AP",
+      "effect": "Resistant to Poison damage (6 hours)",
+      "cureCondition": "Poisoned"
+    }
+  },
+  {
+    "id": "med_doctors_bag",
+    "name": "Doctor's Bag",
+    "category": "medicine",
+    "cost": 250,
+    "load": 8,
+    "description": "A large carry bag full of medical supplies used to fix severe injuries.",
+    "props": {
+      "maxUses": 3,
+      "actions": [
+        {
+          "name": "Tourniquet",
+          "cost": "6 AP",
+          "effect": "Remove 2 levels of Bleeding"
+        },
+        {
+          "name": "Pain Killer",
+          "cost": "6 AP",
+          "effect": "Heal Dying creature to 1 HP"
+        },
+        {
+          "name": "Stitch Wounds",
+          "cost": "10 min",
+          "effect": "Heal HP (2 * Healing Rate + Medicine Skill)"
+        },
+        {
+          "name": "Set Bone",
+          "cost": "10 min",
+          "effect": "Remove Broken Arm or Broken Leg condition"
+        }
+      ]
+    }
+  },
+  {
+    "id": "chem_buffout",
+    "name": "Buffout",
+    "category": "chem",
+    "cost": 20,
+    "load": 1,
+    "props": {
+      "chemType": ["Anabolic"],
+      "addictionType": "Anabolic Addiction",
+      "description": "Increases strength, reflexes, and endurance."
+    }
+  },
+  {
+    "id": "chem_buffjet",
+    "name": "Buffjet",
+    "category": "chem",
+    "cost": 50,
+    "load": 1,
+    "props": {
+      "chemType": ["Anabolic", "Stimulant"],
+      "addictionType": "Anabolic Addiction",
+      "description": "Buffout mixed with Jet."
+    }
+  },
+  {
+    "id": "chem_calmex",
+    "name": "Calmex",
+    "category": "chem",
+    "cost": 100,
+    "load": 1,
+    "props": {
+      "chemType": ["Sedative"],
+      "addictionType": "Sedative Addiction",
+      "description": "Tranquilizer that boosts survival senses."
+    }
+  },
+  {
+    "id": "chem_cigarette",
+    "name": "Cigarette",
+    "category": "chem",
+    "cost": 5,
+    "load": 0.1,
+    "props": {
+      "chemType": ["Anxiolytic"],
+      "addictionType": "Anxiolytic Addiction",
+      "packRule": "1 load per 10 items"
+    }
+  },
+  {
+    "id": "prog_cache_clearer",
+    "name": "Cache Clearer",
+    "category": "program",
+    "cost": 5,
+    "load": 1,
+    "description": "Removes unnecessary data allowing for faster processing speed.",
+    "props": {
+      "programType": ["Anxiolytic", "Stimulant"],
+      "addictionType": "Anxiolytic Addiction",
+      "duration": "1 hour",
+      "useCost": "4 AP"
+    }
+  },
+  {
+    "id": "prog_predictive_chatbot",
+    "name": "Predictive Chatbot",
+    "category": "program",
+    "cost": 30,
+    "load": 1,
+    "description": "Analyzes conversations in real time to provide optimal responses.",
+    "props": {
+      "programType": ["Articulative"],
+      "addictionType": "Articulative Addiction",
+      "duration": "1 hour",
+      "useCost": "4 AP"
+    }
+  },
+  {
+    "id": "mod_pa_explosive_shielding",
+    "name": "Explosive Shielding",
+    "category": "mod",
+    "cost": 1350,
+    "load": 0,
+    "props": {
+      "modType": "power_armor",
+      "ranks": [
+        { "rank": 1, "effect": "-5 explosive damage" },
+        { "rank": 2, "effect": "-10 explosive damage" },
+        { "rank": 3, "effect": "-15 explosive damage" }
+      ]
+    }
+  },
+  {
+    "id": "mod_pa_prism_shielding",
+    "name": "Prism Shielding",
+    "category": "mod",
+    "cost": 1800,
+    "load": 0,
+    "props": {
+      "modType": "power_armor",
+      "ranks": [
+        { "rank": 1, "effect": "-5 laser and plasma damage" },
+        { "rank": 2, "effect": "-5 laser and plasma damage" },
+        { "rank": 3, "effect": "-10 laser and plasma damage" }
+      ]
+    }
+  },
+  {
+    "id": "mod_pa_emergency_protocols",
+    "name": "Emergency Protocols",
+    "category": "mod",
+    "cost": 1800,
+    "load": 0,
+    "props": {
+      "modType": "power_armor",
+      "ranks": [
+        { "rank": 1, "effect": "If starting turn with half HP, move 10 ft. for 1 AP" },
+        { "rank": 2, "effect": "If starting turn with half HP, DT increases by 5" }
+      ]
+    }
+  },
+  {
+    "id": "ammo_ec",
+    "name": "Energy Cell",
+    "category": "ammo",
+    "cost": 3,
+    "load": 0.1,
+    "props": {
+      "packSize": 1,
+      "loadRule": "20 rounds = 1 load"
+    }
+  },
+  {
+    "id": "bag_camping",
+    "name": "Bag (Camping)",
+    "category": "bag",
+    "cost": 100,
+    "load": 20,
+    "description": "Large, heavy duty backpack with nylon strings and waist belt.",
+    "props": {
+      "loadWorn": 0,
+      "carryCapacityBonus": 100,
+      "encumbranceRule": "8",
+      "specialText": "If you wear more than one bag that has items stored in it, you are Encumbered unless STR or END >= 8."
+    }
+  },
+  {
+    "id": "bag_range",
+    "name": "Bag (Range)",
+    "category": "bag",
+    "cost": 60,
+    "load": 12,
+    "description": "Single bag with one sling to allow weapons to be stored.",
+    "props": {
+      "loadWorn": 0,
+      "carryCapacityBonus": 0,
+      "encumbranceRule": "8",
+      "specialMechanic": {
+        "type": "weapon_storage",
+        "maxWeapons": 3,
+        "filter": ["Two Handed", "Unwieldy"],
+        "effect": "halve_load"
+      },
+      "specialText": "Store up to 3 Two-Handed/Unwieldy weapons; their Load is halved."
+    }
+  },
+  {
+    "id": "bag_bandolier",
+    "name": "Bandolier",
+    "category": "bag",
+    "cost": 30,
+    "load": 8,
+    "description": "Pocketed strap that fits across the body.",
+    "props": {
+      "loadWorn": 0,
+      "carryCapacityBonus": 25,
+      "encumbranceRule": "0",
+      "specialText": "Not considered a bag. Can be worn with a backpack without penalty."
+    }
+  },
+  {
+    "id": "ammod_energy_max_charge",
+    "name": "Max Charge",
+    "category": "ammo_mod",
+    "description": "Overcharged cells that deal massive damage but degrade weapons.",
+    "props": {
+      "ammoCategory": "energy",
+      "compatibleAmmo": ["Energy Cell", "Microfusion Cell"],
+      "costMultiplier": 5,
+      "statModifiers": {
+        "damageFlat": 4,
+        "dtBypass": 4
+      },
+      "addedProperties": ["Breakable"],
+      "specialEffect": "After every 3rd attack, the weapon gains a level of Decay."
+    }
+  },
+  {
+    "id": "ammod_energy_bulk",
+    "name": "Bulk",
+    "category": "ammo_mod",
+    "description": "Cheap, mass-produced energy ammunition.",
+    "props": {
+      "ammoCategory": "energy",
+      "compatibleAmmo": ["Energy Cell", "Microfusion Cell"],
+      "costMultiplier": 0.5,
+      "statModifiers": {
+        "damageFlat": -3
+      },
+      "addedProperties": ["Durable"]
+    }
+  },
+  {
+    "id": "ammod_gun_armor_piercing",
+    "name": "Armor Piercing",
+    "category": "ammo_mod",
+    "description": "Tungsten core rounds designed to punch through plating.",
+    "props": {
+      "ammoCategory": "ballistic",
+      "compatibleAmmo": [".308", ".50", "5.56mm", "5mm", "7.62mm"],
+      "costMultiplier": 3,
+      "specialEffect": "If target not in Power Armor, ignores up to 8 DT and target armor gains Decay. If target in Power Armor, deals +8 damage to Defense Points."
+    }
+  },
+  {
+    "id": "ammod_gun_hollow_point",
+    "name": "Hollow Point",
+    "category": "ammo_mod",
+    "description": "Rounds designed to expand on impact, causing massive tissue damage.",
+    "props": {
+      "ammoCategory": "ballistic",
+      "compatibleAmmo": [".308", ".357", ".44", ".45", "5.56mm", "9mm", "10mm", ".22LR", "7.62mm"],
+      "costMultiplier": 4,
+      "specialEffect": "Extra damage equal to Critical Hit damage. However, if damage is reduced by DT, the damage gains no bonus and is halved."
+    }
+  },
+  {
+    "id": "ammod_heavy_low_yield",
+    "name": "Low Yield",
+    "category": "ammo_mod",
+    "description": "Smaller explosive payload for safer handling.",
+    "props": {
+      "ammoCategory": "heavy",
+      "compatibleAmmo": ["Mini Nuke"],
+      "costMultiplier": 0.75,
+      "statModifiers": {
+        "damageDiceCount": -4,
+        "aoeRadiusMod": -10,
+        "rangeFlat": 50
+      }
+    }
+  }
+]

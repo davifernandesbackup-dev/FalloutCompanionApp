@@ -1,17 +1,33 @@
 import streamlit as st
 import uuid
 from utils.data_manager import load_data, save_data
-from constants import EQUIPMENT_FILE, PERKS_FILE, RECIPES_FILE
-from utils.item_components import render_item_form, parse_modifiers, join_modifiers
+from constants import ITEM_FILE, PERKS_FILE, RECIPES_FILE
+from utils.item_components import render_item_form, parse_modifiers, join_modifiers, get_item_data_from_form
 from utils.character_logic import SKILL_MAP
 
 BACKGROUNDS_FILE = "data/backgrounds.json"
+
+@st.dialog("Delete Item")
+def delete_db_item_dialog(item, data_list, target_file):
+    st.warning(f"Are you sure you want to delete **{item.get('name')}**?")
+    if st.button("Yes, Delete", type="primary", use_container_width=True):
+        data_list.remove(item)
+        save_data(target_file, data_list)
+        st.rerun()
+
+@st.dialog("Delete Recipe")
+def delete_recipe_dialog(index, data_list, target_file):
+    st.warning("Are you sure you want to delete this recipe?")
+    if st.button("Yes, Delete", type="primary", use_container_width=True):
+        data_list.pop(index)
+        save_data(target_file, data_list)
+        st.rerun()
 
 def render() -> None:
     st.subheader("🎒 Item & Recipe Database")
 
     db_type = st.radio("Select Category:", ["Equipment", "Perks", "Backgrounds", "Recipes"], horizontal=True, key="db_item_type")
-    target_file = EQUIPMENT_FILE if db_type == "Equipment" else (PERKS_FILE if db_type == "Perks" else (BACKGROUNDS_FILE if db_type == "Backgrounds" else RECIPES_FILE))
+    target_file = ITEM_FILE if db_type == "Equipment" else (PERKS_FILE if db_type == "Perks" else (BACKGROUNDS_FILE if db_type == "Backgrounds" else RECIPES_FILE))
     
     data_list = load_data(target_file)
     if not isinstance(data_list, list):
@@ -83,70 +99,33 @@ def render() -> None:
                     st.write(f"**Requires:** {req['skill']} {req.get('level', 0)}")
                 
                 if st.button("🗑️ Delete Recipe", key=f"del_rec_{i}"):
-                    data_list.pop(i)
-                    save_data(target_file, data_list)
-                    st.rerun()
+                    delete_recipe_dialog(i, data_list, target_file)
         return
 
     # --- ADD NEW ITEM ---
     with st.expander("➕ Create New Item", expanded=False):
         mod_key = "new_db_item_mods"
         if mod_key not in st.session_state: st.session_state[mod_key] = []
-        show_load = (db_type == "Equipment")
-        show_type = (db_type == "Equipment")
         
-        render_item_form("new_db_item", {}, mod_key, show_quantity=False, show_load=show_load, show_type=show_type)
+        # Pass all items for ammo lookup
+        all_items = load_data(ITEM_FILE) if db_type == "Equipment" else []
+        render_item_form("new_db_item", {}, mod_key, all_items)
         
         def create_db_item_callback():
-            name = st.session_state.get("new_db_item_name", "")
-            if name:
-                if any(x['name'] == name for x in data_list):
+            item_data = get_item_data_from_form("new_db_item", mod_key)
+            if item_data["name"]:
+                if any(x['name'] == item_data["name"] for x in data_list):
                     st.toast("Item with this name already exists.")
                 else:
-                    desc = st.session_state.get("new_db_item_desc", "")
-                    weight = st.session_state.get("new_db_item_weight", 0.0) if show_load else 0.0
-                    item_type = st.session_state.get("new_db_item_type", "Misc")
-                    sub_type = st.session_state.get("new_db_item_sub", None)
-                    range_normal = st.session_state.get("new_db_item_rn", 0)
-                    range_long = st.session_state.get("new_db_item_rl", 0)
-                    dmg_n = st.session_state.get("new_db_item_dmg_n", 1)
-                    dmg_s = st.session_state.get("new_db_item_dmg_s", 6)
-                    ammo_item = st.session_state.get("new_db_item_ammo", "")
-                    uses_ammo = st.session_state.get("new_db_item_uses_ammo", False)
-                    ammo_cap = st.session_state.get("new_db_item_ammo_cap", 0)
-                    decay = st.session_state.get("new_db_item_decay", 0)
-                    crit_t = st.session_state.get("new_db_item_crit_t", 20)
-                    crit_d = st.session_state.get("new_db_item_crit_d", "")
-                    crit_e = st.session_state.get("new_db_item_crit_e", "")
-                    
-                    final_desc = join_modifiers(desc, st.session_state[mod_key])
-                    new_item = {
-                        "name": name, 
-                        "description": final_desc, 
-                        "weight": weight, 
-                        "is_container": False,
-                        "item_type": item_type,
-                        "sub_type": sub_type,
-                        "range_normal": range_normal,
-                        "range_long": range_long,
-                        "damage_dice_count": dmg_n,
-                        "damage_dice_sides": dmg_s,
-                        "uses_ammo": uses_ammo,
-                        "ammo_item": ammo_item,
-                        "ammo_capacity": ammo_cap,
-                        "decay": decay,
-                        "crit_threshold": crit_t,
-                        "crit_damage": crit_d,
-                        "crit_effect": crit_e
-                    }
+                    new_item = item_data
+                    new_item["id"] = str(uuid.uuid4())
                     data_list.append(new_item)
                     save_data(target_file, data_list)
                     st.session_state[mod_key] = [] # Clear modifiers
                     
                     # Clear inputs
                     st.session_state["new_db_item_name"] = ""
-                    st.session_state["new_db_item_desc"] = ""
-                    st.toast(f"Created {name}")
+                    st.toast(f"Created {item_data['name']}")
             else:
                 st.toast("Name is required.")
 
@@ -172,52 +151,19 @@ def render() -> None:
             if mod_key not in st.session_state:
                 clean_desc, mod_strings = parse_modifiers(item.get("description", ""))
                 st.session_state[mod_key] = mod_strings
-                # We also need to ensure the form sees the clean description initially
-                # But render_item_form takes 'current_values'.
-                # We can construct a temporary dict with the clean description for the form
-                # However, if the user has already edited the description in the form, we want that value.
-                # Since render_item_form uses widgets with keys, Streamlit handles the state.
-                # We just need to pass the initial value correctly ONCE.
-                # But render_item_form takes 'value=' arguments.
-                # If we pass clean_desc every time, it might overwrite user input if not careful?
-                # No, Streamlit widgets ignore 'value' if key is in session state.
-                # So passing clean_desc is fine as long as the key matches.
-                # But we need to make sure we don't pass the raw description with modifiers to the text input.
-                pass
             
-            # Prepare values, ensuring description is clean for display
-            clean_desc, _ = parse_modifiers(item.get("description", ""))
-            # We create a copy to avoid modifying the actual item in the list during render
-            display_values = item.copy()
-            display_values["description"] = clean_desc
-            
-            show_load = (db_type == "Equipment")
-            show_type = (db_type == "Equipment")
-            form_result = render_item_form(item_key, display_values, mod_key, show_quantity=False, show_load=show_load, show_type=show_type)
+            # Pass all items for ammo lookup
+            all_items = load_data(ITEM_FILE) if db_type == "Equipment" else []
+            render_item_form(item_key, item, mod_key, all_items)
             
             c_save, c_del = st.columns([1, 1])
             
             with c_save:
                 if st.button("Save Changes", key=f"save_{item_key}", use_container_width=True):
-                    final_desc = join_modifiers(form_result["description"], st.session_state[mod_key])
+                    updated_data = get_item_data_from_form(item_key, mod_key)
                     
-                    item["name"] = form_result["name"]
-                    item["description"] = final_desc
-                    item["weight"] = form_result["weight"] if show_load else 0.0
-                    item["item_type"] = form_result["item_type"]
-                    item["sub_type"] = form_result["sub_type"]
-                    item["range_normal"] = form_result["range_normal"]
-                    item["range_long"] = form_result["range_long"]
-                    item["damage_dice_count"] = form_result["damage_dice_count"]
-                    item["damage_dice_sides"] = form_result["damage_dice_sides"]
-                    item["uses_ammo"] = form_result["uses_ammo"]
-                    item["ammo_item"] = form_result["ammo_item"]
-                    item["ammo_capacity"] = form_result["ammo_capacity"]
-                    item["decay"] = form_result["decay"]
-                    item["crit_threshold"] = form_result["crit_threshold"]
-                    item["crit_damage"] = form_result["crit_damage"]
-                    item["crit_effect"] = form_result["crit_effect"]
-                    # is_container is not editable here yet, defaults to False for DB items
+                    # Update the item in the list
+                    item.update(updated_data)
                     
                     # We need to save the full 'data_list' which contains this 'item' object
                     save_data(target_file, data_list)
@@ -225,7 +171,4 @@ def render() -> None:
                 
             with c_del:
                 if st.button("🗑️ Delete", key=f"del_{item_key}", type="primary", use_container_width=True):
-                    # Remove from main list
-                    data_list.remove(item)
-                    save_data(target_file, data_list)
-                    st.rerun()
+                    delete_db_item_dialog(item, data_list, target_file)

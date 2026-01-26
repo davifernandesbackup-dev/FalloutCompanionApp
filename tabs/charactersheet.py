@@ -3,11 +3,22 @@ import re
 import json
 import copy
 from utils.data_manager import load_data, save_data
-from constants import CHARACTERS_FILE, EQUIPMENT_FILE, PERKS_FILE
+from constants import CHARACTERS_FILE, ITEM_FILE, PERKS_FILE
 from utils.character_logic import get_default_character, sync_char_widgets, calculate_stats, roll_skill, migrate_character, SKILL_MAP
 from utils.character_components import render_css, render_bars, render_database_manager, render_inventory_management, render_character_statblock, caps_manager_dialog, crafting_manager_dialog, add_db_item_dialog
 
 BACKGROUNDS_FILE = "data/backgrounds.json"
+
+@st.dialog("Delete Character")
+def delete_char_dialog(index, saved_chars):
+    char = saved_chars[index]
+    st.warning(f"Are you sure you want to delete **{char.get('name', 'Unnamed')}**?")
+    st.caption("This action cannot be undone.")
+    if st.button("Yes, Delete", type="primary", use_container_width=True):
+        saved_chars.pop(index)
+        save_data(CHARACTERS_FILE, saved_chars)
+        st.session_state.char_sheet_mode = "SELECT"
+        st.rerun()
 
 def update_skills_callback():
     """Callback to update skills immediately on edit to fix desync."""
@@ -171,10 +182,7 @@ def render_character_sheet() -> None:
 
         if col_delete.button("🗑️ Delete", use_container_width=True):
             if st.session_state.active_char_idx is not None:
-                saved_chars.pop(st.session_state.active_char_idx)
-                save_data(CHARACTERS_FILE, saved_chars)
-                st.session_state.char_sheet_mode = "SELECT"
-                st.rerun()
+                delete_char_dialog(st.session_state.active_char_idx, saved_chars)
 
         # --- MAIN LAYOUT ---
         with st.container():
@@ -195,7 +203,7 @@ def render_character_sheet() -> None:
             # ROW 2: S.P.E.C.I.A.L.
             st.markdown('<div class="section-header">S.P.E.C.I.A.L.</div>', unsafe_allow_html=True)
             cols = st.columns(7)
-            stats_keys = ["STR", "PER", "END", "CHA", "INT", "AGI", "LUC"]
+            stats_keys = ["STR", "PER", "END", "CHA", "INT", "AGI", "LCK"]
             
             if "stats" not in char: char["stats"] = {}
             

@@ -1,24 +1,1457 @@
 {
-  "Feral Ghoul": {
-    "level": 2,
-    "type": "Normal",
-    "stats": { "str": 6, "per": 4, "end": 6, "cha": 1, "int": 2, "agi": 6, "luc": 4 },
-    "hp": 9,
-    "defense": 1,
-    "skills": ["Athletics 2", "Melee 2"],
-    "attacks": [
-      { "name": "Claws", "damage": "3 $CD$", "effect": "Radioactive" }
+  "Markus Pinto, the Undying": {
+    "source": "Bounty Hunters",
+    "name": "Markus Pinto, the Undying",
+    "size": "Medium",
+    "type": "Ghoul",
+    "level": 20,
+    "description": "A wandering bounty hunter, known and feared for his apparent ability to cheat death. Many have claimed to kill him, only for him to show up at their doorstep the next day, a gun to their face.",
+    "ac": 10,
+    "dt": 2,
+    "sp": 75,
+    "hp": 85,
+    "special": {
+      "STR": 6,
+      "PER": 9,
+      "END": 8,
+      "CHA": 7,
+      "INT": 8,
+      "AGI": 7,
+      "LCK": 11
+    },
+    "weaknesses": null,
+    "immunities": "Radiation",
+    "resistances": "Poison",
+    "skills": "Guns +10, Melee Weapons +6, Explosives +8, Survival +15",
+    "senses": "passive sense 16",
+    "healing_rate": 14,
+    "loot": [
+      "x1 reinforced (rank 2) cloth armor",
+      "x1 12.7mm pistol (1d6 levels of Decay)",
+      "x4d8 12.7mm rounds",
+      "x1 combat knife (1d4 levels of Decay)",
+      "x3 frag grenades",
+      "x1 smoke grenade",
+      "x3 stimpaks",
+      "x10d8 caps"
+    ],
+    "ap": 12,
+    "traits": [
+      "The Undying. Markus Pinto is infamous for cheating death. Whenever he is killed, he is not removed from the Bounty Hunter chart. Instead, he will appear again, having increased 1 level, and gained physical features of how he was killed previously (eyepatch, prosthetic limb, etc.).",
+      "However, if Markus Pinto’s head is severed or his entire body is destroyed, he will be permanently killed and removed from the Bounty Hunter chart."
+    ],
+    "actions": [
+      "3 AP Combat Knife. Melee weapon attack: +6 to hit, reach 5 ft., one target. Crit chance 17/x3 + Bleeding. Hit: 5 (2d4+1) slashing/piercing damage.",
+      "5 AP Frag Grenade. Thrown Explosive: +8 to roll, range 60ft, 5ft/10ft radius. All creatures in the radius take 12 (4d6) explosive damage.",
+      "5 AP Smoke Grenade. Thrown explosive: +6 to roll, range 70 ft., radius 20 ft.. The area of effect becomes enveloped by smoke that lasts for 1 minute. The area is considered Heavily Obscured and any creatures in the area are Blinded.",
+      "4 AP Stimpak. Markus Pinto uses the stimpak on himself or another creature within 5 ft. of him. They regain HP equal to their Healing Rate (14 HP)."
     ]
   },
-  "Raider Scavenger": {
+  "Crusher, the Abomination": {
+    "source": "Bounty Hunters",
+    "name": "Crusher, the Abomination",
+    "size": "Large",
+    "type": "Abomination",
+    "level": 20,
+    "description": "A massive super mutant who seemingly works for itself. No one knows where it came from, only that it’s seemingly satisfied with being a bounty hunter.",
+    "ac": 12,
+    "dt": 3,
+    "sp": 85,
+    "hp": 105,
+    "special": {
+      "STR": 13,
+      "PER": 8,
+      "END": 10,
+      "CHA": 2,
+      "INT": 4,
+      "AGI": 8,
+      "LCK": 9
+    },
+    "weaknesses": null,
+    "immunities": "Radiation, Frightened",
+    "resistances": "Poison, Psychic",
+    "skills": "Melee Weapons +12, Intimidation +10",
+    "senses": "passive sense 15",
+    "healing_rate": 14,
+    "loot": [
+      "x1 reinforced metal armor (1d6+2 levels of Decay)",
+      "x1 super sledge (1d6 levels of Decay)",
+      "x1 war drum (1d4 levels of Decay)",
+      "x3 healing powder",
+      "x3d10 caps"
+    ],
+    "ap": 13,
+    "traits": [
+      "Human Hatred. Super Mutants deal an extra 2 damage against humans.",
+      "Speedy. Crusher can move 10 ft per 1 AP.",
+      "Charger. If Crusher uses the Sprint action and moves through a creature’s space, its movement is not stopped and instead the creature must make a DC 14 Agility ability check. On a failure, the creature is trampled, being knocked prone and taking bludgeoning damage equal to 1d12 x the number of 5 ft. increments Crusher moved before hitting the creature. On a success, the creature narrowly dodges getting trampled."
+    ],
+    "actions": [
+      "6 AP Super Sledge. Melee weapon attack: +12 to hit, one target. Crit chance: 18/3d12 + Dazed for 1 turn. Hit: 26 (3d12+8) bludgeoning damage.",
+      "4 AP War Drum. Melee Weapon attack: +12 to hit, one target. Crit chance 18/1d10 + Deafened for 2 turns. Hit: 13 (1d10+8) bludgeoning damage.",
+      "6 AP Healing Powder. Crusher uses Healing Powder on himself or another creature within 5 ft. of him. For the next 3 turns, he heals a number of HP equal to half his Healing Rate (7 HP)."
+    ]
+  },
+  "Eleanor, the Disgraced Paladin": {
+    "source": "Bounty Hunters",
+    "name": "Eleanor, the Disgraced Paladin",
+    "size": "Large",
+    "type": "Human",
+    "level": 20,
+    "description": "A power armored warrior who wields a minigun to great effect. She claims to be a former Brotherhood of Steel paladin, but none have been able to verify these claims.",
+    "ac": 15,
+    "dt": 0,
+    "sp": 75,
+    "hp": 95,
+    "special": {
+      "STR": 12,
+      "PER": 7,
+      "END": 9,
+      "CHA": 7,
+      "INT": 6,
+      "AGI": 7,
+      "LCK": 7
+    },
+    "weaknesses": null,
+    "immunities": "Radiation",
+    "resistances": "Impact, Fire",
+    "skills": "Guns +10, Intimidation +6, Melee Weapons +6",
+    "senses": "passive sense 14",
+    "healing_rate": 14,
+    "loot": [
+      "x1 T-60 Power Armor (3 levels of Decay)",
+      "x2 fusion cores",
+      "x1 minigun (1d8 levels of Decay)",
+      "x12d12 5mm rounds",
+      "x1 super sledge (1d4+4 levels of Decay)",
+      "x4 stimpaks",
+      "x8d12 caps"
+    ],
+    "ap": 12,
+    "traits": [
+      "Power Armored. Eleanor has T-60 Power Armor, and as such has Defense Points. When Eleanor takes damage, it is first dealt to her DP. Once the DP reaches 0, her armor gains 1 level of Decay and the DP resets. Once it reaches 10 levels of Decay, her armor no longer blocks any damage."
+    ],
+    "actions": [
+      "6 AP Minigun. (makes 3 attacks, no damage modifier after first attack) Ranged weapon attack: +10 to hit, range 105/400 ft., up to 2 targets within 10 ft. of each other. Crit chance 19/2d6. Hit: 20 (5d6+2) ballistic damage. Reload every 12 attacks, 10 AP to reload. Attacks beyond 105 ft. will target 5 additional creatures or objects within 5 ft. of the initial target with the same attack roll, dealing 12 (4d6) damage.",
+      "6 AP Super Sledge. Melee weapon attack: +6 to hit, one target. Crit chance: 19/3d12 + Dazed for 1 turn. Hit: 25 (3d12+7) bludgeoning damage.",
+      "1 AP Stimpak. Eleanor uses the Stimpak on herself or another creature within 5 ft. of them. They regain HP equal to their Healing Rate (14 HP)."
+    ]
+  },
+  "Corvina, the Assaultron": {
+    "source": "Bounty Hunters",
+    "name": "Corvina, the Assaultron",
+    "size": "Medium",
+    "type": "Robot",
+    "level": 22,
+    "description": "A mysterious Assaultron that appeared out of nowhere, her sassiness is only second to her deadliness. Rumors say that she was made by the same creator as the Bounty Bots.",
+    "ac": 15,
+    "dt": 2,
+    "sp": 148,
+    "hp": 93,
+    "special": {
+      "STR": 10,
+      "PER": 13,
+      "END": 8,
+      "CHA": 3,
+      "INT": 6,
+      "AGI": 13,
+      "LCK": 7
+    },
+    "weaknesses": "Electricity",
+    "immunities": "Radiation, Poison, Psychic, Frightened",
+    "resistances": "Bludgeoning, Slashing, Piercing",
+    "skills": "Sneak +10, Melee Weapons +10, Unarmed +10",
+    "senses": "passive sense 20, blindsight 30 ft.",
+    "healing_rate": 19,
+    "loot": [
+      "x1d6 aluminum",
+      "x1 military grade circuit board",
+      "x2d8 energy cells",
+      "x2 robot repair kits",
+      "x3 robot repair kits 2.0",
+      "x1 emergency robot repair kit",
+      "x1 military auto-tank AI upload",
+      "x4d12 caps"
+    ],
+    "ap": 15,
+    "traits": [
+      "Robotic Body. Targeted attacks to Corvina’s arms or legs deal half damage, however critical hits will destroy the targeted limb. Corvina does not gain the Shock condition if this happens.",
+      "Self Destruct. If both of Corvina’s arms are destroyed, she will begin a self-destruct sequence. In two turns, Corvina will self-destruct. The explosion has a radius of 10/20 ft. and deals 8d10 explosive damage.",
+      "Eye Laser. If Corvina gains the Blinded condition, she is unable to use her Eye Laser. If Corvina is hit by a Targeted Attack to her Eye while charging her laser, her charge will be canceled."
+    ],
+    "actions": [
+      "3 AP Armblade. Melee weapon attack: +10 to hit, reach 5 ft., one target. Crit chance 19/x3 + 2 levels of Bleeding. Hit: 20 (3d10+5) slashing damage.",
+      "3 AP Shock Claw. Unarmed attack: +10 to hit, reach 5 ft., one target. Crit chance 19/1d8 + Stunned for 1 turn. Hit: 13 (2d8+5) bludgeoning damage and 10 (2d10) electricity damage. If this attack damages a creature’s HP, the creature gains a level of Fatigue.",
+      "6 AP Charge Laser Beam. Corvina charges her laser beam attack to use in the next turn.",
+      "6 AP Eye Laser. Corvina blasts her eye laser across a wide area, only if the Charge Laser Beam action was taken on a previous turn. All creatures in a 30 ft. line from Corvina take 55 (10d10) laser damage.",
+      "3 AP Cloaking. Corvina becomes Invisible for 3 rounds.",
+      "4 AP Military Auto-Tank AI Upload. Corvina runs a Military Auto-Tank AI Upload program. They gain +3 DT and +5 to all damage rolls, however they must always attack the nearest hostile creature on their turn. If they cannot see any hostile creatures on their turn, they must make a DC 15 Endurance ability check or they must attack an ally.",
+      "4 AP Robot Repair Kit 2.0. Corvina repairs herself or a robot within 5 ft. of it, healing 19 HP.",
+      "4 AP Emergency Robot Repair Kit. Corvina repairs herself or a robot within 5 ft. of it, healing 38 HP."
+    ]
+  },
+  "The Dragoon": {
+    "source": "Bounty Hunters",
+    "name": "The Dragoon",
+    "size": "Medium",
+    "type": "Ghoul",
+    "level": 22,
+    "description": "An enigma, a genderless assassin that many believe to have been a pre-war Chinese spy. No one has seen their face, even fewer have heard their voice. Some think they may be a robot.",
+    "ac": 12,
+    "dt": 2,
+    "sp": 115,
+    "hp": 104,
+    "special": {
+      "STR": 9,
+      "PER": 10,
+      "END": 9,
+      "CHA": 4,
+      "INT": 7,
+      "AGI": 10,
+      "LCK": 7
+    },
+    "weaknesses": "Psychic",
+    "immunities": "Radiation",
+    "resistances": "Poison",
+    "skills": "Melee Weapons +10, Sneak +15, Guns +8",
+    "senses": "passive sense 17",
+    "healing_rate": 15,
+    "loot": [
+      "x1 chinese stealth armor (1d6+3 levels of Decay)",
+      "x1 sword (1d4+2 levels of Decay)",
+      "x1 silenced .45 auto pistol (1d4 levels of Decay)",
+      "x2 stimpaks",
+      "x4d12 caps"
+    ],
+    "ap": 15,
+    "traits": [
+      "Subterfuge. When the Dragoon attacks and hits a Surprised target, the target’s armor gains 1 Decay.",
+      "Cloaking Field. The Dragoon’s Stealth Armor allows them to cloak for 3 rounds. After 3 rounds, cloaking requires recharge."
+    ],
+    "actions": [
+      "4 AP Sword. Melee weapon attack: +10 to hit, reach 5 ft., one target. Crit chance 18/x2. Hit: 10 (2d6+4) slashing/piercing damage.",
+      "3 AP Cloaking. The Dragon becomes Invisible for 3 rounds.",
+      "6 AP Anti-Materiel Rifle. Ranged weapon attack: +10 to hit, range 140/360 ft., one target. Crit chance 18/x4. Hit: 24 (5d8+4) ballistic damage. Reload every 6 attacks.",
+      "6 AP Rebar Club. Melee weapon attack: +8 to hit, reach 10 ft., one target. Crit chance 19/2d12. Hit: 19 (3d12+3) bludgeoning damage.",
+      "3 AP Stealth Boy. Vergil activates a Stealth Boy and becomes Invisible for 1 minute (10 rounds).",
+      "5 AP Smoke Grenade. Thrown explosive: +4 to roll, range 40 ft., radius 20 ft.. The area of effect becomes enveloped by smoke that lasts for 1 minute. The area is considered Heavily Obscured and any creatures in the area are Blinded."
+    ]
+  },
+  "James Cord, the Boogeyman": {
+    "source": "Bounty Hunters",
+    "name": "James Cord, the Boogeyman",
+    "size": "Medium",
+    "type": "Human",
+    "level": 25,
+    "description": "One of the most renowned assassins in the wasteland, known for being a man of focus, commitment, and sheer will. His nickname is the Boogeyman, but that’s not entirely accurate - he’s the man you send to kill the Boogeyman.",
+    "ac": 13,
+    "dt": 3,
+    "sp": 135,
+    "hp": 109,
+    "special": {
+      "STR": 8,
+      "PER": 9,
+      "END": 8,
+      "CHA": 5,
+      "INT": 7,
+      "AGI": 10,
+      "LCK": 9
+    },
+    "weaknesses": null,
+    "immunities": "Frightened, Blinded",
+    "resistances": "Ballistic, Piercing, Slashing",
+    "skills": "Guns +12, Melee Weapons +10, Unarmed +10",
+    "senses": "passive sense 16",
+    "healing_rate": 15,
+    "loot": [
+      "x1 reinforced (rank 3) & hardened (rank 3) cloth armor (1d6+1 levels of Decay)",
+      "x1 strengthened & ergonomic .45 auto pistol (1d4-1 levels of Decay)",
+      "x4d8 .45 rounds",
+      "x1 combat shotgun",
+      "x4d8 12 gauge rounds",
+      "x1 combat knife (1d6 levels of Decay)",
+      "x1 bandolier",
+      "x1 pencil",
+      "x5d12 caps"
+    ],
+    "ap": 15,
+    "traits": [
+      "Sheer Will. When James Cord reaches 0 HP for the first time, he instead instantly heals to 15 HP and does not begin Dying. This can only happen once per encounter."
+    ],
+    "actions": [
+      "4 AP Combat Shotgun. Ranged weapon attack: +12 to hit, range 35/60 ft., one target. Crit chance 18/2d12. Hit: 17 (2d12+5) ballistic damage. Reload every 8 attacks. Attacks beyond 35 ft. will target 2 additional creatures or objects within 5 ft. of the initial target with the same attack roll, dealing 6 (1d12) damage.",
+      "3 AP Combat Knife. Melee weapon attack: +10 to hit, reach 5 ft., one target. Crit chance 18/x3 + Bleeding. Hit: 7 (2d4+3) slashing/piercing damage.",
+      "3 AP Unarmed Strike. Unarmed attack: +10 to hit, reach 5 ft., one target. Crit chance 18/1d4. Hit: 5 (1d4+2) bludgeoning damage."
+    ]
+  },
+  "The Mysterious Stranger": {
+    "source": "Bounty Hunters",
+    "name": "The Mysterious Stranger",
+    "size": "Medium",
+    "type": "Human",
+    "level": 50,
+    "description": "An enigmatic figure seen across the wasteland, appearing, attacking ne’er-do-wells, and vanishing without a trace. Unfortunately, it seems this time he has picked you as his target.",
+    "ac": 15,
+    "dt": 1,
+    "sp": 110,
+    "hp": 90,
+    "special": {
+      "STR": 8,
+      "PER": 15,
+      "END": 9,
+      "CHA": 7,
+      "INT": 8,
+      "AGI": 10,
+      "LCK": 15
+    },
+    "weaknesses": null,
+    "immunities": "Frightened, Blinded",
+    "resistances": null,
+    "skills": "Guns +12, Sneak +8, Breach +6",
+    "senses": "passive sense 22, blindsight 100 ft.",
+    "healing_rate": 15,
+    "loot": [
+      "x1 .44 magnum revolver",
+      "x4d8 .44 rounds",
+      "x1 fedora",
+      "x1 leather armor",
+      "x3d10 caps"
+    ],
+    "ap": 15,
+    "traits": [
+      "Loyal. The Stranger will not appear if the bounty target has the Mysterious Stranger perk. If a member of the party has this perk, he will ignore them during combat.",
+      "Disappearing Act. Upon reaching 0 HP, the Stranger will inexplicably disappear, leaving behind only a fedora and his revolver. He can then reappear if chosen on the Bounty Chart.",
+      "Right Behind You. The Stranger can use 10 AP to teleport within 40 ft."
+    ],
+    "actions": [
+      "4 AP .44 Magnum Revolver. Ranged weapon attack: +12 to hit, range 60/140 ft., one target. Crit chance 15/x3. Hit: 13 (2d8+5) ballistic damage. Reload every 6 attacks.",
+      "10 AP Right Behind You. The Stranger instantly moves to a space within 40 ft. of his current position."
+    ]
+  },
+  "X8-77": {
+    "source": "Bounty Hunters",
+    "name": "X8-77",
+    "size": "Medium",
+    "type": "Human",
+    "level": 30,
+    "description": "An Institute Courser, assigned to hunt down rogue synths, escaped from the Institute. Most don’t even know Coursers exist, much less the Institute.",
+    "ac": 12,
+    "dt": 3,
+    "sp": 155,
+    "hp": 155,
+    "special": {
+      "STR": 10,
+      "PER": 13,
+      "END": 10,
+      "CHA": 1,
+      "INT": 5,
+      "AGI": 10,
+      "LCK": 3
+    },
+    "weaknesses": null,
+    "immunities": "Radiation, Poison",
+    "resistances": null,
+    "skills": "Energy Weapons +15, Melee Weapons +10, Unarmed +10, Intimidation +10",
+    "senses": "passive sense 20",
+    "healing_rate": 15,
+    "loot": [
+      "x1 tri-beam laser rifle (1d4 levels of Decay)",
+      "x1 ballistic weave armor (1d6+1 levels of Decay)",
+      "x2d8 microfusion cells"
+    ],
+    "ap": 15,
+    "traits": [
+      "Institute Courser. X8-77 will only arrive if one of the players is an escaped synth or has angered the Institute (by killing scientists, synths, etc.).",
+      "Terminator. Coursers are fitted with specialized technology to increase their combat effectiveness. Coursers have advantage on attack and damage rolls."
+    ],
+    "actions": [
+      "5 AP Tri-Beam Laser Rifle. Ranged weapon attack: +10 to hit, range 40/80 ft., one target. Crit chance 20/5d6 laser + burning. Hit: 10 (3d6+8) laser damage. Reload after 8 attacks. Attacks beyond 40 ft. will target 3 additional creatures or objects within 5 ft. of the initial target with the same attack roll, dealing 6 (2d6) damage.",
+      "10 AP Reinforcements. (Can only be used once per encounter) X8-77 teleports 3 Gen-1 Synths onto the battlefield as support. Each synth goes at the bottom of Combat Sequence order."
+    ]
+  },
+  "Albert, the Breach": {
+    "source": "Bounty Hunters",
+    "name": "Albert, the Breach",
+    "size": "Medium",
+    "type": "Human",
+    "level": 25,
+    "description": "A wandering courier known to frequently take on bounty hunting jobs. He has a wide assortment of companions and followers that accompany him.",
+    "ac": 11,
+    "dt": 1,
+    "sp": 135,
+    "hp": 122,
+    "special": {
+      "STR": 7,
+      "PER": 8,
+      "END": 9,
+      "CHA": 10,
+      "INT": 8,
+      "AGI": 10,
+      "LCK": 10
+    },
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": null,
+    "skills": "Guns +10, Speech +15, Melee Weapons +5",
+    "senses": "passive sense 15",
+    "healing_rate": 18,
+    "loot": [
+      "x1 leather armor (1d4+2 levels of Decay)",
+      "x1 10mm SMG (1d6+2 levels of Decay)",
+      "x4d10 10mm rounds",
+      "x1 combat rifle (1d4+1 levels of Decay)",
+      "x4d8 .45 rounds",
+      "x1 ergonomic street sign (1d4-1 levels of Decay)",
+      "x8d12 caps"
+    ],
+    "ap": 15,
+    "traits": [
+      "Companions. Albert can be accompanied by a variety of different companions. Roll a d6 to determine which companion appears (using existing statblocks): 1 Radroach, 2 Dog, 3 Gecko, 4 Protectron, 5 Raider Veteran (named Janet), 6 Deathclaw",
+      "Look Out Your Window! When Albert reaches 0 HP, instead of dying, he simply disappears, along with whatever companion he brought. He can then reappear if chosen on the Bounty Chart."
+    ],
+    "actions": [
+      "6 AP 10mm SMG. (makes 3 attacks, no damage modifier after first attack) Ranged weapon attack: +10 to hit, range 30/60 ft., up to 2 targets within 10 ft. of each other. Crit chance 18/1d6. Hit: 8 (1d6+5) ballistic damage. Reload every 15 attacks.",
+      "6 AP Combat Rifle. Ranged weapon attack: +10 to hit, range 60/140 ft., one target. Crit chance 18/x2. Hit: 13 (2d8+5) ballistic damage. Reload every 20 attacks.",
+      "6 AP Street Sign. Melee weapon attack: +5 to hit, reach 10 ft., one target. Crit chance 17/x3. Hit: 14 (3d8+2) bludgeoning or slashing damage + Dazed for 1 turn."
+    ]
+  },
+  "EN-05, the Annihilator": {
+    "source": "Bounty Hunters",
+    "name": "EN-05, the Annihilator",
+    "size": "Large",
+    "type": "Robot",
+    "level": 30,
+    "description": "A massive, heavily modified sentry bot that takes bounties for an unknown reason, perhaps just to satisfy its bloodlust. Stories say it was designed as a prototype for the strongest robotic defense system in the country, but the engineers designed a version without limiters.",
+    "ac": 17,
+    "dt": 0,
+    "sp": 160,
+    "hp": 200,
+    "special": {
+      "STR": 15,
+      "PER": 15,
+      "END": 15,
+      "CHA": 1,
+      "INT": 8,
+      "AGI": 10,
+      "LCK": 4
+    },
+    "weaknesses": "Electricity",
+    "immunities": "Radiation, Poison, Psychic, Frightened",
+    "resistances": null,
+    "skills": null,
+    "senses": "passive sense 22, night vision 120 ft.",
+    "healing_rate": 22,
+    "loot": [
+      "x4 fusion cores",
+      "x1 gauss minigun (1d4+5 levels of Decay)",
+      "x6d10 2mm EC rounds",
+      "x1 tesla cannon (1d4+3 levels of Decay)",
+      "x4d10 microfusion cells",
+      "x14 steel",
+      "x4 circuitry",
+      "x4 gears",
+      "x3 robot repair kits 2.0",
+      "x2 emergency robot repair kits"
+    ],
+    "ap": 15,
+    "traits": [
+      "Robotic Body. Targeted attacks to EN-05’s arms deal half damage, however critical hits will destroy the targeted limb. EN-05 does not gain the Shock condition if this happens.",
+      "Wheels. EN-05 can move 10 ft. with 1 AP.",
+      "Power Armored. EN-05 has been modified with special plating based off of Power Armor, and as such has Defense Points. When EN-05 takes damage, it is first dealt to its DP. Once the DP reaches 0, its armor gains 1 level of Decay and the DP resets. Once it reaches 10 levels of Decay, its armor no longer blocks any damage.",
+      "Overheated. At the start of EN-05’s 5th turn, it becomes Incapacitated until the start of its next turn and exposes its Fusion Cores. These Fusion Cores can be targeted with a Targeted Attack, taking +3 AP, and any attack rolls will have a -3. Attacks to the Fusion Cores bypass Defense Points and deal double damage to EN-05’s HP.",
+      "Self-Destruct. When EN-05 is reduced to 0 HP, it becomes immune to all damage and initiates self-destruct. At the start of its next turn, it explodes. All creatures within 30 ft. of EN-05 take 66 (12d10) explosive damage and a 60 ft. area becomes a Level 2 Irradiated Zone."
+    ],
+    "actions": [
+      "5 AP Dual Laser Cannons. (makes 6 attacks, no damage modifier after first attack) Ranged weapon attack: +10 to hit, range 80/120 ft., up to 6 targets within 10 ft. of each other. Crit chance 20/x2 + Burning. Hit: 11 (2d6+5) laser damage. Attacks beyond 30 ft. will target 2 additional creatures or objects within 5 ft. of the initial target with the same attack roll, dealing 3 (1d6) damage.",
+      "6 AP Mortar Barrage. EN-05 selects 6 separate 5 ft. spaces within 100 ft. of it. At the start of EN-05's next turn, each of these spaces explode with a radius of 5 ft., dealing 8d6 explosion damage to any creatures in the area. This attack can only be done once per turn, and can be done a maximum of 5 times.",
+      "4 AP Bash. Unarmed attack: +8 to hit, reach 5 ft., one target. Crit chance 20/1d12 + Knockback 10 ft.. Hit: 18 (2d12+5) bludgeoning damage."
+    ]
+  },
+  "The Roach King": {
+    "source": "Bounty Hunters",
+    "name": "The Roach King",
+    "size": "Medium",
+    "type": "Human",
+    "level": 6,
+    "description": "A strange man who only calls himself “The Roach King”. He’s managed to tame a small colony of radroaches that aid him during battle, and hunts bounties for caps to get more roaches with.",
+    "ac": 10,
+    "dt": 2,
+    "sp": 23,
+    "hp": 26,
+    "special": {
+      "STR": 6,
+      "PER": 4,
+      "END": 7,
+      "CHA": 9,
+      "INT": 3,
+      "AGI": 6,
+      "LCK": 6
+    },
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": null,
+    "skills": "Survival +4, Melee Weapons +3",
+    "senses": "passive sense 11",
+    "healing_rate": 5,
+    "loot": [
+      "x1 multilayered armor (1d6+2 levels of Decay)",
+      "x1 spear (1d6 levels of Decay)",
+      "x1 BB Gun (1d4 levels of Decay)",
+      "x10d10 BBs",
+      "x3 jet",
+      "x2d4 radroach meat",
+      "x1d4 dirty water",
+      "x2d4 caps"
+    ],
+    "ap": 11,
+    "traits": [
+      "Roach Herder. The Roach King is accompanied by 3 Radroaches that are allied to him.",
+      "Cockroach. If all of the Roach King’s radroaches are killed, he will become Frightened and attempt to flee the encounter. Every time he or the players escape an encounter, he gains an additional Radroach ally for the next encounter.",
+      "Gear Up. If the Roach King successfully escapes 3 encounters, he will gain a Minigun to replace his BB Gun and will gain +4 to his Guns skill."
+    ],
+    "actions": [
+      "4 AP Spear. Melee weapon attack: +3 to hit, reach 10 ft., one target. Crit chance 20/x2. Hit: 6 (1d10+1) piercing/slashing damage. If thrown: range 20/60 ft.",
+      "4 AP BB Gun. Ranged weapon attack: +0 to hit, range 10/20 ft., one target. Crit chance 20/x5. Hit: 2 (1+1) ballistic damage. Reload every 100 attacks.",
+      "4 AP Jet. The Roach King takes a hit of Jet, consuming the item. They gain +2 AP at the start of their next turn, they are immune to Fatigue, and they ignore the first 5 levels of Exhaustion. If they have no levels of Exhaustion, they have +2 to all d20 rolls.",
+      "3 AP Command. The Roach King commands one of his Radroaches to perform an action. The Radroach immediately gains 6 AP to perform this action."
+    ]
+  },
+  "Bounty Bot, the Fodder": {
+    "source": "Bounty Hunters",
+    "name": "Bounty Bot, the Fodder",
+    "size": "Medium",
+    "type": "Robot",
+    "subtype": "Protectron",
+    "level": 6,
+    "description": "A modified Police Protectron that hobbles after its targets. They aren’t much of a threat, and are often treated as jokes by most bounty hunters.",
+    "ac": 14,
+    "dt": 5,
+    "sp": 17,
+    "hp": 32,
+    "special": {
+      "STR": 8,
+      "PER": 5,
+      "END": 9,
+      "CHA": 3,
+      "INT": 2,
+      "AGI": 4,
+      "LCK": 2
+    },
+    "weaknesses": "Electricity",
+    "immunities": "Radiation, Poison, Psychic, Frightened",
+    "resistances": "Bludgeoning, Slashing, Piercing",
+    "skills": null,
+    "senses": "passive sense 12",
+    "healing_rate": 8,
+    "loot": [
+      "x8 steel",
+      "x2d8 energy cells",
+      "x1 police baton (1d4 levels of Decay)",
+      "x1 robot repair kit",
+      "x1d8 caps"
+    ],
+    "ap": 9,
+    "traits": [
+      "Robotic Body. Targeted attacks to the Bounty Bot’s arms or legs deal half damage, however critical hits will destroy the targeted limb. The Bounty Bot does not gain the Shock condition if this happens.",
+      "Hobbler. Bounty Bots can only move a maximum of 20 ft. per turn.",
+      "Manufactured. A total of 4 Bounty Bots were created to hunt bounties. (4/4)"
+    ],
+    "actions": [
+      "5 AP Laser. Ranged weapon attack: +2 to hit, range 30 ft., one target. Crit chance 20/x2 + 2d4 fire damage. Hit: 6 (2d6) laser damage.",
+      "5 AP Taser. Unarmed attack: +6 to hit, reach 5 ft, one target. Crit chance 20/Stunned until next turn. Hit: 6 (1d6+3) bludgeoning and 8 (2d8) electricity damage. If this attack damages a target’s HP, the target gains a level of Fatigue.",
+      "4 AP Robot Repair Kit. The Bounty Bot repairs itself or a robot within 5 ft. of it, healing 4 HP."
+    ]
+  },
+  "Mr. Hunter, the Polite Assassin": {
+    "source": "Bounty Hunters",
+    "name": "Mr. Hunter, the Polite Assassin",
+    "size": "Medium",
+    "type": "Robot",
+    "subtype": "Mr. Handy",
+    "level": 6,
+    "description": "This modified Mr. Handy unit that has been spotted profusely apologizing for making a mess after sawing a man in two in the middle of a bar. Nice enough, if you keep your distance from the saw blade.",
+    "ac": 12,
+    "dt": 2,
+    "sp": 26,
+    "hp": 23,
+    "special": {
+      "STR": 5,
+      "PER": 8,
+      "END": 6,
+      "CHA": 8,
+      "INT": 6,
+      "AGI": 7,
+      "LCK": 4
+    },
+    "weaknesses": "Electricity",
+    "immunities": "Radiation, Poison, Psychic",
+    "resistances": "Slashing, Piercing",
+    "skills": "Guns +5, Melee Weapons +6, Speech +8",
+    "senses": "passive sense 15",
+    "healing_rate": 6,
+    "loot": [
+      "x1d8 fuel canisters",
+      "x1d6 steel",
+      "x4d8 10mm rounds",
+      "x2 robot repair kits 2.0",
+      "x1 overclock hardware",
+      "x4d4 caps"
+    ],
+    "ap": 12,
+    "traits": [
+      "Robotic Body. Targeted attacks to Mr. Hunter’s arms and thruster deal half damage, however critical hits will destroy the targeted limb. Mr. Hunter does not gain the Shock condition if this happens.",
+      "Self Destruct. If all three of Mr. Hunter’s arms are destroyed, it will begin a self-destruct sequence. In two turns, Mr. Hunter will self-destruct. The explosion has a radius of 10/20 ft. and deals 8d10 explosive damage.",
+      "Hover. Mr. Hunter does not touch the ground when it moves."
+    ],
+    "actions": [
+      "5 AP 10mm SMG. (makes 3 attacks, no damage modifier after first attack) Ranged weapon attack: +5 to hit, range 30/55 ft., up to three targets within 10 ft of each other. Crit chance 20/x2. Hit: 4 (1d4+2) ballistic damage. Reload every 10 attacks (4 AP).",
+      "4 AP Buzzsaw. Melee weapon attack: +6 to hit, reach 5 ft., one target. Crit chance 20/x3. Hit: 5 (1d10) slashing damage. If this attack damages a target’s HP, the target gains a level of Bleeding.",
+      "4 AP Robot Repair Kit 2.0. Mr. Hunter repairs itself or a robot within 5 ft. of it, healing 6 HP.",
+      "4 AP Overclock Hardware. Mr. Hunter runs an Overclock Hardware program, consuming the item. It gains +2 AP at the start of its next turn, it is immune to Fatigue, and it ignores the first 5 levels of Exhaustion. If it has no levels of Exhaustion, it has +2 to all d20 rolls."
+    ]
+  },
+  "Doc Gallagher, the Doctor": {
+    "source": "Bounty Hunters",
+    "name": "Doc Gallagher, the Doctor",
+    "size": "Medium",
+    "type": "Human",
+    "level": 8,
+    "description": "Though he’s technically a doctor, Gallagher is no kind soul. He takes special glee in creating concoctions to use in his Syringer rifle.",
+    "ac": 11,
+    "dt": 1,
+    "sp": 33,
+    "hp": 29,
+    "special": {
+      "STR": 5,
+      "PER": 7,
+      "END": 6,
+      "CHA": 4,
+      "INT": 8,
+      "AGI": 7,
+      "LCK": 7
+    },
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": null,
+    "skills": "Science +4, Medicine +6, Guns +3, Crafting +4",
+    "senses": "passive sense 14",
+    "healing_rate": 7,
+    "loot": [
+      "x1 hardened (rank 1) cloth armor (1d6 levels of Decay)",
+      "x1 improved rifling & lucky syringer (1d4 levels of Decay)",
+      "x2 tranquilizer darts",
+      "x5 hemorrhage darts",
+      "x3 radscorpion venom darts",
+      "x1 berserk dart",
+      "x2 myopic serum dart",
+      "x1 knife (1d4+3 levels of Decay)",
+      "x3 stimpaks",
+      "x3 mentats",
+      "x1 doctor’s bag",
+      "x1 bag (backpack)",
+      "x3d8 caps"
+    ],
+    "ap": 12,
+    "traits": [
+      "First Aid. Doc Gallagher heals an additional +2 HP when administering first aid or using stimpaks."
+    ],
+    "actions": [
+      "5 AP Syringer. Ranged weapon attack: +3 to hit, range 40/80 ft., one target. Crit chance 18/direct hit to HP. Hit: 1 piercing damage. If the attack is made within 5 ft. of a target, the attack bypasses SP and DT. Reload after every attack (3 AP).",
+      "3 AP Knife. Melee weapon attack: +0 to hit, reach 5 ft., one target. Crit chance: 20/x2. Hit: 3 (1d6) slashing damage.",
+      "4 AP Stimpak. Doc Gallagher uses the Stimpak on himself or another creature within 5 ft. of him. He regains HP equal to his Healing Rate + 2 (9 HP).",
+      "4 AP Mentats. Doc Gallagher consumes 1 Mentats. He gains 1 AP at the start of next turn and has advantage on all Intelligence and Perception ability and skill checks."
+    ]
+  },
+  "The Bull": {
+    "source": "Bounty Hunters",
+    "name": "The Bull",
+    "size": "Medium",
+    "type": "Human",
+    "level": 8,
+    "description": "A chem-addicted hulk of a man who uses a bear trap strapped to his fist as a weapon. No one knows what his actual name is, everyone just calls him “The Bull”.",
+    "ac": 11,
+    "dt": 1,
+    "sp": 33,
+    "hp": 37,
+    "special": {
+      "STR": 9,
+      "PER": 3,
+      "END": 8,
+      "CHA": 1,
+      "INT": 1,
+      "AGI": 7,
+      "LCK": 6
+    },
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": "Poison",
+    "skills": "Unarmed +10, Melee Weapons +8, Intimidation +6",
+    "senses": "passive sense 10",
+    "healing_rate": 9,
+    "loot": [
+      "x1 bear trap fist (1d6+2 levels of Decay)",
+      "x1 leather armor (1d6 levels of Decay)",
+      "x5 buffout",
+      "x4 psycho",
+      "x2d8 caps"
+    ],
+    "ap": 12,
+    "traits": [
+      "Addict. The Bull must consume at least 1 chem from his inventory at the start of every turn, however he uses 2 less AP to do so.",
+      "Heart Condition. If the Bull takes 5 chems in one encounter, he will suffer a heart attack and die at the end of his next turn. However, before the end of this turn, he can spend 20 AP."
+    ],
+    "actions": [
+      "6 AP Bear Trap Fist. Unarmed attack: +10 to hit, range 5 ft., one target. Crit chance 19/x2. Hit: 19 (3d12) piercing damage. If this attack damages a creature’s HP, the creature becomes Grappled and has disadvantage on escape rolls.",
+      "2 AP Psycho. The Bull takes a hit of Psycho, consuming the item. He gains +3 DT and +5 to all damage rolls, however he must always attack the nearest hostile creature on their turn. If he cannot see any hostile creatures on their turn, he must make a DC 15 Endurance ability check or he must attack an ally.",
+      "2 AP Buffout. The Bull takes a hit of Buffout, consuming the item. He gains +8 temporary HP and has advantage on all Strength and Endurance ability and skill checks."
+    ]
+  },
+  "Dawson, the Copper": {
+    "source": "Bounty Hunters",
+    "name": "Dawson, the Copper",
+    "size": "Medium",
+    "type": "Ghoul",
+    "level": 10,
+    "description": "An old ghoul who used to be a cop before the war, and now works as a bounty hunter. He does his best to take bounties in alive, but is not above taking them out if needed.",
+    "ac": 11,
+    "dt": 1,
+    "sp": 25,
+    "hp": 35,
+    "special": {
+      "STR": 8,
+      "PER": 6,
+      "END": 6,
+      "CHA": 6,
+      "INT": 5,
+      "AGI": 4,
+      "LCK": 7
+    },
+    "weaknesses": null,
+    "immunities": "Radiation",
+    "resistances": "Poison",
+    "skills": "Guns +4, Melee Weapons +5, Speech +4",
+    "senses": "passive sense 13",
+    "healing_rate": 8,
+    "loot": [
+      "x1 leather armor (1d8 levels of Decay)",
+      "x1 .357 magnum revolver (1d4 levels of Decay)",
+      "x2d8 .357 rounds",
+      "x1 police baton (1d6 levels of Decay)",
+      "x3 handcuffs",
+      "x3 flash bangs",
+      "x1 stimpak",
+      "x1 bag (backpack)",
+      "x2d10 caps"
+    ],
+    "ap": 9,
+    "traits": [
+      "Preferably Alive. If Dawson is within 5 ft. of an enemy that is Dying, Grappled, Restrained, Paralyzed, or Unconscious, he will use the Handcuff action to put handcuffs on them. The enemy is no longer able to use weapons until the handcuffs are removed, which can be done with a key held by Dawson or with a DC 15 Strength ability check.",
+      "If every enemy of Dawson is handcuffed, Dawson will attempt to transport the targets to the bounty office location."
+    ],
+    "actions": [
+      "5 AP .357 Magnum Revolver. Ranged weapon attack: +4 to hit, range 35/105 ft., one target. Crit chance 19/x3. Hit: 3 (1d8-1) ballistic damage. Reload every 6 attacks.",
+      "4 AP Police Baton. Melee weapon attack: +5 to hit, reach 5 ft., one target. Crit chance 20/1d6 + level of Fatigue. Hit: 6 (1d6+3) bludgeoning damage. If this attack damages a target’s HP, the target gains a level of Fatigue.",
+      "5 AP Flash Bang. Thrown explosive: +0 to roll, range 80 ft., 20 ft.. radius. All creatures in the radius take 1 explosive damage, gain the Deafened and Blinded conditions for 4 - END rounds, and 2 levels of Fatigue.",
+      "6 AP Handcuff. Dawson puts handcuffs on an incapacitated target within 5 ft. of him, Restraining them.",
+      "4 AP Stimpak. Dawson uses the Stimpak on himself or another creature within 5 ft. of him. He regains HP equal to his Healing Rate (4 HP)."
+    ]
+  },
+  "Buck, the Big Boss": {
+    "source": "Bounty Hunters",
+    "name": "Buck, the Big Boss",
+    "size": "Large",
+    "type": "Human",
+    "level": 12,
+    "description": "Buck was a former raider who became a bounty hunter after his old gang was taken out by a hunter. He wears makeshift power armor, which he uses to intimidate and scare others.",
+    "ac": 13,
+    "dt": 0,
+    "sp": 41,
+    "hp": 47,
+    "special": {
+      "STR": 12,
+      "PER": 3,
+      "END": 7,
+      "CHA": 3,
+      "INT": 4,
+      "AGI": 6,
+      "LCK": 4
+    },
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": "Impact",
+    "skills": "Guns +5, Melee Weapons +3, Unarmed +3",
+    "senses": "passive sense 10",
+    "healing_rate": 9,
+    "loot": [
+      "x1 Raider Power Armor (4 levels of Decay)",
+      "x1 fusion core",
+      "x1 pump action shotgun (1d6 levels of Decay)",
+      "x2d8 12 gauge rounds",
+      "x1 power fist (1d6+2 levels of Decay)",
+      "x1d8 energy cells",
+      "x2 buffout",
+      "x1 psycho",
+      "x1 bag (backpack)",
+      "x4d8 caps"
+    ],
+    "ap": 11,
+    "traits": [
+      "Power Armored. Buck has Raider Power Armor, and as such has Defense Points. When Buck takes damage, it is first dealt to his DP. Once the DP reaches 0, his armor gains 1 level of Decay and the DP resets. Once it reaches 10 levels of Decay, his armor no longer blocks any damage.",
+      "Clunky. Buck has disadvantage on any Agility ability or skill checks, excluding attack rolls.",
+      "Soft Interior. If Buck’s Power Armor loses its fusion core or reaches 10 levels of Decay, he will become Frightened and try to flee the encounter - with or without his power armor."
+    ],
+    "actions": [
+      "4 AP Pump Action Shotgun. Ranged weapon attack: +5 to hit, range 10/15 ft., one target. Crit chance 20/2d10. Hit: 11 (2d10+1) ballistic damage. Reload every 5 attacks. Attacks beyond 10 ft. will target 2 additional creatures or objects within 5 ft. of the initial target with the same attack roll, dealing 5 (1d10) damage.",
+      "4 AP Power Fist. Unarmed attack: +3 to hit, reach 5 ft., one target. Crit chance 20/x2 + Knockback 15 ft.. Hit: 19 (4d6+7) bludgeoning damage. Reload every 20 attacks.",
+      "4 AP Psycho. Buck takes a hit of Psycho, consuming the item. He gains +3 DT and +5 to all damage rolls, however he must always attack the nearest hostile creature on their turn. If he cannot see any hostile creatures on their turn, he must make a DC 15 Endurance ability check or he must attack an ally.",
+      "4 AP Buffout. Buck takes a hit of Buffout, consuming the item. He gains +12 Temporary HP and has advantage on all Strength and Endurance ability and skill checks."
+    ]
+  },
+  "Theo Campbell, the Tank": {
+    "source": "Bounty Hunters",
+    "name": "Theo Campbell, the Tank",
+    "size": "Medium",
+    "type": "Human",
+    "level": 14,
+    "description": "A large man wearing a set of steel armor that he made himself. It makes him nigh bulletproof, but very slow. He makes up for it with a large arsenal.",
+    "ac": 13,
+    "dt": 4,
+    "sp": 26,
+    "hp": 61,
+    "special": {
+      "STR": 9,
+      "PER": 3,
+      "END": 8,
+      "CHA": 4,
+      "INT": 7,
+      "AGI": 3,
+      "LCK": 7
+    },
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": "Ballistic, Piercing, Slashing, Impact",
+    "skills": "Guns +8, Melee Weapons +8, Crafting +12, Explosives +8",
+    "senses": "passive sense 10",
+    "healing_rate": 11,
+    "loot": [
+      "x1 reinforced (rank 2) steel armor (1d6 levels of Decay)",
+      "x1 riot shotgun (1d6+2 levels of Decay)",
+      "x2d8 12 gauge shells",
+      "x3 dynamite",
+      "x1 strengthened sledgehammer (1d6 levels of Decay)",
+      "x2 stimpaks",
+      "x3 jet",
+      "x1 bag (backpack)",
+      "x3d8 caps"
+    ],
+    "ap": 8,
+    "traits": [
+      "Slow. Campbell can only move a maximum of 20 ft. per turn."
+    ],
+    "actions": [
+      "6 AP Dynamite. Thrown Explosive: +8 to roll, range 50 ft., radius 5/20 ft. All creatures in the area take 10 (3d6) explosive damage.",
+      "6 AP Sledgehammer. Melee weapon attack: +8 to hit, reach 5 ft., one target. Crit chance 20/3d12 + Dazed. Hit: 10 (1d12+4) bludgeoning damage.",
+      "4 AP Stimpak. Theo Campbell uses the stimpak on himself or another creature within 5 ft. of him. They regain HP equal to their Healing Rate (11 HP).",
+      "4 AP Jet. Theo Campbell takes a hit of Jet, consuming the item. He gains +2 AP at the start of his next turn, he is immune to Fatigue, and he ignores the first 5 levels of Exhaustion. If he has no levels of Exhaustion, he has +2 to all d20 rolls."
+    ]
+  },
+  "Tracker, the Robobrain": {
+    "source": "Bounty Hunters",
+    "name": "Tracker, the Robobrain",
+    "size": "Large",
+    "type": "Robot",
+    "subtype": "Robobrain",
+    "level": 15,
+    "description": "A robobrain that seemingly hates being a bounty hunter, but is regardless very good at what it does. Has been seen apologizing to those it electrocutes to death.",
+    "ac": 13,
+    "dt": 2,
+    "sp": 45,
+    "hp": 40,
+    "special": {
+      "STR": 8,
+      "PER": 8,
+      "END": 7,
+      "CHA": 6,
+      "INT": 8,
+      "AGI": 7,
+      "LCK": 6
+    },
+    "weaknesses": "Electricity, Psychic",
+    "immunities": "Radiation, Poison",
+    "resistances": "Bludgeoning, Slashing, Piercing",
+    "skills": "Energy Weapons +10, Speech +5, Breach +15",
+    "senses": "passive sense 15",
+    "healing_rate": 12,
+    "loot": [
+      "x1 tesla rifle (1d6+2 levels of Decay)",
+      "x2d4 microfusion cells",
+      "x1d8 steel",
+      "x3 robot repair kits 2.0",
+      "x1 military auto-tank AI upload",
+      "x1 servo override",
+      "x5d8 caps"
+    ],
+    "ap": 12,
+    "traits": [
+      "Robotic Body. Targeted attacks to Tracker’s arms deal half damage, however critical hits will destroy the targeted limb. Tracker does not gain the Shock condition if this happens.",
+      "All Terrain Rollers. Tracker is immune to difficult terrain."
+    ],
+    "actions": [
+      "6 AP Tesla Rifle. Ranged weapon attack: +10 to hit, range 30 ft., one target. Crit chance 19/Targets one additional creature within 30 ft.. Hit: 11 (2d8+3) electricity damage.",
+      "5 AP Mesmertron. (recharges over one turn) Ranged weapon attack: +10 to hit, range 15 ft. Crit chance 19/Paralyzed for 1 turn. Hit: 9 (2d6+3) psychic damage, Dazed for 1 turn. If this attack damages a creature’s HP, the creature gains a level of Fatigue.",
+      "4 AP Robot Repair Kit 2.0. Tracker repairs itself or a robot within 5 ft. of it, healing 12 HP.",
+      "4 AP Military Auto-Tank AI Upload. Tracker runs a Military Auto-Tank AI Upload program. They gain +3 DT and +5 to all damage rolls, however they must always attack the nearest hostile creature on their turn. If they cannot see any hostile creatures on their turn, they must make a DC 15 Endurance ability check or they must attack an ally.",
+      "4 AP Servo Override. Tracker runs a Servo Override program. They gain +15 temporary HP and have advantage on all Strength and Endurance ability and skill checks."
+    ]
+  },
+  "Django, the Cowboy": {
+    "source": "Bounty Hunters",
+    "name": "Django, the Cowboy",
+    "size": "Medium",
+    "type": "Human",
+    "level": 15,
+    "description": "A former rancher turned bounty hunter, Django has an unrivaled quickdraw. He’s infamous for challenging his targets to honorable duels, and harshly punishing those who deny him.",
+    "ac": 10,
+    "dt": 2,
+    "sp": 85,
+    "hp": 61,
+    "special": {
+      "STR": 6,
+      "PER": 7,
+      "END": 7,
+      "CHA": 8,
+      "INT": 5,
+      "AGI": 10,
+      "LCK": 8
+    },
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": null,
+    "skills": "Guns +10, Survival +8",
+    "senses": "passive sense 14",
+    "healing_rate": 11,
+    "loot": [
+      "x1 multilayered armor (1d4 levels of Decay)",
+      "x1 hunting revolver (1d4-1 levels of Decay)",
+      "x3d8 .45-70 Gov’t rounds",
+      "x3 cigarettes",
+      "x1 bag (range)",
+      "x4d12 caps"
+    ],
+    "ap": 15,
+    "traits": [
+      "Quickdraw. Django only uses 1 AP to equip his Hunting Revolver and can fire it for 2 less AP.",
+      "Honorable Duelist. Django will confront his targets and demand an honorable duel with each member. If accepted, Django and the target make opposing Agility ability checks, whoever wins goes first before beginning combat. No damage can be dealt during this duel directly by outside parties.",
+      "Punisher. If a target denies Django’s duel, he will gain advantage on any attack rolls taken against that target."
+    ],
+    "actions": [
+      "4 AP Hunting Revolver. Ranged weapon attack: +9 to hit, range 40/125 ft., one target. Crit chance 19/x3. Hit: 20 (3d10+5) ballistic damage. Reload every 5 attacks (1 AP per round, 5 AP total).",
+      "4 AP Cigarette. Django smokes a cigarette. He has advantage on Charisma ability and skill checks, Combat Sequence rolls, and checks to resist becoming Frightened."
+    ]
+  },
+  "Lee van Burton, the Gunslinger": {
+    "source": "Bounty Hunters",
+    "name": "Lee van Burton, the Gunslinger",
+    "size": "Medium",
+    "type": "Human",
+    "level": 16,
+    "description": "Lee van Burton is a man of few words, preferring to let his twin laser pistols do the talking. He’s a professional through and through, and never leaves a job unfinished.",
+    "ac": 12,
+    "dt": 1,
+    "sp": 78,
+    "hp": 70,
+    "special": {
+      "STR": 7,
+      "PER": 9,
+      "END": 8,
+      "CHA": 2,
+      "INT": 7,
+      "AGI": 9,
+      "LCK": 8
+    },
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": null,
+    "skills": "Energy Weapons +10, Unarmed +8, Explosives +6, Sneak +5",
+    "senses": "passive sense 16",
+    "healing_rate": 12,
+    "loot": [
+      "x1 reinforced (rank 1) combat armor (1d6 levels of Decay)",
+      "x2 laser pistols (1d6 levels of Decay)",
+      "x4d10 energy cells",
+      "x2 plasma grenades",
+      "x1 stealth boy",
+      "x4d10 caps"
+    ],
+    "ap": 14,
+    "traits": [
+      "Akimbo. Lee van Burton wields two laser pistols. When he makes an attack with one, he can make an attack with the other for 2 AP.",
+      "Gunslinger. Lee van Burton does not suffer disadvantage when firing ranged weapons while within 5 ft. of a hostile creature."
+    ],
+    "actions": [
+      "4 AP Laser Pistol. Ranged weapon attack: +10 to hit, range 50/100 ft., one target. Crit chance 20/x2 + Burning. Hit: 10 (2d6+3) laser damage.",
+      "5 AP Plasma Grenade. Thrown Explosive: +9 to roll, range 40 ft., 5/15 ft. radius. All creatures in the area take 24 (6d6+3) energy damage.",
+      "4 AP Stealth Boy. Lee van Burton activates a Stealth Boy, becoming Invisible for 1 minute or until he attacks or casts a spell."
+    ]
+  },
+  "The Sandman": {
+    "source": "Bounty Hunters",
+    "name": "The Sandman",
+    "size": "Medium",
+    "type": "Human",
+    "level": 18,
+    "description": "A mysterious figure who specializes in taking out targets quietly. He’s never been seen without his mask, and rumors say he’s a ghost.",
+    "ac": 12,
+    "dt": 2,
+    "sp": 65,
+    "hp": 58,
+    "special": {
+      "STR": 6,
+      "PER": 10,
+      "END": 7,
+      "CHA": 3,
+      "INT": 8,
+      "AGI": 10,
+      "LCK": 6
+    },
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": "Poison",
+    "skills": "Guns +12, Sneak +15, Lockpick +10",
+    "senses": "passive sense 18",
+    "healing_rate": 10,
+    "loot": [
+      "x1 shadowed leather armor (1d4 levels of Decay)",
+      "x1 silenced 10mm pistol (1d4 levels of Decay)",
+      "x1 combat knife (1d4 levels of Decay)",
+      "x3d10 10mm rounds",
+      "x2 stealth boys",
+      "x5d10 caps"
+    ],
+    "ap": 14,
+    "traits": [
+      "Silent Step. The Sandman has advantage on Sneak checks.",
+      "Mister Sandman. If The Sandman attacks a Sleeping or Unconscious target, it is an automatic critical hit."
+    ],
+    "actions": [
+      "4 AP Silenced 10mm Pistol. Ranged weapon attack: +12 to hit, range 40/80 ft., one target. Crit chance 19/x2. Hit: 12 (2d6+5) ballistic damage. If the target is unaware of The Sandman, this attack deals double damage.",
+      "3 AP Combat Knife. Melee weapon attack: +10 to hit, reach 5 ft., one target. Crit chance 19/x2 + Bleeding. Hit: 8 (1d6+5) piercing damage."
+    ]
+  },
+  "Quake, the Rookie": {
+    "source": "Bounty Hunters",
+    "name": "Quake, the Rookie",
+    "size": "Medium",
+    "type": "Human",
+    "level": 2,
+    "description": "A chem-addicted kid with a big ego, Quake desperately wants to be the next big bounty hunter. He just has to learn how to control his ego, and his drug addiction.",
+    "ac": 10,
+    "dt": 0,
+    "sp": 22,
+    "hp": 18,
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": null,
+    "special": {
+      "STR": 6,
+      "PER": 6,
+      "END": 5,
+      "CHA": 7,
+      "INT": 4,
+      "AGI": 7,
+      "LCK": 6
+    },
+    "skills": "Melee Weapons +3, Guns +3, Survival +3",
+    "senses": "passive sense 13",
+    "healing_rate": 4,
+    "loot": [
+      "x1 cloth armor (1d6 levels of Decay)",
+      "x1 pipe pistol (1d4 levels of Decay)",
+      "x2d8 9mm rounds",
+      "x1 knife (1d6+3 levels of Decay)",
+      "x2 jet",
+      "x1 buffout",
+      "x2 dirty water",
+      "x1 bag (backpack)",
+      "x1d10 caps"
+    ],
+    "ap": 12,
+    "traits": [
+      "Fragile Ego. If he is successfully intimidated with an Intimidation skill check, Quake will become Frightened and try to flee the encounter.",
+      "Junkie. If Quake runs out of chems, he will become Frightened and try to flee the encounter.",
+      "Stubborn. If Quake successfully flees an encounter, he will advance 1 level for the next encounter."
+    ],
+    "actions": [
+      "6 AP Pipe Pistol. Ranged weapon attack: +3 to hit, range 36/60 ft., one target. Crit chance 20/1d4. Hit: 4 (1d4+2) ballistic damage. Reload every 12 attacks. If they make 2 attacks in a row, they can make a 3rd attack for no AP cost.",
+      "3 AP Knife. Melee weapon attack: +3 to hit, reach 5 ft., one target. Crit chance: 20/x2. Hit: 4 (1d6+1) slashing.",
+      "4 AP Jet. Quake takes a hit of Jet, consuming the item. He gains +2 AP at the start of his next turn, he is immune to Fatigue, and he ignores the first 3 levels of Exhaustion. If he has no levels of Exhaustion, he has +2 to all d20 rolls.",
+      "4 AP Buffout. Quake takes a hit of Buffout, consuming the item. He gains +2 temporary HP and has advantage on all Strength and Endurance ability and skill checks."
+    ]
+  },
+  "Private Eye, the Spies": {
+    "source": "Bounty Hunters",
+    "name": "Private Eye, the Spies",
+    "size": "Small",
+    "type": "Robot",
+    "subtype": "Eyebot",
+    "level": 3,
+    "description": "Modified eyebots that have been seen spying on bounty targets. Though they're fairly weak and ineffective on their own, they're known to be signs that something much worse is watching.",
+    "ac": 12,
+    "dt": 1,
+    "sp": 18,
+    "hp": 10,
+    "weaknesses": "Electricity",
+    "immunities": "Radiation, Poison, Psychic, Frightened",
+    "resistances": null,
+    "special": {
+      "STR": 3,
+      "PER": 10,
+      "END": 6,
+      "CHA": 5,
+      "INT": 1,
+      "AGI": 8,
+      "LCK": 4
+    },
+    "skills": "Energy Weapons +6, Sneak +10",
+    "senses": "passive sense 17",
+    "healing_rate": 5,
+    "loot": [
+      "x2 steel",
+      "x1 circuitry",
+      "x1 incoming projectile predictor",
+      "x1d8 energy cells",
+      "x1d6 caps"
+    ],
+    "ap": 13,
+    "traits": [
+      "Eyebot Body. Private Eyes have no limbs to be targeted.",
+      "Flying. Private Eyes can fly 5 feet with 1 AP.",
+      "Manufactured. A total of 5 Private Eyes have been created to hunt bounties. (5/5)"
+    ],
+    "actions": [
+      "5 AP Laser. Ranged weapon attack: +6 to hit, range 60/120 ft., one target. Crit chance 20/x2 + 2d4 fire damage. Hit: 7 (1d4+5) laser damage.",
+      "4 AP Incoming Projectile Predictor. The Private Eye runs the Incoming Projectile Predictor overclock program. Its DT increases by 6."
+    ]
+  },
+  "Newman, the Gambler": {
+    "source": "Bounty Hunters",
+    "name": "Newman, the Gambler",
+    "size": "Medium",
+    "type": "Human",
+    "level": 5,
+    "description": "Newman is a well-dressed individual who has reportedly fallen on hard times after losing big on gambling. Now, he's trying to make up his losses by bounty hunting, relying on his luck to carry him.",
+    "ac": 10,
+    "dt": 0,
+    "sp": 17,
+    "hp": 17,
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": null,
+    "special": {
+      "STR": 4,
+      "PER": 7,
+      "END": 4,
+      "CHA": 8,
+      "INT": 4,
+      "AGI": 4,
+      "LCK": 10
+    },
+    "skills": "Guns +2",
+    "senses": "passive sense 14",
+    "healing_rate": 4,
+    "loot": [
+      "x1 strengthened (rank 1) cloth armor",
+      "x1 lucky 10mm pistol (1d8 levels of Decay)",
+      "x2d8 10mm rounds",
+      "x1 spiked knuckles (1d6 levels of Decay)",
+      "x1 day tripper",
+      "x3d4 caps"
+    ],
+    "ap": 9,
+    "traits": [
+      "Lady Luck. Newman has 2 Karma Caps he can choose to use. He can flip these caps to gain advantage or reroll a roll.",
+      "Superstition. If Newman ever rolls a critical fail or gets critically hit, he will become Frightened and attempt to flee the encounter."
+    ],
+    "actions": [
+      "5 AP 10mm Pistol. Ranged weapon attack: +2 to hit, range 55/110 ft., one target. Crit chance 16/1d4. Hit: 3 (2d4-1) ballistic damage. Reload every 12 attacks.",
+      "3 AP Spiked Knuckles. Unarmed attack: +0 to hit, reach 5 ft., one target. Crit chance 17/Bleeding. Hit: 3 (1d6) piercing damage.",
+      "4 AP Day Tripper. Newman takes Day Tripper, consuming the item. He gains advantage on Luck and Charisma ability and skill checks. Additionally, one of his Karma Caps is flipped back over."
+    ]
+  },
+  "Assaultron": {
+    "source": "Statblocks (Creatures)",
+    "name": "Assaultron",
+    "size": "Medium",
+    "type": "Robot",
+    "level": 15,
+    "description": null,
+    "ac": 12,
+    "dt": 4,
+    "sp": 55,
+    "hp": 70,
+    "weaknesses": "Electricity",
+    "immunities": "Radiation, Poison, Psychic, Frightened",
+    "resistances": "Bludgeoning, Slashing, Piercing",
+    "special": {
+      "STR": 8,
+      "PER": 12,
+      "END": 8,
+      "CHA": 4,
+      "INT": 4,
+      "AGI": 6,
+      "LCK": 2
+    },
+    "skills": null,
+    "senses": "passive sense 19, blindsight 30 ft.",
+    "healing_rate": 12,
+    "loot": [
+      "x1d6 energy cells",
+      "x1d8 aluminum",
+      "x1 military grade circuit board",
+      "x1 scrap assaultron head",
+      "x1 robot repair kit"
+    ],
+    "ap": 11,
+    "traits": [
+      "Robotic Body. Targeted attacks to the Assaultron's arms or legs deal half damage, however critical hits will destroy the targeted limb. The Assaultron does not gain the Shock condition if this happens.",
+      "Self Destruct. If both of the Assaultron's arms are destroyed, it will begin a self-destruct sequence. In two turns, the Assaultron will self-destruct. The explosion has a radius of 10/20 ft. and deals 8d10 explosive damage.",
+      "Eye Laser. If an Assaultron gains the Blinded condition, it is unable to use its Eye Laser. If an Assaultron is hit by a Targeted Attack to its eye while charging its laser, its charge will be canceled."
+    ],
+    "actions": [
+      "3 AP Claw. Unarmed attack: +4 to hit, reach 5 ft., one target. Crit chance 20/1d8. Hit: 7 (1d8+3) bludgeoning damage.",
+      "6 AP Charge Laser Beam. The Assaultron charges its eye laser attack to use on its next turn.",
+      "6 AP Eye Laser. The Assaultron blasts its eye laser across a wide area, only if the Charge Laser Beam action was taken on a previous turn. All creatures in a 30 ft. line from the Assaultron take 50 (10d10) laser damage.",
+      "4 AP Robot Repair Kit. The Assaultron uses a Robot Repair Kit to repair itself or a robot within 5 ft. of it. They regain HP equal to half their Repair Rate (6 HP)."
+    ]
+  },
+  "Assaultron Invader": {
+    "source": "Statblocks (Creatures)",
+    "name": "Assaultron Invader",
+    "size": "Medium",
+    "type": "Robot",
+    "level": 20,
+    "description": null,
+    "ac": 13,
+    "dt": 5,
+    "sp": 65,
+    "hp": 85,
+    "weaknesses": "Electricity",
+    "immunities": "Radiation, Poison, Psychic, Frightened",
+    "resistances": "Bludgeoning, Slashing, Piercing",
+    "special": {
+      "STR": 9,
+      "PER": 12,
+      "END": 8,
+      "CHA": 4,
+      "INT": 4,
+      "AGI": 6,
+      "LCK": 2
+    },
+    "skills": null,
+    "senses": "passive sense 19, blindsight 30 ft.",
+    "healing_rate": 15,
+    "loot": [
+      "x2d8 energy cells",
+      "x1d10 aluminum",
+      "x1 military grade circuit board",
+      "x1 scrap assaultron head",
+      "x1 robot repair kit"
+    ],
+    "ap": 11,
+    "traits": [
+      "Robotic Body. Targeted attacks to the Assaultron's arms or legs deal half damage, however critical hits will destroy the targeted limb. The Assaultron does not gain the Shock condition if this happens.",
+      "Self Destruct. If both of the Assaultron's arms are destroyed, it will begin a self-destruct sequence. In two turns, the Assaultron will self-destruct. The explosion has a radius of 10/20 ft. and deals 8d10 explosive damage.",
+      "Eye Laser. If an Assaultron gains the Blinded condition, it is unable to use its Eye Laser. If an Assaultron is hit by a Targeted Attack to its eye while charging its laser, its charge will be canceled."
+    ],
+    "actions": [
+      "3 AP Shock Claw. Unarmed attack: +6 to hit, reach 5 ft., one target. Crit chance 20/1d8 + Stunned for 1 turn. Hit: 11 (2d8+3) bludgeoning damage and 10 (2d10) electricity damage. If this attack damages a creature's HP, the creature gains a level of Fatigue.",
+      "6 AP Charge Laser Beam. The Assaultron charges its eye laser attack to use on its next turn.",
+      "6 AP Eye Laser. The Assaultron blasts its eye laser across a wide area, only if the Charge Laser Beam action was taken on a previous turn. All creatures in a 30 ft. line from the Assaultron take 55 (10d10) laser damage.",
+      "4 AP Robot Repair Kit. The Assaultron uses a Robot Repair Kit to repair itself or a robot within 5 ft. of it. They regain HP equal to half their Repair Rate (7 HP)."
+    ]
+  },
+  "Assaultron Dominator": {
+    "source": "Statblocks (Creatures)",
+    "name": "Assaultron Dominator",
+    "size": "Medium",
+    "type": "Robot",
+    "level": 30,
+    "description": null,
+    "ac": 14,
+    "dt": 6,
+    "sp": 95,
+    "hp": 135,
+    "weaknesses": "Electricity",
+    "immunities": "Radiation, Poison, Psychic, Frightened",
+    "resistances": "Bludgeoning, Slashing, Piercing",
+    "special": {
+      "STR": 10,
+      "PER": 13,
+      "END": 8,
+      "CHA": 4,
+      "INT": 4,
+      "AGI": 6,
+      "LCK": 2
+    },
+    "skills": null,
+    "senses": "passive sense 20, blindsight 30 ft.",
+    "healing_rate": 19,
+    "loot": [
+      "x1 assaultron blade (1d8 levels of Decay)",
+      "x2d6 energy cells",
+      "x1d10 aluminum",
+      "x1 military grade circuit board",
+      "x1 scrap assaultron head",
+      "x1 robot repair kit 2.0"
+    ],
+    "ap": 11,
+    "traits": [
+      "Robotic Body. Targeted attacks to the Assaultron's arms or legs deal half damage, however critical hits will destroy the targeted limb. The Assaultron does not gain the Shock condition if this happens.",
+      "Self Destruct. If both of the Assaultron's arms are destroyed, it will begin a self-destruct sequence. In two turns, the Assaultron will self-destruct. The explosion has a radius of 10/20 ft. and deals 8d10 explosive damage.",
+      "Eye Laser. If an Assaultron gains the Blinded condition, it is unable to use its Eye Laser. If an Assaultron is hit by a Targeted Attack to its eye while charging its laser, its charge will be canceled."
+    ],
+    "actions": [
+      "3 AP Arm Blade. Unarmed attack: +8 to hit, reach 5 ft., one target. Crit chance 20/x3 + 2 levels of Bleeding. Hit: 20 (3d10+5) slashing damage.",
+      "6 AP Charge Laser Beam. The Assaultron charges its eye laser attack to use on its next turn.",
+      "6 AP Eye Laser. The Assaultron blasts its eye laser across a wide area, only if the Charge Laser Beam action was taken on a previous turn. All creatures in a 30 ft. line from the Assaultron take 50 (10d10) laser damage.",
+      "3 AP Cloaking. The Assaultron becomes invisible for 3 rounds. This ability must be recharged for 1 turn after the cloaking effect ends.",
+      "4 AP Robot Repair Kit 2.0. The Assaultron uses a Robot Repair Kit 2.0 to repair itself or a robot within 5 ft. of it. They regain HP equal to their Repair Rate (19 HP)."
+    ]
+  },
+  "Raider Scum": {
+    "source": "Statblocks (Humans)",
+    "name": "Raider Scum",
+    "size": "Medium",
+    "type": "Human",
+    "biomes": ["Wasteland", "Urban"],
+    "sites": ["Ruin", "Camp"],
+    "factions": ["Raider"],
     "level": 1,
-    "type": "Normal",
-    "stats": { "str": 5, "per": 5, "end": 5, "cha": 3, "int": 4, "agi": 6, "luc": 3 },
-    "hp": 8,
-    "defense": 1,
-    "skills": ["Small Guns 2", "Survival 1"],
-    "attacks": [
-      { "name": "Pipe Pistol", "damage": "3 $CD$", "effect": "Range C" }
+    "description": "The lowest of any raider gang, Raider Scum are typically new recruits eager to prove their worth. Ill equipped and unprepared, they aren't much of a threat on their own.",
+    "ac": 11,
+    "dt": 1,
+    "sp": 10,
+    "hp": 11,
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": null,
+    "special": {
+      "STR": 7,
+      "PER": 6,
+      "END": 6,
+      "CHA": 2,
+      "INT": 3,
+      "AGI": 5,
+      "LCK": 5
+    },
+    "skills": "Guns +2, Intimidation +2, Melee Weapons +2",
+    "senses": "passive sense 13",
+    "healing_rate": 3,
+    "loot": [
+      "x1 leather armor (1d6+2 levels of Decay)",
+      "x1 pipe pistol (1d6+2 levels of Decay)",
+      "x2d8 .32 rounds",
+      "x1 tire iron (1d8-1 levels of Decay)",
+      "x1d6 caps"
+    ],
+    "ap": 10,
+    "traits": [],
+    "actions": [
+      "5 AP Pipe Pistol. Ranged weapon attack: +2 to hit, range 35/60 ft., one target. Crit chance 20/1d4. Hit: 2 (1d4) ballistic damage. Reload every 12 attacks. If they make 2 attacks in a row, they can make a 3rd attack for no AP cost.",
+      "3 AP Tire Iron. Melee weapon attack: +2 to hit, reach 5 ft., one target. Crit chance: 20/1d4 + prone. Hit: 5 (1d6+2) bludgeoning."
+    ]
+  },
+  "Raider Psycho": {
+    "source": "Statblocks (Humans)",
+    "name": "Raider Psycho",
+    "size": "Medium",
+    "type": "Human",
+    "biomes": ["Wasteland", "Urban"],
+    "sites": ["Ruin", "Camp"],
+    "factions": ["Raider"],
+    "level": 2,
+    "description": "Raider Psychos make up for their lack of experience and skill with drugs and psychotic recklessness. They often charge headfirst into combat in a drug fueled rage, wielding nothing but a machete.",
+    "ac": 10,
+    "dt": 2,
+    "sp": 13,
+    "hp": 12,
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": null,
+    "special": {
+      "STR": 9,
+      "PER": 4,
+      "END": 7,
+      "CHA": 1,
+      "INT": 1,
+      "AGI": 8,
+      "LCK": 9
+    },
+    "skills": "Intimidation +4, Melee Weapons +6, Explosives +2",
+    "senses": "passive sense 11",
+    "healing_rate": 4,
+    "loot": [
+      "x1 multilayered armor (1d6-1 levels of Decay)",
+      "x1 machete (1d6 levels of Decay)",
+      "x2 psycho",
+      "x1 jet",
+      "x1 frag grenade",
+      "x1d6 caps"
+    ],
+    "ap": 13,
+    "traits": [
+      "Chem Enhanced. When under the effects of a chem, Raider Psychos can move 10 ft. for 1 AP."
+    ],
+    "actions": [
+      "4 AP Machete. Melee weapon attack: +6 to hit, reach 5 ft., one target. Crit chance 18/x3 + 2 levels of Bleeding. Hit: 8 (2d4+4) slashing damage.",
+      "5 AP Frag Grenade. Thrown Explosive: +2 to roll, range 90 ft., 5/20 ft. radius. All creatures within 5 ft. take 12 (4d6) explosive damage and gain 2 random leg conditions. All creatures within 10 ft. gain the Deafened condition for 4 - END modifier rounds. All creatures within 20 ft. take half damage.",
+      "4 AP Psycho. The Raider Psycho takes a hit of Psycho, consuming the item. They gain +3 DT and +5 to all damage rolls, however they must always attack the nearest hostile creature on their turn. If they cannot see any hostile creatures on their turn, they must make a DC 15 Endurance ability check or they must attack an ally.",
+      "4 AP Jet. The Raider Psycho takes a hit of Jet, consuming the item. They gain +2 AP at the start of their next turn, they are immune to Fatigue, and they ignore the first 5 levels of Exhaustion. If they have no levels of Exhaustion, they have +2 to all d20 rolls."
+    ]
+  },
+  "Raider Scavver": {
+    "source": "Statblocks (Humans)",
+    "name": "Raider Scavver",
+    "size": "Medium",
+    "type": "Human",
+    "level": 3,
+    "description": "Raider Scavvers make do with what they can find, equipping themselves with scrap metal armor and leftover weaponry that the more experienced raiders didn't want.",
+    "ac": 12,
+    "dt": 0,
+    "sp": 17,
+    "hp": 19,
+    "weaknesses": null,
+    "immunities": null,
+    "resistances": null,
+    "special": {
+      "STR": 7,
+      "PER": 6,
+      "END": 7,
+      "CHA": 3,
+      "INT": 3,
+      "AGI": 6,
+      "LCK": 5
+    },
+    "skills": "Guns +4, Crafting +5, Explosives +2, Melee Weapons +2",
+    "senses": "passive sense 13",
+    "healing_rate": 5,
+    "loot": [
+      "x1 metal armor (1d8-1 levels of decay)",
+      "x1 varmint rifle (1d4+2 levels of decay)",
+      "x2d8 .22LR rounds",
+      "x1 tire iron (1d4 levels of Decay)",
+      "x1 molotov cocktail",
+      "x1 jet",
+      "x1 lockpick",
+      "x1d8 caps"
+    ],
+    "ap": 11,
+    "traits": [],
+    "actions": [
+      "6 AP Varmint Rifle. Ranged weapon attack: +4 to hit, range 45/105 ft., one target. Crit chance 20/2d4. Hit: 5 (2d4+1) ballistic damage. Reload every 5 attacks.",
+      "3 AP Tire Iron. Melee weapon attack: +2 to hit, reach 5 ft., one target. Crit chance: 20/1d4 + prone. Hit: 6 (1d6+2) bludgeoning.",
+      "6 AP Molotov Cocktail. Thrown Explosive: +2 to roll, range 40 ft., 5 ft. radius. All creatures within 5 ft. take 15 (3d10) fire damage and gain the Burning condition. Additionally, the targeted area is set on fire.",
+      "4 AP Jet. The Raider Scavver takes a hit of Jet, consuming the item. They gain +2 AP at the start of their next turn, they are immune to Fatigue, and they ignore the first 5 levels of Exhaustion. If they have no levels of Exhaustion, they have +2 to all d20 rolls."
     ]
   }
 }

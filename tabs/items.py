@@ -1,12 +1,12 @@
 import streamlit as st
 from utils.data_manager import load_data, save_data
-from constants import EQUIPMENT_FILE, PERKS_FILE
+from constants import ITEM_FILE, PERKS_FILE
 
 def render() -> None:
     st.subheader("🎒 Item Database (Equipment & Perks)")
 
     db_type = st.radio("Select Category:", ["Equipment", "Perks"], horizontal=True, key="db_item_type")
-    target_file = EQUIPMENT_FILE if db_type == "Equipment" else PERKS_FILE
+    target_file = ITEM_FILE if db_type == "Equipment" else PERKS_FILE
     
     data_list = load_data(target_file)
     if not isinstance(data_list, list):

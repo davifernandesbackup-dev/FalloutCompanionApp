@@ -1,6 +1,7 @@
 import streamlit as st
-from tabs import utilities, encounters, bestiary, charactersheet, database_editor
+from tabs import utilities, encounters, bestiary, charactersheet, database_editor, dm_screen
 from utils.data_manager import load_data
+from utils.statblock import render_statblock
 from constants import BESTIARY_FILE
 
 # --- PAGE CONFIGURATION ---
@@ -9,7 +10,7 @@ st.set_page_config(page_title="Wasteland Assistant", page_icon="☢️", layout=
 # --- THEME CONFIGURATION ---
 THEMES = {
     "Default (Green)": {"primary": "#00ff00", "secondary": "#00b300"},
-    "Amber (New Vegas)": {"primary": "#FFB642", "secondary": "#B3802E"},
+    "Amber (New Vegas)": {"primary": "#FFB642", "secondary": "#C58D32"},
     "Classic (Fallout 3)": {"primary": "#1AFF80", "secondary": "#12B359"},
     "Blue (Cyan)": {"primary": "#2ECFFF", "secondary": "#2090B2"},
     "White (Mint)": {"primary": "#C0FFFF", "secondary": "#86B3B3"},
@@ -95,7 +96,7 @@ if "popout" in st.query_params:
         if target_id:
             data = load_data(BESTIARY_FILE)
             if target_id in data:
-                bestiary.render_statblock(target_id, data[target_id])
+                render_statblock(target_id, data[target_id])
             else:
                 st.error(f"Creature '{target_id}' not found.")
         st.stop()
@@ -107,7 +108,7 @@ def navigate_to(page):
 with st.sidebar:
     st.title("Pip-Boy 3000")
     st.divider()
-    app_mode = st.radio("Select Module", ["🏠 Home", "☢️ Scanner", "📖 Bestiary", "🛠️ Utilities", "📝 Character Sheet", "🗃️ Database Editor"], key="navigation")
+    app_mode = st.radio("Select Module", ["🏠 Home", "☢️ Scanner", "📖 Bestiary", "🛠️ Utilities", "📝 Character Sheet", "🗃️ Database Editor", "🖥️ DM Screen (WIP)"], key="navigation")
     st.divider()
     st.selectbox("Interface Color", list(THEMES.keys()), key="app_theme")
     st.divider()
@@ -119,15 +120,17 @@ if app_mode != "🏠 Home":
         st.button("⬅️ Back to Title", key="global_back_home", on_click=navigate_to, args=("🏠 Home",))
     with c_title:
         if app_mode == "☢️ Scanner":
-            st.subheader("⚔️ Encounter Database (Threats & Loot)")
+            st.subheader("☢️ Scanner")
         elif app_mode == "📖 Bestiary":
-            st.subheader("📖 Wasteland Bestiary")
+            st.subheader("📖 Bestiary")
         elif app_mode == "🛠️ Utilities":
             st.subheader("🛠️ Utilities")
         elif app_mode == "📝 Character Sheet":
             st.subheader("📝 Character Sheet")
         elif app_mode == "🗃️ Database Editor":
-            st.subheader("🛠️ General Database Editor")
+            st.subheader("🗃️ Database Editor")
+        elif app_mode == "🖥️ DM Screen (WIP)":
+            st.subheader("🖥️ DM Screen (WIP)")
 
 if app_mode == "🏠 Home":
     st.title("📟 Wasteland Assistant")
@@ -152,6 +155,9 @@ if app_mode == "🏠 Home":
         
         st.button("🗃️ Database Editor", use_container_width=True, on_click=navigate_to, args=("🗃️ Database Editor",))
         st.caption("Edit game data content.")
+
+        st.button("🖥️ DM Screen (WIP)", use_container_width=True, on_click=navigate_to, args=("🖥️ DM Screen (WIP)",))
+        st.caption("Customizable dashboard.")
     
     st.divider()
     st.subheader("System Settings")
@@ -165,6 +171,10 @@ if app_mode == "🏠 Home":
         current_index = 0
         
     st.selectbox("Interface Color", list(THEMES.keys()), index=current_index, key="home_theme_select", on_change=update_theme_home)
+    
+    if st.button("🔄 Clear Cache & Reload Data", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
 
 elif app_mode == "☢️ Scanner":
     encounters.render()
@@ -176,3 +186,5 @@ elif app_mode == "📝 Character Sheet":
     charactersheet.render_character_sheet()
 elif app_mode == "🗃️ Database Editor":
     database_editor.render()
+elif app_mode == "🖥️ DM Screen (WIP)":
+    dm_screen.render()
