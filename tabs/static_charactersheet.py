@@ -112,25 +112,47 @@ def render_character_sheet() -> None:
 
         # --- STATBLOCK VIEW ---
         if st.session_state.char_sheet_view == "Statblock":
-            col_back, col_edit, col_space = st.columns([0.8, 1.2, 3])
-            if col_back.button("⬅️ Back"):
-                st.session_state.char_sheet_mode = "SELECT"
-                st.rerun()
-
-            if col_edit.button("✏️ Edit Character"):
-                sync_char_widgets()
-                st.session_state.char_sheet_view = "Edit"
-                st.rerun()
-
-            def auto_save():
+            @st.fragment(run_every=5)
+            def render_live_statblock():
+                # Poll for updates from disk (syncs DM changes to Player view)
                 if st.session_state.active_char_idx is not None:
-                    # Load fresh DB to avoid overwrites
-                    current_db = load_data(CHARACTERS_FILE)
-                    if current_db and len(current_db) > st.session_state.active_char_idx:
-                        current_db[st.session_state.active_char_idx] = st.session_state.char_sheet
-                        save_data(CHARACTERS_FILE, current_db)
-            
-            render_character_statblock(st.session_state.char_sheet, save_callback=auto_save, char_index=st.session_state.active_char_idx, char_id=st.session_state.char_sheet.get("id"))
+                    try:
+                        latest_data = load_data(CHARACTERS_FILE)
+                        if latest_data and len(latest_data) > st.session_state.active_char_idx:
+                            st.session_state.char_sheet = latest_data[st.session_state.active_char_idx]
+                            
+                            # Sync specific widget keys to ensure UI updates immediately
+                            c = st.session_state.char_sheet
+                            uid = c.get("name", "char")
+                            keys = [f"sb_fatigue_{uid}", f"sb_exhaustion_{uid}", f"sb_hunger_{uid}", f"sb_dehydration_{uid}", f"sb_notes_{uid}"]
+                            props = ["fatigue", "exhaustion", "hunger", "dehydration", "notes"]
+                            for k, p in zip(keys, props):
+                                if k in st.session_state:
+                                    st.session_state[k] = c.get(p, 0 if p != "notes" else "")
+                    except Exception:
+                        pass
+
+                col_back, col_edit, col_space = st.columns([0.8, 1.2, 3])
+                if col_back.button("⬅️ Back"):
+                    st.session_state.char_sheet_mode = "SELECT"
+                    st.rerun()
+
+                if col_edit.button("✏️ Edit Character"):
+                    sync_char_widgets()
+                    st.session_state.char_sheet_view = "Edit"
+                    st.rerun()
+
+                def auto_save():
+                    if st.session_state.active_char_idx is not None:
+                        # Load fresh DB to avoid overwrites
+                        current_db = load_data(CHARACTERS_FILE)
+                        if current_db and len(current_db) > st.session_state.active_char_idx:
+                            current_db[st.session_state.active_char_idx] = st.session_state.char_sheet
+                            save_data(CHARACTERS_FILE, current_db)
+                
+                render_character_statblock(st.session_state.char_sheet, save_callback=auto_save)
+
+            render_live_statblock()
             return
 
         # --- EDIT VIEW TOOLBAR ---

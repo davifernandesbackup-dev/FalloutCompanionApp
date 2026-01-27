@@ -704,5 +704,107 @@
         "rangeFlat": 50
       }
     }
+  },
+  {
+    "id": "wpn_bow",
+    "name": "Bow",
+    "category": "weapon",
+    "cost": 120,
+    "load": 5,
+    "strReq": 4,
+    "props": {
+      "weaponType": "archery",
+      "hands": 2,
+      "apCost": 3,
+      "damage": "1d10",
+      "damageType": "piercing",
+      "range": "x5/x8",
+      "critical": "20, x3",
+      "ammoType": "ammo_arrow",
+      "magazineSize": 1,
+      "special": ["Silent", "Charge", "Drawstring"]
+    }
+  },
+  {
+    "id": "wpn_compound_bow",
+    "name": "Compound Bow",
+    "category": "weapon",
+    "cost": 350,
+    "load": 7,
+    "strReq": 4,
+    "props": {
+      "weaponType": "archery",
+      "hands": 2,
+      "apCost": 4,
+      "damage": "2d8",
+      "damageType": "piercing",
+      "range": "x6/x10",
+      "critical": "20, x3",
+      "ammoType": "ammo_arrow",
+      "magazineSize": 1,
+      "special": ["Silent", "Charge", "Durable", "Drawstring"]
+    }
+  },
+  {
+    "id": "wpn_crossbow",
+    "name": "Crossbow",
+    "category": "weapon",
+    "cost": 500,
+    "load": 10,
+    "strReq": 2,
+    "props": {
+      "weaponType": "archery",
+      "hands": 2,
+      "apCost": 5,
+      "damage": "2d12",
+      "damageType": "piercing",
+      "range": "x8/x10",
+      "critical": "20, x2",
+      "ammoType": "ammo_bolt",
+      "magazineSize": 1,
+      "special": ["Silent", "Durable", "Heavy Reload"]
+    }
+  },
+  {
+    "id": "wpn_tactical_crossbow",
+    "name": "Tactical Crossbow",
+    "category": "weapon",
+    "cost": 950,
+    "load": 15,
+    "strReq": 3,
+    "props": {
+      "weaponType": "archery",
+      "hands": 2,
+      "apCost": 5,
+      "damage": "2d10",
+      "damageType": "piercing",
+      "range": "x8/x10",
+      "critical": "20, x2",
+      "ammoType": "ammo_bolt",
+      "magazineSize": 4,
+      "special": ["Silent", "Durable", "Heavy Reload", "Semi-Automatic"]
+    }
+  },
+  {
+    "id": "ammo_arrow",
+    "name": "Arrow",
+    "category": "ammo",
+    "cost": 2,
+    "load": 0.1,
+    "props": {
+      "packSize": 1,
+      "loadRule": "10 rounds = 1 load"
+    }
+  },
+  {
+    "id": "ammo_bolt",
+    "name": "Bolt",
+    "category": "ammo",
+    "cost": 8,
+    "load": 0.1,
+    "props": {
+      "packSize": 1,
+      "loadRule": "10 rounds = 1 load"
+    }
   }
 ]

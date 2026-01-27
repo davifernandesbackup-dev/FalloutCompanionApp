@@ -10,7 +10,7 @@
         "CHA": 10,
         "INT": 2,
         "AGI": 3,
-        "LUC": 5
+        "LCK": 5
     },
     "skills": {
         "Barter": 0,

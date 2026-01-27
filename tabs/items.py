@@ -1,4 +1,5 @@
 import streamlit as st
+import uuid
 from utils.data_manager import load_data, save_data
 from constants import ITEM_FILE, PERKS_FILE
 
@@ -27,7 +28,7 @@ def render() -> None:
                     if any(x['name'] == new_name for x in data_list):
                         st.error("Item with this name already exists.")
                     else:
-                        data_list.append({"name": new_name, "description": new_desc})
+                        data_list.append({"id": str(uuid.uuid4()), "name": new_name, "description": new_desc})
                         save_data(target_file, data_list)
                         st.success(f"Created {new_name}")
                         st.rerun()
@@ -64,6 +65,8 @@ def render() -> None:
                     # Better approach: Update the object in place
                     item["name"] = edit_name
                     item["description"] = edit_desc
+                    if "id" not in item:
+                        item["id"] = str(uuid.uuid4())
                     
                     # We need to save the full 'data_list' which contains this 'item' object
                     save_data(target_file, data_list)

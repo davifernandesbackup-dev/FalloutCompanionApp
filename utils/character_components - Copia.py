@@ -1,5 +1,4 @@
 import streamlit as st
-import os
 import streamlit.components.v1 as components
 import re
 import uuid
@@ -8,7 +7,7 @@ from utils.data_manager import load_data, save_data
 from utils.character_logic import get_default_character, calculate_stats, SKILL_MAP
 from utils.item_components import render_item_form, render_modifier_builder, parse_modifiers, join_modifiers, get_item_data_from_form
 from utils.dice import roll_dice
-from constants import ITEM_FILE, PERKS_FILE, RECIPES_FILE, CHARACTERS_FILE
+from constants import ITEM_FILE, PERKS_FILE, RECIPES_FILE
 
 def render_css(compact=True):
     primary = st.session_state.get("theme_primary", "#00ff00")
@@ -423,96 +422,43 @@ def render_bars(char, effective_health_max, effective_stamina_max):
         col_stamina_max.text_input("Max SP", value=str(effective_stamina_max), disabled=True, label_visibility="collapsed")
         char["stamina_current"] = col_stamina_current.number_input("Curr SP", min_value=0, max_value=effective_stamina_max, step=1, key="c_stamina_curr", label_visibility="collapsed")
 
-def _update_and_save_char(original_char, target_char, key, value, char_index, save_callback):
-    """Helper to update character data and save to disk immediately."""
-    target_char[key] = value
-    # Update the original reference passed to the dialog to keep UI in sync if static
-    original_char[key] = value
-    
-    if char_index is not None:
-        # Save directly to disk to ensure persistence of the fresh object
-        all_chars = load_data(CHARACTERS_FILE)
-        if all_chars and len(all_chars) > char_index:
-            all_chars[char_index] = target_char
-            save_data(CHARACTERS_FILE, all_chars)
-    
-    # Trigger callback (updates session state mirrors if needed)
-    if save_callback:
-        save_callback()
-
-@st.fragment(run_every=2)
-def _render_hp_manager_fragment(char, max_hp, save_callback, char_index):
-    target_char = char
-    target_max = max_hp
-    
-    # If linked to a DB index, reload fresh data to detect external changes
-    if char_index is not None:
-        try:
-            fresh_data = load_data(CHARACTERS_FILE)
-            if fresh_data and len(fresh_data) > char_index:
-                target_char = fresh_data[char_index]
-                # Recalculate Max HP based on fresh stats
-                eff_hp, _, _, _, _ = calculate_stats(target_char)
-                target_max = eff_hp
-        except Exception:
-            pass
-
+@st.dialog("Manage Health")
+def hp_manager_dialog(char, max_hp, save_callback=None):
     st.markdown("Manage Hit Points.")
-    current = target_char.get("hp_current", 0)
-    st.metric("Current HP", f"{current} / {target_max}")
+    current = char.get("hp_current", 0)
+    st.metric("Current HP", f"{current} / {max_hp}")
     
     amount = st.number_input("Amount", min_value=1, value=1, step=1, key="hp_dlg_amount")
     
     c_heal, c_dmg = st.columns(2)
     if c_heal.button("➕ Heal", use_container_width=True, key="hp_dlg_heal"):
-        new_val = min(target_max, current + amount)
-        _update_and_save_char(char, target_char, "hp_current", new_val, char_index, save_callback)
+        char["hp_current"] = min(max_hp, current + amount)
+        if save_callback: save_callback()
         st.rerun()
         
     if c_dmg.button("➖ Damage", use_container_width=True, key="hp_dlg_dmg"):
-        new_val = max(0, current - amount)
-        _update_and_save_char(char, target_char, "hp_current", new_val, char_index, save_callback)
+        char["hp_current"] = max(0, current - amount)
+        if save_callback: save_callback()
         st.rerun()
 
-@st.dialog("Manage Health")
-def hp_manager_dialog(char, max_hp, save_callback=None, char_index=None):
-    _render_hp_manager_fragment(char, max_hp, save_callback, char_index)
-
-@st.fragment(run_every=2)
-def _render_sp_manager_fragment(char, max_sp, save_callback, char_index):
-    target_char = char
-    target_max = max_sp
-    
-    if char_index is not None:
-        try:
-            fresh_data = load_data(CHARACTERS_FILE)
-            if fresh_data and len(fresh_data) > char_index:
-                target_char = fresh_data[char_index]
-                _, eff_sp, _, _, _ = calculate_stats(target_char)
-                target_max = eff_sp
-        except Exception:
-            pass
-
+@st.dialog("Manage Stamina")
+def stamina_manager_dialog(char, max_sp, save_callback=None):
     st.markdown("Manage Stamina Points.")
-    current = target_char.get("stamina_current", 0)
-    st.metric("Current SP", f"{current} / {target_max}")
+    current = char.get("stamina_current", 0)
+    st.metric("Current SP", f"{current} / {max_sp}")
     
     amount = st.number_input("Amount", min_value=1, value=1, step=1, key="sp_dlg_amount")
     
     c_rec, c_spend = st.columns(2)
     if c_rec.button("➕ Recover", use_container_width=True, key="sp_dlg_rec"):
-        new_val = min(target_max, current + amount)
-        _update_and_save_char(char, target_char, "stamina_current", new_val, char_index, save_callback)
+        char["stamina_current"] = min(max_sp, current + amount)
+        if save_callback: save_callback()
         st.rerun()
         
     if c_spend.button("➖ Spend", use_container_width=True, key="sp_dlg_spend"):
-        new_val = max(0, current - amount)
-        _update_and_save_char(char, target_char, "stamina_current", new_val, char_index, save_callback)
+        char["stamina_current"] = max(0, current - amount)
+        if save_callback: save_callback()
         st.rerun()
-
-@st.dialog("Manage Stamina")
-def stamina_manager_dialog(char, max_sp, save_callback=None, char_index=None):
-    _render_sp_manager_fragment(char, max_sp, save_callback, char_index)
 
 @st.dialog("Manage Experience")
 def xp_manager_dialog(char, save_callback=None):
@@ -728,17 +674,7 @@ def convert_nested_to_flat(nested_item):
         if w_type == "ballistic": flat_item["sub_type"] = "Guns"
         elif w_type == "energy": flat_item["sub_type"] = "Energy Weapons"
         elif w_type == "melee": flat_item["sub_type"] = "Melee"
-        elif w_type == "archery": flat_item["sub_type"] = "Archery"
         elif category == "explosive": flat_item["sub_type"] = "Explosives"
-
-        # Append Explosive details to description
-        if category == "explosive":
-            details = []
-            if props.get("explosiveType"): details.append(props["explosiveType"].title())
-            if props.get("aoe"): details.append(f"AOE: {props['aoe']}")
-            if props.get("rangeFormula"): details.append(f"Range: {props['rangeFormula']}")
-            if details:
-                flat_item["description"] = (flat_item["description"] + " | " + " | ".join(details)).strip(" | ")
         
         dmg = str(props.get("damage", "1d6"))
         if "d" in dmg:
@@ -781,59 +717,6 @@ def convert_nested_to_flat(nested_item):
         flat_item["sub_type"] = props.get("type", "")
         flat_item["load_worn"] = float(props.get("loadWorn", 0.0))
         
-        if category == "power_armor":
-            details = []
-            if props.get("dp"): details.append(f"DP: {props['dp']}")
-            if props.get("repairDc"): details.append(f"Repair DC: {props['repairDc']}")
-            if details:
-                flat_item["description"] = (flat_item["description"] + " | " + " | ".join(details)).strip(" | ")
-
-    # Consumables & Others
-    if category in ["food", "drink"]:
-        details = []
-        if props.get("foodType"): details.append(props["foodType"])
-        if props.get("effects"): details.extend(props["effects"])
-        if details:
-            flat_item["description"] = (flat_item["description"] + " | " + " | ".join(details)).strip(" | ")
-            
-    if category == "medicine":
-        details = []
-        if props.get("effect"): details.append(f"Effect: {props['effect']}")
-        if props.get("cureCondition"): details.append(f"Cures: {props['cureCondition']}")
-        if details:
-            flat_item["description"] = (flat_item["description"] + " | " + " | ".join(details)).strip(" | ")
-            
-    if category == "chem":
-        details = []
-        if props.get("addictionType"): details.append(f"Addiction: {props['addictionType']}")
-        if props.get("chemType"): details.append(f"Type: {', '.join(props['chemType'])}")
-        if details:
-            flat_item["description"] = (flat_item["description"] + " | " + " | ".join(details)).strip(" | ")
-            
-    if category == "mod":
-        if props.get("modType"):
-            flat_item["description"] = (flat_item["description"] + f" | Type: {props['modType']}").strip(" | ")
-        if props.get("ranks"):
-            ranks_str = " | ".join([f"Rank {r['rank']}: {r['effect']}" for r in props["ranks"]])
-            flat_item["description"] = (flat_item["description"] + " | " + ranks_str).strip(" | ")
-            
-    if category == "magazine":
-        if props.get("targetSkill"):
-            flat_item["description"] = (flat_item["description"] + f" | Skill: {props['targetSkill']}").strip(" | ")
-        
-    # Generic Special/Effect Appending (Apply to all if not already handled)
-    extras = []
-    if "special" in props and isinstance(props["special"], list):
-        extras.extend(props["special"])
-    if "specialText" in props and props["specialText"]:
-        extras.append(props["specialText"])
-    if "specialEffect" in props and props["specialEffect"]:
-        extras.append(props["specialEffect"])
-        
-    for extra in extras:
-        if extra not in flat_item["description"]:
-            flat_item["description"] = (flat_item["description"] + " | " + extra).strip(" | ")
-
     return flat_item
 
 @st.dialog("Edit Item")
@@ -888,7 +771,7 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
             cd = item.get("crit_damage", "")
             st.session_state[f"{dialog_id}_p_critical"] = f"{ct}, {cd}" if cd else f"{ct}, x2"
             
-            w_type_map = {"Guns": "ballistic", "Energy Weapons": "energy", "Melee": "melee", "Explosives": "explosive", "Archery": "archery"}
+            w_type_map = {"Guns": "ballistic", "Energy Weapons": "energy", "Melee": "melee", "Explosives": "explosive"}
             st.session_state[f"{dialog_id}_p_weaponType"] = w_type_map.get(item.get("sub_type"), "ballistic")
         
         elif category in ["armor", "power_armor"]:
@@ -896,8 +779,6 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
             st.session_state[f"{dialog_id}_p_dt"] = int(item.get("dt", 0))
             st.session_state[f"{dialog_id}_p_type"] = item.get("sub_type", "Light")
             st.session_state[f"{dialog_id}_p_loadWorn"] = float(item.get("load_worn", 0.0))
-            if category == "power_armor":
-                st.session_state[f"{dialog_id}_p_dp"] = int(props.get("dp", 0))
 
         elif category == "bag":
             st.session_state[f"{dialog_id}_p_loadWorn"] = float(item.get("load_worn", 0.0))
@@ -1040,39 +921,112 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
     if not isinstance(data_list, list):
         data_list = []
     
-    # Filter valid items and prepare ID map
-    valid_items = [i for i in data_list if "id" in i]
-    valid_items.sort(key=lambda x: x.get("name", ""))
-    
-    options = [i["id"] for i in valid_items]
-    labels = {i["id"]: i.get("name", "Unknown") for i in valid_items}
+    data_list.sort(key=lambda x: x.get("name", ""))
+    names = [e.get("name", "Unknown") for e in data_list]
     
     st.markdown(f"**Add {label}**")
     
     # Database Selection
-    selected_id = st.selectbox(f"Search Database:", [""] + options, format_func=lambda x: labels.get(x, "") if x else "", key=f"{prefix}_select_dlg")
+    selected_item = st.selectbox(f"Search Database:", [""] + names, key=f"{prefix}_select_dlg")
     
     if st.button(f"Add Selected to {label}", key=f"{prefix}_btn_add_dlg", use_container_width=True):
-        if selected_id:
-            entry = next((e for e in valid_items if e["id"] == selected_id), None)
+        if selected_item:
+            entry = next((e for e in data_list if e["name"] == selected_item), None)
             
-            # Use shared conversion logic for robust import
-            new_item = convert_nested_to_flat(entry)
+            # --- SCHEMA MAPPING (New items.json -> Inventory) ---
+            props = entry.get("props", {})
+            category = entry.get("category", "misc")
             
-            # Apply instance-specific defaults
-            is_bag = (entry.get("category") == "bag")
-            new_item.update({
+            # Map Category to Item Type
+            cat_map = {
+                "weapon": "Weapon", "armor": "Armor", "power_armor": "Power Armor", "bag": "Bag",
+                "ammo": "Ammo", "ammo_mod": "Mod", "explosive": "Weapon", "food": "Food", "drink": "Drink",
+                "medicine": "Medicine", "chem": "Chem", "mod": "Mod", "gear": "Gear",
+                "program": "Program", "magazine": "Magazine"
+            }
+            item_type = cat_map.get(category, "Misc")
+            
+            # Construct Description
+            desc_parts = []
+            if entry.get("description"): desc_parts.append(entry["description"])
+            if "special" in props: desc_parts.extend(props["special"])
+            if "effects" in props: desc_parts.extend(props["effects"])
+            if "specialText" in props: desc_parts.append(props["specialText"])
+            if "specialEffect" in props: desc_parts.append(props["specialEffect"])
+            description = " | ".join(desc_parts)
+            
+            is_bag = (category == "bag")
+            new_item = {
+                "name": selected_item,
+                "description": description,
+                "weight": float(entry.get("load", 0.0)) if entry else 0.0,
+                "cost": entry.get("cost", 0),
+                "equipped": False if label == "Equipment" else True,
+                "active": True,
+                "quantity": 1,
                 "id": str(uuid.uuid4()),
-                "source_id": entry.get("id"),
                 "parent_id": None,
                 "location": "carried",
                 "is_container": is_bag,
-                "equipped": False if label == "Equipment" else True,
-                "active": True,
-                "ammo_current": new_item.get("ammo_capacity", 0) if new_item.get("uses_ammo") else 0,
-                "decay": 0,
-                "reloads_count": 0
-            })
+                "item_type": item_type,
+                "category": category
+            }
+            
+            # Weapon Specifics
+            if category in ["weapon", "explosive"]:
+                w_type = props.get("weaponType", "")
+                if w_type == "ballistic": new_item["sub_type"] = "Guns"
+                elif w_type == "energy": new_item["sub_type"] = "Energy Weapons"
+                elif w_type == "melee": new_item["sub_type"] = "Melee"
+                elif category == "explosive": new_item["sub_type"] = "Explosives"
+                
+                # Damage
+                dmg = str(props.get("damage", "1d6"))
+                if "d" in dmg:
+                    parts = dmg.split("d")
+                    if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                        new_item["damage_dice_count"] = int(parts[0])
+                        new_item["damage_dice_sides"] = int(parts[1])
+                elif dmg.isdigit():
+                    new_item["damage_dice_count"] = int(dmg)
+                    new_item["damage_dice_sides"] = 1
+                
+                # Range
+                rng = str(props.get("range", ""))
+                if "/" in rng:
+                    parts = rng.replace("x", "").split("/")
+                    if len(parts) == 2:
+                        new_item["range_normal"] = int(parts[0]) if parts[0].isdigit() else 0
+                        new_item["range_long"] = int(parts[1]) if parts[1].isdigit() else 0
+                
+                # Ammo & Crit
+                new_item["ammo_item"] = props.get("ammoType", "")
+                new_item["ammo_capacity"] = props.get("magazineSize", 0)
+                if new_item["ammo_capacity"] > 0:
+                    new_item["uses_ammo"] = True
+                    new_item["ammo_current"] = new_item["ammo_capacity"]
+                
+                crit = str(props.get("critical", ""))
+                if "," in crit:
+                    c_parts = crit.split(",")
+                    new_item["crit_threshold"] = int(c_parts[0].strip()) if c_parts[0].strip().isdigit() else 20
+                    if len(c_parts) > 1: new_item["crit_damage"] = c_parts[1].strip()
+
+            # Bag Specifics
+            if category == "bag":
+                new_item["load_worn"] = float(props.get("loadWorn", 0.0))
+                new_item["carry_bonus"] = int(props.get("carryCapacityBonus", 0))
+                try:
+                    new_item["encumbrance_rule"] = int(props.get("encumbranceRule", 0))
+                except (ValueError, TypeError):
+                    new_item["encumbrance_rule"] = 0
+
+            # Armor Specifics
+            if category in ["armor", "power_armor"]:
+                new_item["ac_bonus"] = props.get("ac", 0)
+                new_item["dt"] = props.get("dt", 0)
+                new_item["sub_type"] = props.get("type", "")
+                new_item["load_worn"] = float(props.get("loadWorn", 0.0))
             
             if char_key not in char or not isinstance(char[char_key], list):
                 char[char_key] = []
@@ -1139,17 +1093,14 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
         if not isinstance(data_list, list):
             data_list = []
         
-        valid_items = [i for i in data_list if "id" in i]
-        valid_items.sort(key=lambda x: x.get("name", ""))
-        
-        options = [i["id"] for i in valid_items]
-        labels = {i["id"]: i.get("name", "Unknown") for i in valid_items}
-        st.selectbox(f"Database {label}:", [""] + options, format_func=lambda x: labels.get(x, "") if x else "", key=f"{prefix}_select")
+        data_list.sort(key=lambda x: x.get("name", ""))
+        names = [e.get("name", "Unknown") for e in data_list]
+        st.selectbox(f"Database {label}:", [""] + names, key=f"{prefix}_select")
         
         def add_db_item():
-            selected_id = st.session_state.get(f"{prefix}_select")
-            if selected_id:
-                entry = next((e for e in valid_items if e["id"] == selected_id), None)
+            selected_item = st.session_state.get(f"{prefix}_select")
+            if selected_item:
+                entry = next((e for e in data_list if e["name"] == selected_item), None)
                 
                 # --- SCHEMA MAPPING (New items.json -> Inventory) ---
                 props = entry.get("props", {})
@@ -1174,7 +1125,7 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
                 
                 is_bag = (category == "bag")
                 new_item = {
-                    "name": entry.get("name", "Unknown"),
+                    "name": selected_item,
                     "description": description,
                     "weight": float(entry.get("load", 0.0)) if entry else 0.0,
                     "cost": entry.get("cost", 0),
@@ -1182,7 +1133,6 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
                     "active": True,
                     "quantity": 1,
                     "id": str(uuid.uuid4()),
-                    "source_id": entry.get("id"),
                     "parent_id": None,
                     "location": "carried",
                     "is_container": is_bag,
@@ -1196,7 +1146,6 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
                     if w_type == "ballistic": new_item["sub_type"] = "Guns"
                     elif w_type == "energy": new_item["sub_type"] = "Energy Weapons"
                     elif w_type == "melee": new_item["sub_type"] = "Melee"
-                    elif w_type == "archery": new_item["sub_type"] = "Archery"
                     elif category == "explosive": new_item["sub_type"] = "Explosives"
                     
                     dmg = str(props.get("damage", "1d6"))
@@ -1458,7 +1407,7 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                                     stat_val = effective_stats.get(stat_key, 5)
                                     
                                     rn_ft = int(stat_val * rn)
-                                    rl_ft = int(stat_val * rl)    
+                                    rl_ft = int(stat_val * rl)
                                     rn_m = round(rn_ft * 0.3)
                                     rl_m = round(rl_ft * 0.3)
                                     desc_parts.append(f"Range: Normal - {rn_m}m ({rn_ft}f, {rn}x) / Long - {rl_m}m ({rl_ft}f, {rl}x)")
@@ -1567,15 +1516,7 @@ def show_attack_result(weapon, char, attack_total, attack_roll, attack_mod, dama
         c_fire, c_reload = st.columns(2)
         
         ammo_cap = weapon.get("ammo_capacity", 0)
-        ammo_identifier = weapon.get("ammo_item", "")
-        
-        # Resolve Ammo Name from ID (since inventory stores Names, but Weapon stores ID)
-        ammo_search_name = ammo_identifier
-        db_items = load_data(ITEM_FILE)
-        if isinstance(db_items, list):
-            found_ammo = next((x for x in db_items if x.get("id") == ammo_identifier), None)
-            if found_ammo:
-                ammo_search_name = found_ammo.get("name", ammo_identifier)
+        ammo_item_name = weapon.get("ammo_item", "")
         
         # Magazine System
         if ammo_cap > 0:
@@ -1592,7 +1533,7 @@ def show_attack_result(weapon, char, attack_total, attack_roll, attack_mod, dama
             if c_reload.button("🔄 Reload", key=f"pop_reload_{weapon['id']}", use_container_width=True):
                 missing = ammo_cap - current_ammo
                 if missing > 0:
-                    ammo_inv = next((i for i in char.get("inventory", []) if i.get("name") == ammo_search_name), None)
+                    ammo_inv = next((i for i in char.get("inventory", []) if i.get("name") == ammo_item_name), None)
                     if ammo_inv and ammo_inv.get("quantity", 0) > 0:
                         to_load = min(missing, ammo_inv["quantity"])
                         weapon["ammo_current"] = current_ammo + to_load
@@ -1609,15 +1550,15 @@ def show_attack_result(weapon, char, attack_total, attack_roll, attack_mod, dama
                         if save_callback: save_callback()
                         st.rerun()
                     else:
-                        st.error(f"No {ammo_search_name} found!")
+                        st.error(f"No {ammo_item_name} found!")
                 else:
                     st.info("Magazine full!")
         
         # Direct Feed System
-        elif ammo_identifier:
-            ammo_inv = next((i for i in char.get("inventory", []) if i.get("name") == ammo_search_name), None)
+        elif ammo_item_name:
+            ammo_inv = next((i for i in char.get("inventory", []) if i.get("name") == ammo_item_name), None)
             qty = ammo_inv.get("quantity", 0) if ammo_inv else 0
-            st.caption(f"Ammo ({ammo_search_name}): {qty}")
+            st.caption(f"Ammo ({ammo_item_name}): {qty}")
             
             if c_fire.button("🔥 Fire", key=f"pop_fire_{weapon['id']}", use_container_width=True, disabled=(qty <= 0)):
                 if ammo_inv and qty > 0:
@@ -1627,150 +1568,9 @@ def show_attack_result(weapon, char, attack_total, attack_roll, attack_mod, dama
                     if save_callback: save_callback()
                     st.rerun()
                 else:
-                    st.error(f"Out of {ammo_search_name}!")
+                    st.error(f"Out of {ammo_item_name}!")
 
-@st.fragment(run_every=3)
-def render_live_status_row(char_index, char_id=None):
-    """Renders the status row (HP, SP, XP, Caps) inside a fragment for auto-updates."""
-    # Optimization: Check file timestamp to avoid unnecessary processing
-    try:
-        mtime = os.path.getmtime(CHARACTERS_FILE)
-    except OSError:
-        mtime = 0
-        
-    cache_key = f"live_stat_cache_{char_index}"
-    
-    # Only reload and recalculate if the file has changed or cache is missing
-    if cache_key not in st.session_state or st.session_state[cache_key]["mtime"] != mtime:
-        saved_chars = load_data(CHARACTERS_FILE)
-        if not saved_chars or char_index >= len(saved_chars):
-            st.error("Character data not found.")
-            return
-        
-        # Verify we are loading the correct character by ID to prevent index shift issues
-        char = None
-        if char_index < len(saved_chars):
-            candidate = saved_chars[char_index]
-            if char_id and candidate.get("id") != char_id:
-                # Index mismatch (list shifted?), search for ID
-                found = False
-                for i, c in enumerate(saved_chars):
-                    if c.get("id") == char_id:
-                        char = c
-                        char_index = i # Update local index
-                        # Attempt to fix global state if possible
-                        if "active_char_idx" in st.session_state:
-                            st.session_state.active_char_idx = i
-                        found = True
-                        break
-                
-                # If not found by ID, check if candidate has NO ID (legacy data match)
-                if not found and candidate.get("id") is None:
-                    char = candidate
-            else:
-                char = candidate
-        
-        if not char:
-            st.error("Character not found (ID mismatch).")
-            return
-
-        # Recalculate stats to get effective max values
-        effective_health_max, effective_stamina_max, _, _, _ = calculate_stats(char)
-        
-        # Update Cache
-        st.session_state[cache_key] = {
-            "mtime": mtime,
-            "char": char,
-            "hp_max": effective_health_max,
-            "sp_max": effective_stamina_max
-        }
-
-    # Use Cached Data
-    cached = st.session_state[cache_key]
-    char = cached["char"]
-    effective_health_max = cached["hp_max"]
-    effective_stamina_max = cached["sp_max"]
-    unique_id = char.get("name", "char")
-    
-    def local_save():
-        # Load fresh data to ensure we don't overwrite other concurrent changes
-        current_db = load_data(CHARACTERS_FILE)
-        if current_db and len(current_db) > char_index:
-            current_db[char_index] = char
-            save_data(CHARACTERS_FILE, current_db)
-            
-        # Update session state mirror if needed
-        if "char_sheet" in st.session_state and st.session_state.get("active_char_idx") == char_index:
-             st.session_state.char_sheet = char
-
-    c1, c2, c3, c4 = st.columns(4)
-
-    with c1:
-        st.markdown('<div class="stat-label-sm">Hit Points</div>', unsafe_allow_html=True)
-        b_bar, b_man = st.columns([6, 1], vertical_alignment="center")
-
-        with b_bar:
-            curr = char.get("hp_current", 0)
-            maxx = char.get("hp_max", 1)
-            pct = min(1.0, curr / maxx) if maxx > 0 else 0
-            st.markdown(f"""
-            <div class="stat-bar-container">
-                <div class="stat-bar-fill hp-fill" style="width: {pct*100}%;"></div>
-                <div class="stat-bar-text">{curr} / {maxx}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with b_man:
-            if st.button("⚙️", key=f"btn_man_hp_{unique_id}_live", use_container_width=True, help="Manage HP"):
-                hp_manager_dialog(char, maxx, local_save, char_index)
-            
-    with c2:
-        st.markdown('<div class="stat-label-sm">Stamina</div>', unsafe_allow_html=True)
-        b_bar, b_man = st.columns([6, 1], vertical_alignment="center")
-
-        with b_bar:
-            curr = char.get("stamina_current", 0)
-            maxx = char.get("stamina_max", 1)
-            pct = min(1.0, curr / maxx) if maxx > 0 else 0
-            st.markdown(f"""
-            <div class="stat-bar-container">
-                <div class="stat-bar-fill stamina-fill" style="width: {pct*100}%;"></div>
-                <div class="stat-bar-text">{curr} / {maxx}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with b_man:
-            if st.button("⚙️", key=f"btn_man_sp_{unique_id}_live", use_container_width=True, help="Manage Stamina"):
-                stamina_manager_dialog(char, maxx, local_save, char_index)
-
-    with c3:
-        st.markdown('<div class="stat-label-sm">Experience</div>', unsafe_allow_html=True)
-        b_bar, b_man = st.columns([6, 1], vertical_alignment="center")
-        
-        with b_bar:
-            curr_xp = char.get("xp", 0)
-            pct = (curr_xp % 1000) / 1000.0
-            st.markdown(f"""
-            <div class="stat-bar-container">
-                <div class="stat-bar-fill xp-fill" style="width: {pct*100}%;"></div>
-                <div class="stat-bar-text">{curr_xp}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with b_man:
-            if st.button("⚙️", key=f"btn_man_xp_{unique_id}_live", use_container_width=True, help="Manage XP"):
-                xp_manager_dialog(char, local_save)
-    
-    with c4:
-        st.markdown('<div class="stat-label-sm">Caps</div>', unsafe_allow_html=True)
-        b_val, b_man = st.columns([6, 1], vertical_alignment="center")
-        with b_val:
-            st.markdown(f"<div style='text-align: center;margin-top: -20px; font-weight: bold; color: #e6fffa; line-height: 39px;'>🪙 {char.get('caps', 0)}</div>", unsafe_allow_html=True)
-        with b_man:
-            if st.button("⚙️", key=f"btn_man_caps_{unique_id}_live", use_container_width=True, help="Manage Caps"):
-                caps_manager_dialog(char, local_save)
-
-def render_character_statblock(char, save_callback=None, char_index=None, char_id=None):
+def render_character_statblock(char, save_callback=None):
     """Renders the character sheet as a visual statblock with interactive elements."""
     # Ensure stats are up to date within the fragment
     _, _, _, effective_stats, effective_skills = calculate_stats(char)
@@ -1939,77 +1739,72 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
         st.markdown(special_html, unsafe_allow_html=True)
         # INTERACTIVE STATS ROW
         st.markdown('<div class="section-header">Status</div>', unsafe_allow_html=True)
-        
-        if char_index is not None:
-            render_live_status_row(char_index, char_id)
-        else:
-            # Fallback for static view (e.g. creature statblocks or when no index provided)
-            c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4 = st.columns(4)
 
-            with c1:
-                st.markdown('<div class="stat-label-sm">Hit Points</div>', unsafe_allow_html=True)
-                b_bar, b_man = st.columns([6, 1], vertical_alignment="center")
+        with c1:
+            st.markdown('<div class="stat-label-sm">Hit Points</div>', unsafe_allow_html=True)
+            b_bar, b_man = st.columns([6, 1], vertical_alignment="center")
 
-                with b_bar:
-                    curr = char.get("hp_current", 0)
-                    maxx = char.get("hp_max", 1)
-                    pct = min(1.0, curr / maxx) if maxx > 0 else 0
-                    st.markdown(f"""
-                    <div class="stat-bar-container">
-                        <div class="stat-bar-fill hp-fill" style="width: {pct*100}%;"></div>
-                        <div class="stat-bar-text">{curr} / {maxx}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with b_man:
-                    if st.button("⚙️", key=f"btn_man_hp_{unique_id}", use_container_width=True, help="Manage HP"):
-                        hp_manager_dialog(char, maxx, save_callback)
-                    
-            with c2:
-                st.markdown('<div class="stat-label-sm">Stamina</div>', unsafe_allow_html=True)
-                b_bar, b_man = st.columns([6, 1], vertical_alignment="center")
-
-                with b_bar:
-                    curr = char.get("stamina_current", 0)
-                    maxx = char.get("stamina_max", 1)
-                    pct = min(1.0, curr / maxx) if maxx > 0 else 0
-                    st.markdown(f"""
-                    <div class="stat-bar-container">
-                        <div class="stat-bar-fill stamina-fill" style="width: {pct*100}%;"></div>
-                        <div class="stat-bar-text">{curr} / {maxx}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with b_man:
-                    if st.button("⚙️", key=f"btn_man_sp_{unique_id}", use_container_width=True, help="Manage Stamina"):
-                        stamina_manager_dialog(char, maxx, save_callback)
-
-            with c3:
-                st.markdown('<div class="stat-label-sm">Experience</div>', unsafe_allow_html=True)
-                b_bar, b_man = st.columns([6, 1], vertical_alignment="center")
-                
-                with b_bar:
-                    curr_xp = char.get("xp", 0)
-                    pct = (curr_xp % 1000) / 1000.0
-                    st.markdown(f"""
-                    <div class="stat-bar-container">
-                        <div class="stat-bar-fill xp-fill" style="width: {pct*100}%;"></div>
-                        <div class="stat-bar-text">{curr_xp}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with b_man:
-                    if st.button("⚙️", key=f"btn_man_xp_{unique_id}", use_container_width=True, help="Manage XP"):
-                        xp_manager_dialog(char, save_callback)
+            with b_bar:
+                curr = char.get("hp_current", 0)
+                maxx = char.get("hp_max", 1)
+                pct = min(1.0, curr / maxx) if maxx > 0 else 0
+                st.markdown(f"""
+                <div class="stat-bar-container">
+                    <div class="stat-bar-fill hp-fill" style="width: {pct*100}%;"></div>
+                    <div class="stat-bar-text">{curr} / {maxx}</div>
+                </div>
+                """, unsafe_allow_html=True)
             
-            with c4:
-                st.markdown('<div class="stat-label-sm">Caps</div>', unsafe_allow_html=True)
-                b_val, b_man = st.columns([6, 1], vertical_alignment="center")
-                with b_val:
-                    st.markdown(f"<div style='text-align: center;margin-top: -20px; font-weight: bold; color: #e6fffa; line-height: 39px;'>🪙 {char.get('caps', 0)}</div>", unsafe_allow_html=True)
-                with b_man:
-                    if st.button("⚙️", key=f"btn_man_caps_{unique_id}", use_container_width=True, help="Manage Caps"):
-                        caps_manager_dialog(char, save_callback)
+            with b_man:
+                if st.button("⚙️", key=f"btn_man_hp_{unique_id}", use_container_width=True, help="Manage HP"):
+                    hp_manager_dialog(char, maxx, save_callback)
+                
+        with c2:
+            st.markdown('<div class="stat-label-sm">Stamina</div>', unsafe_allow_html=True)
+            b_bar, b_man = st.columns([6, 1], vertical_alignment="center")
+
+            with b_bar:
+                curr = char.get("stamina_current", 0)
+                maxx = char.get("stamina_max", 1)
+                pct = min(1.0, curr / maxx) if maxx > 0 else 0
+                st.markdown(f"""
+                <div class="stat-bar-container">
+                    <div class="stat-bar-fill stamina-fill" style="width: {pct*100}%;"></div>
+                    <div class="stat-bar-text">{curr} / {maxx}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with b_man:
+                if st.button("⚙️", key=f"btn_man_sp_{unique_id}", use_container_width=True, help="Manage Stamina"):
+                    stamina_manager_dialog(char, maxx, save_callback)
+
+        with c3:
+            st.markdown('<div class="stat-label-sm">Experience</div>', unsafe_allow_html=True)
+            b_bar, b_man = st.columns([6, 1], vertical_alignment="center")
+            
+            with b_bar:
+                curr_xp = char.get("xp", 0)
+                pct = (curr_xp % 1000) / 1000.0
+                st.markdown(f"""
+                <div class="stat-bar-container">
+                    <div class="stat-bar-fill xp-fill" style="width: {pct*100}%;"></div>
+                    <div class="stat-bar-text">{curr_xp}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with b_man:
+                if st.button("⚙️", key=f"btn_man_xp_{unique_id}", use_container_width=True, help="Manage XP"):
+                    xp_manager_dialog(char, save_callback)
+        
+        with c4:
+            st.markdown('<div class="stat-label-sm">Caps</div>', unsafe_allow_html=True)
+            b_val, b_man = st.columns([6, 1], vertical_alignment="center")
+            with b_val:
+                st.markdown(f"<div style='text-align: center;margin-top: -20px; font-weight: bold; color: #e6fffa; line-height: 39px;'>🪙 {char.get('caps', 0)}</div>", unsafe_allow_html=True)
+            with b_man:
+                if st.button("⚙️", key=f"btn_man_caps_{unique_id}", use_container_width=True, help="Manage Caps"):
+                    caps_manager_dialog(char, save_callback)
 
         # CONDITIONS ROW
         cond1, cond2, cond3, cond4 = st.columns(4)
@@ -2155,18 +1950,8 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
                     with c_atk_act:
                         c_roll, c_reload = st.columns(2)
                         
-                        # Resolve Ammo Name from ID for Reload Button
-                        ammo_identifier = w.get("ammo_item", "")
-                        ammo_search_name = ammo_identifier
-                        if ammo_identifier:
-                            db_items = load_data(ITEM_FILE)
-                            if isinstance(db_items, list):
-                                found_ammo = next((x for x in db_items if x.get("id") == ammo_identifier), None)
-                                if found_ammo:
-                                    ammo_search_name = found_ammo.get("name", ammo_identifier)
-
                         # Reload Button
-                        if w.get("ammo_capacity", 0) > 0 and ammo_identifier:
+                        if w.get("ammo_capacity", 0) > 0 and w.get("ammo_item"):
                             with c_reload:
                                 if st.button("🔄", key=f"btn_reload_{w['id']}", help=f"Reload {w['name']}", use_container_width=True):
                                     current_ammo = w.get("ammo_current", 0)
@@ -2174,7 +1959,7 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
                                     missing = capacity - current_ammo
                                     
                                     if missing > 0:
-                                        ammo_inv = next((i for i in char.get("inventory", []) if i.get("name") == ammo_search_name), None)
+                                        ammo_inv = next((i for i in char.get("inventory", []) if i.get("name") == w["ammo_item"]), None)
                                         if ammo_inv and ammo_inv.get("quantity", 0) > 0:
                                             to_load = min(missing, ammo_inv["quantity"])
                                             w["ammo_current"] = current_ammo + to_load
@@ -2191,7 +1976,7 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
                                             if save_callback: save_callback()
                                             st.rerun()
                                         else:
-                                            st.toast(f"No {ammo_search_name} found!", icon="⚠️")
+                                            st.toast(f"No {w['ammo_item']} found!", icon="⚠️")
                                     else:
                                         st.toast("Magazine full!", icon="ℹ️")
 

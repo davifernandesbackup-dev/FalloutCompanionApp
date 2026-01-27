@@ -2,7 +2,7 @@ import streamlit as st
 from tabs import utilities, encounters, bestiary, charactersheet, database_editor, dm_screen
 from utils.data_manager import load_data
 from utils.statblock import render_statblock
-from constants import BESTIARY_FILE
+from constants import BESTIARY_FILE, CHARACTERS_FILE
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="Wasteland Assistant", page_icon="☢️", layout="wide")
@@ -98,7 +98,13 @@ if "popout" in st.query_params:
             if target_id in data:
                 render_statblock(target_id, data[target_id])
             else:
-                st.error(f"Creature '{target_id}' not found.")
+                # Fallback to characters
+                chars = load_data(CHARACTERS_FILE)
+                char_data = next((c for c in chars if c.get("name") == target_id), None)
+                if char_data:
+                    render_statblock(target_id, char_data)
+                else:
+                    st.error(f"Entity '{target_id}' not found.")
         st.stop()
         
 def navigate_to(page):
@@ -114,7 +120,7 @@ with st.sidebar:
     st.divider()
 
 # Global Back Button
-if app_mode != "🏠 Home":
+if app_mode != "🏠 Home" and app_mode != "🖥️ DM Screen (WIP)":
     c_back, c_title = st.columns([1, 5], vertical_alignment="center")
     with c_back:
         st.button("⬅️ Back to Title", key="global_back_home", on_click=navigate_to, args=("🏠 Home",))
@@ -129,8 +135,6 @@ if app_mode != "🏠 Home":
             st.subheader("📝 Character Sheet")
         elif app_mode == "🗃️ Database Editor":
             st.subheader("🗃️ Database Editor")
-        elif app_mode == "🖥️ DM Screen (WIP)":
-            st.subheader("🖥️ DM Screen (WIP)")
 
 if app_mode == "🏠 Home":
     st.title("📟 Wasteland Assistant")

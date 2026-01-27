@@ -41,7 +41,7 @@ def render_modifier_builder(key_prefix, mod_list_key):
     st.caption("Construct Modifier")
 
     mod_categories = {
-        "S.P.E.C.I.A.L.": ["STR", "PER", "END", "CHA", "INT", "AGI", "LUC"],
+        "S.P.E.C.I.A.L.": ["STR", "PER", "END", "CHA", "INT", "AGI", "LCK"],
         "Skills": sorted(get_default_character()["skills"].keys()),
         "Derived Stats": ["Max HP", "Max SP", "Armor Class", "Carry Load", "Combat Sequence", "Action Points", "Radiation DC", "Passive Sense", "Healing Rate"]
     }
@@ -105,7 +105,7 @@ def render_item_form(prefix, current_values, mod_list_key, all_db_items, show_qu
 
     if new_category == "weapon":
         c1, c2, c3 = st.columns(3)
-        c1.selectbox("Weapon Type", ["ballistic", "energy", "melee"], index=["ballistic", "energy", "melee"].index(props.get("weaponType", "ballistic")), key=f"{prefix}_p_weaponType")
+        c1.selectbox("Weapon Type", ["ballistic", "energy", "melee", "archery"], index=["ballistic", "energy", "melee", "archery"].index(props.get("weaponType", "ballistic")) if props.get("weaponType", "ballistic") in ["ballistic", "energy", "melee", "archery"] else 0, key=f"{prefix}_p_weaponType")
         c2.number_input("Hands", min_value=1, max_value=2, value=int(props.get("hands", 1)), key=f"{prefix}_p_hands")
         c3.number_input("AP Cost", min_value=0, value=int(props.get("apCost", 4)), key=f"{prefix}_p_apCost")
 
@@ -119,7 +119,7 @@ def render_item_form(prefix, current_values, mod_list_key, all_db_items, show_qu
 
         st.markdown("---")
         c1, c2 = st.columns(2)
-        ammo_ids = [""] + sorted([i['id'] for i in all_db_items if i.get('category') == 'ammo'])
+        ammo_ids = [""] + sorted([i['id'] for i in all_db_items if i.get('category') == 'ammo' and 'id' in i])
         default_ammo = props.get("ammoType", "")
         ammo_idx = ammo_ids.index(default_ammo) if default_ammo in ammo_ids else 0
         c1.selectbox("Ammo ID", ammo_ids, index=ammo_idx, key=f"{prefix}_p_ammoType")
@@ -139,6 +139,10 @@ def render_item_form(prefix, current_values, mod_list_key, all_db_items, show_qu
         c1.number_input("Load (Worn)", value=float(props.get("loadWorn", 0.0)), key=f"{prefix}_p_loadWorn")
         if new_category == "armor":
             c2.selectbox("Armor Type", ["Light", "Heavy"], index=["Light", "Heavy"].index(props.get("type", "Light")), key=f"{prefix}_p_type")
+        elif new_category == "power_armor":
+            c2.number_input("Repair DC", value=int(props.get("repairDc", 15)), key=f"{prefix}_p_repairDc")
+            st.number_input("Operation AP", value=int(props.get("operationAp", 0)), key=f"{prefix}_p_operationAp")
+            st.text_area("Special Rules", value="\n".join(props.get("special", [])), key=f"{prefix}_p_special")
     
     elif new_category == "ammo":
         c1, c2 = st.columns(2)
@@ -163,12 +167,78 @@ def render_item_form(prefix, current_values, mod_list_key, all_db_items, show_qu
         
         st.text_area("Special Effect", value=props.get("specialEffect", ""), key=f"{prefix}_p_specialEffect")
 
+    elif new_category == "explosive":
+        c1, c2, c3 = st.columns(3)
+        c1.selectbox("Explosive Type", ["thrown", "placed"], index=["thrown", "placed"].index(props.get("explosiveType", "thrown")) if props.get("explosiveType") in ["thrown", "placed"] else 0, key=f"{prefix}_p_explosiveType")
+        c2.number_input("AP Cost", min_value=0, value=int(props.get("apCost", 4)), key=f"{prefix}_p_apCost")
+        c3.text_input("Range Formula", value=props.get("rangeFormula", "STR x 5"), key=f"{prefix}_p_rangeFormula")
+
+        c1, c2 = st.columns(2)
+        c1.text_input("Damage", value=props.get("damage", "3d6"), key=f"{prefix}_p_damage")
+        c2.text_input("Damage Type", value=props.get("damageType", "explosive"), key=f"{prefix}_p_damageType")
+        
+        c1, c2 = st.columns(2)
+        c1.text_input("AOE", value=props.get("aoe", "5 ft. radius"), key=f"{prefix}_p_aoe")
+        c2.number_input("Arm DC Mod", value=int(props.get("armDcModifier", 0)), key=f"{prefix}_p_armDcModifier")
+        
+        st.text_area("Special Rules (one per line)", value="\n".join(props.get("special", [])), key=f"{prefix}_p_special")
+
+    elif new_category == "mod":
+        st.selectbox("Mod Type", ["armor", "power_armor", "weapon"], index=["armor", "power_armor", "weapon"].index(props.get("modType", "armor")) if props.get("modType") in ["armor", "power_armor", "weapon"] else 0, key=f"{prefix}_p_modType")
+        
+        # Flatten ranks list of dicts to text for editing
+        ranks_data = props.get("ranks", [])
+        ranks_text = ""
+        if isinstance(ranks_data, list):
+            lines = []
+            for r in ranks_data:
+                if isinstance(r, dict):
+                    lines.append(f"Rank {r.get('rank', '?')}: {r.get('effect', '')}")
+            ranks_text = "\n".join(lines)
+        
+        st.text_area("Ranks (Format: 'Rank X: Effect')", value=ranks_text, height=100, key=f"{prefix}_p_ranks_text", help="Enter one rank per line, e.g., 'Rank 1: +10 Carry Weight'")
+
+    elif new_category in ["food", "drink"]:
+        if new_category == "food":
+            st.selectbox("Food Type", ["pre-made", "produce", "raw", "cooked"], index=["pre-made", "produce", "raw", "cooked"].index(props.get("foodType", "pre-made")) if props.get("foodType") in ["pre-made", "produce", "raw", "cooked"] else 0, key=f"{prefix}_p_foodType")
+        
+        effects = props.get("effects", [])
+        st.text_area("Effects (one per line)", value="\n".join(effects) if isinstance(effects, list) else str(effects), key=f"{prefix}_p_effects")
+
+    elif new_category == "medicine":
+        c1, c2 = st.columns(2)
+        c1.text_input("Use Time", value=props.get("useTime", "1 action"), key=f"{prefix}_p_useTime")
+        c2.text_input("Cure Condition", value=props.get("cureCondition", ""), key=f"{prefix}_p_cureCondition")
+        
+        st.text_area("Effect", value=props.get("effect", ""), key=f"{prefix}_p_effect")
+        st.text_area("Side Effect", value=props.get("sideEffect", ""), key=f"{prefix}_p_sideEffect")
+
+    elif new_category == "magazine":
+        c1, c2 = st.columns(2)
+        c1.text_input("Target Skill", value=props.get("targetSkill", ""), key=f"{prefix}_p_targetSkill")
+        c2.text_input("Read Time", value=props.get("readTimeFormula", ""), key=f"{prefix}_p_readTimeFormula")
+
     elif new_category == "chem":
         st.text_input("Addiction Type", value=props.get("addictionType", ""), key=f"{prefix}_p_addictionType")
-        st.text_area("Chem Effect Description", value=props.get("description", ""), key=f"{prefix}_p_description")
+        
+        chem_types = props.get("chemType", [])
+        st.text_input("Chem Types (comma separated)", value=", ".join(chem_types) if isinstance(chem_types, list) else str(chem_types), key=f"{prefix}_p_chemType")
+        st.text_area("Chem Effect Description", value=props.get("description", ""), key=f"{prefix}_p_chem_desc")
 
-    else:
-        st.info(f"Form fields for category '{new_category}' are not yet implemented.")
+    elif new_category == "program":
+        st.text_input("Addiction Type", value=props.get("addictionType", ""), key=f"{prefix}_p_addictionType")
+        st.text_input("Duration", value=props.get("duration", ""), key=f"{prefix}_p_duration")
+        st.text_input("Use Cost", value=props.get("useCost", ""), key=f"{prefix}_p_useCost")
+        
+        prog_types = props.get("programType", [])
+        st.text_input("Program Types (comma separated)", value=", ".join(prog_types) if isinstance(prog_types, list) else str(prog_types), key=f"{prefix}_p_programType")
+
+    elif new_category == "gear":
+        c1, c2 = st.columns(2)
+        c1.text_input("Capacity", value=props.get("capacity", ""), key=f"{prefix}_p_capacity")
+        c2.number_input("Uses", min_value=0, value=int(props.get("uses", 0)), key=f"{prefix}_p_uses")
+        
+        st.text_area("Function/Special", value="\n".join(props.get("special", [])) if isinstance(props.get("special"), list) else props.get("function", ""), key=f"{prefix}_p_special")
 
     st.markdown("---")
     st.text_area("Description / Notes", value=current_values.get("description", ""), key=f"{prefix}_desc")
@@ -212,6 +282,26 @@ def get_item_data_from_form(prefix, mod_list_key):
         props["special"] = [line.strip() for line in props["special"].split('\n') if line.strip()]
     if "compatibleAmmo" in props and isinstance(props["compatibleAmmo"], str):
         props["compatibleAmmo"] = [line.strip() for line in props["compatibleAmmo"].split('\n') if line.strip()]
+    if "effects" in props and isinstance(props["effects"], str):
+        props["effects"] = [line.strip() for line in props["effects"].split('\n') if line.strip()]
+    if "chemType" in props and isinstance(props["chemType"], str):
+        props["chemType"] = [x.strip() for x in props["chemType"].split(',') if x.strip()]
+    if "programType" in props and isinstance(props["programType"], str):
+        props["programType"] = [x.strip() for x in props["programType"].split(',') if x.strip()]
+    
+    # Handle Ranks parsing for Mods
+    if f"{prefix}_p_ranks_text" in st.session_state:
+        ranks_text = st.session_state[f"{prefix}_p_ranks_text"]
+        ranks_list = []
+        for line in ranks_text.split('\n'):
+            if ":" in line:
+                parts = line.split(":", 1)
+                rank_part = parts[0].lower().replace("rank", "").strip()
+                if rank_part.isdigit():
+                    ranks_list.append({"rank": int(rank_part), "effect": parts[1].strip()})
+        if ranks_list:
+            props["ranks"] = ranks_list
+        # Clean up temp key if needed, or just ignore it
 
     final_desc = join_modifiers(description, st.session_state.get(mod_list_key, []))
 

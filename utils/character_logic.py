@@ -22,12 +22,13 @@ SKILL_MAP = {
 
 def get_default_character():
     return {
+        "id": str(uuid.uuid4()),
         "name": "New Character",
         "level": 1,
         "backgrounds": [],
         "xp": 0,
         "stats": {
-            "STR": 5, "PER": 5, "END": 5, "CHA": 5, "INT": 5, "AGI": 5, "LUC": 5
+            "STR": 5, "PER": 5, "END": 5, "CHA": 5, "INT": 5, "AGI": 5, "LCK": 5
         },
         "skills": {
             "Barter": 0, "Breach": 0, "Crafting": 0, "Energy Weapons": 0, 
@@ -75,6 +76,10 @@ def sync_char_widgets():
 
 def migrate_character(char):
     """Converts legacy string-based inventory/perks to list-based objects."""
+    # Ensure Character has ID
+    if "id" not in char:
+        char["id"] = str(uuid.uuid4())
+
     # Migrate Origin -> Background (String)
     if "origin" in char and "background" not in char:
         char["background"] = char.pop("origin")
@@ -171,6 +176,11 @@ def migrate_character(char):
             item["weight"] = 0.02
             item["item_type"] = "Currency"
 
+    # Migrate Stats LUC -> LCK
+    if "stats" in char:
+        if "LUC" in char["stats"]:
+            char["stats"]["LCK"] = char["stats"].pop("LUC")
+
 def calculate_stats(char):
     """Performs all auto-calculations for the character sheet."""
     
@@ -227,7 +237,7 @@ def calculate_stats(char):
 
     # 3. Effective Skills
     # Luck Bonus: Floor(Mod/2) if positive, else -1
-    eff_luc = effective_stats.get("LUC", 5)
+    eff_luc = effective_stats.get("LCK", 5)
     luc_mod = eff_luc - 5
     luck_bonus = int(luc_mod // 2) if luc_mod >= 0 else -1
 

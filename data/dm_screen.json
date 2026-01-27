@@ -1,8 +1,8 @@
 {
   "rows": 8,
-  "cols": 4,
+  "cols": 3,
   "grid_state": {
-    "panel_0_0": "Empty",
+    "panel_0_0": "Combat Sequence",
     "panel_0_1": "Empty",
     "panel_0_2": "Empty",
     "panel_1_0": "Empty",
@@ -35,14 +35,101 @@
     "panel_6_3": "Empty",
     "panel_7_3": "Empty"
   },
+  "grid_spans": {
+    "span_0_0": {
+      "w": 1,
+      "h": 2
+    }
+  },
   "module_content": {
-    "panel_0_0_sp_in": 10,
-    "panel_0_0_val": 0,
+    "panel_0_2_turn": 0,
+    "panel_0_0_round": 10,
+    "panel_0_0_enc_sel": "1. 2026-01-26 03:51 - Manual Scan",
+    "panel_0_2_round": 1,
     "panel_0_0_party_sel": [],
     "panel_0_0_name": "",
-    "panel_0_0_data": [],
-    "panel_0_0_turn": 0,
     "panel_0_0_hp_in": 10,
-    "panel_0_0_round": 8
+    "panel_0_0_data": [
+      {
+        "name": "Rita",
+        "seq": 22,
+        "seq_roll": 17,
+        "seq_mod": 5,
+        "hp": 8,
+        "max_hp": 8,
+        "sp": 8,
+        "max_sp": 8,
+        "is_player": true,
+        "id": "92aedecd-409f-4754-9bb1-8c593d6b6daf"
+      },
+      {
+        "name": "The Roach King",
+        "seq": 18,
+        "seq_roll": 19,
+        "seq_mod": -1,
+        "hp": 26,
+        "max_hp": 26,
+        "sp": 23,
+        "max_sp": 23,
+        "is_player": false,
+        "id": "15785aa9-1d19-4bac-bf92-ed648ad79eeb"
+      },
+      {
+        "name": "Fernando",
+        "seq": 11,
+        "seq_roll": 13,
+        "seq_mod": -2,
+        "hp": 13,
+        "max_hp": 13,
+        "sp": 11,
+        "max_sp": 11,
+        "is_player": true,
+        "id": "e2ec1ffe-dd7e-4b08-98b4-448785873f1b"
+      },
+      {
+        "name": "Raider Psycho",
+        "seq": 0,
+        "seq_roll": 1,
+        "seq_mod": -1,
+        "hp": 12,
+        "max_hp": 12,
+        "sp": 13,
+        "max_sp": 13,
+        "is_player": false,
+        "id": "9149d2a7-c844-4c2c-9af8-320a7dd6c59f"
+      }
+    ],
+    "panel_0_0_turn": 1,
+    "panel_0_0_val": 0,
+    "panel_0_2_data": [
+      {
+        "name": "Raider Psycho",
+        "source_name": "Raider Psycho",
+        "seq": 19,
+        "seq_roll": 20,
+        "seq_mod": -1,
+        "hp": 12,
+        "max_hp": 12,
+        "sp": 13,
+        "max_sp": 13,
+        "is_player": false,
+        "id": "d5eea947-1ff1-4c19-9334-5ea1a0f5cbdb"
+      },
+      {
+        "name": "The Roach King",
+        "source_name": "The Roach King",
+        "seq": 8,
+        "seq_roll": 9,
+        "seq_mod": -1,
+        "hp": 26,
+        "max_hp": 26,
+        "sp": 23,
+        "max_sp": 23,
+        "is_player": false,
+        "id": "2dbff449-23ce-4bf4-9d59-b96a93a38700"
+      }
+    ],
+    "panel_0_0_sp_in": 10,
+    "panel_0_0_round_input": 10
   }
 }
