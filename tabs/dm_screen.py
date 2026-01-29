@@ -1,9 +1,12 @@
 import streamlit as st
-from utils.dm_screen_components import PANEL_REGISTRY
+from utils.dm_screen_components import PANEL_REGISTRY, inject_dm_scripts
 from utils.data_manager import load_data, save_data
 from constants import DM_SCREEN_FILE
 
 def render() -> None:
+    
+    # Inject scripts once (outside fragments)
+    inject_dm_scripts()
     
     # --- INITIALIZATION ---
     if "dm_screen_initialized" not in st.session_state or "dm_rows" not in st.session_state:
@@ -64,8 +67,14 @@ def render() -> None:
             st.divider()
             
             if st.button("💾 Save Layout", use_container_width=True):
-                module_content = {k: v for k, v in st.session_state.items() 
-                                  if isinstance(k, str) and k.startswith("panel_") and not isinstance(v, bool)}
+                module_content = {}
+                for k, v in st.session_state.items():
+                    if isinstance(k, str) and k.startswith("panel_") and not isinstance(v, bool):
+                        # Convert sets to lists for JSON serialization
+                        if isinstance(v, set):
+                            module_content[k] = list(v)
+                        else:
+                            module_content[k] = v
                 
                 data_to_save = {
                     "rows": st.session_state.get("dm_rows", 2),
@@ -234,38 +243,18 @@ def render() -> None:
                                     # Render Content
                                     render_func = PANEL_REGISTRY.get(current_panel)
                                     
-                                    if current_panel == "Combat Sequence":
-                                        # Pass grid context to Combat Sequence to merge settings
-                                        grid_ctx = {
-                                            'r': r, 
-                                            'c': c_start, 
-                                            'max_w': cols - c_start + (w - 1),
-                                            'curr_w': w,
-                                            'max_h': rows - r + (h - 1),
-                                            'curr_h': h
-                                        }
-                                        if render_func:
-                                            render_func(cell_key, grid_context=grid_ctx)
-                                    else:
-                                        # Generic Settings Gear for other modules
-                                        c_fill, c_gear = st.columns([10, 1])
-                                        with c_gear:
-                                            with st.popover("⚙️", use_container_width=True):
-                                                st.markdown("**Panel Settings**")
-                                                c_w, c_h = st.columns(2)
-                                                new_w = c_w.number_input("Width", min_value=1, max_value=cols-c_start + (w - 1), value=w, key=f"width_{cell_key}")
-                                                new_h = c_h.number_input("Height", min_value=1, max_value=rows-r + (h - 1), value=h, key=f"height_{cell_key}")
-                                                
-                                                if new_w != w or new_h != h:
-                                                    st.session_state["dm_grid_spans"][f"span_{r}_{c_start}"] = {'w': new_w, 'h': new_h}
-                                                    st.rerun()
-                                                
-                                                if st.button("Reset Module", key=f"rst_mod_{cell_key}"):
-                                                    st.session_state[grid_state_key][cell_key] = "Empty"
-                                                    st.rerun()
-
-                                        if render_func:
-                                            render_func(cell_key)
+                                    # Pass grid context to all modules
+                                    grid_ctx = {
+                                        'r': r, 
+                                        'c': c_start, 
+                                        'max_w': cols - c_start + (w - 1),
+                                        'curr_w': w,
+                                        'max_h': rows - r + (h - 1),
+                                        'curr_h': h
+                                    }
+                                    
+                                    if render_func:
+                                        render_func(cell_key, grid_context=grid_ctx)
 
     # --- RESET MODULES ---
     st.divider()

@@ -2,10 +2,11 @@ import streamlit as st
 import re
 import json
 import copy
+import base64
 from utils.data_manager import load_data, save_data
 from constants import CHARACTERS_FILE, ITEM_FILE, PERKS_FILE
 from utils.character_logic import get_default_character, sync_char_widgets, calculate_stats, roll_skill, migrate_character, SKILL_MAP
-from utils.character_components import render_css, render_bars, render_database_manager, render_inventory_management, render_character_statblock, caps_manager_dialog, crafting_manager_dialog, add_db_item_dialog
+from utils.character_components import render_css, render_bars, render_database_manager, render_inventory_management, render_character_statblock, caps_manager_dialog, crafting_manager_dialog, add_db_item_dialog, render_live_inventory
 
 BACKGROUNDS_FILE = "data/backgrounds.json"
 
@@ -118,6 +119,18 @@ def render_character_sheet() -> None:
                 st.rerun()
 
             if col_edit.button("✏️ Edit Character"):
+                # Reload latest data from disk to capture DM updates (items, HP, etc.)
+                if st.session_state.active_char_idx is not None:
+                    try:
+                        latest_data = load_data(CHARACTERS_FILE)
+                        if latest_data and len(latest_data) > st.session_state.active_char_idx:
+                            # Verify ID match to be safe
+                            disk_char = latest_data[st.session_state.active_char_idx]
+                            if disk_char.get("id") == st.session_state.char_sheet.get("id"):
+                                st.session_state.char_sheet = disk_char
+                    except Exception:
+                        pass
+
                 sync_char_widgets()
                 st.session_state.char_sheet_view = "Edit"
                 st.rerun()
@@ -131,6 +144,8 @@ def render_character_sheet() -> None:
                         save_data(CHARACTERS_FILE, current_db)
             
             render_character_statblock(st.session_state.char_sheet, save_callback=auto_save, char_index=st.session_state.active_char_idx, char_id=st.session_state.char_sheet.get("id"))
+            # --- SPACER TO PREVENT CONTENT JUMPING ---
+            st.markdown('<div style="height: 600px;"></div>', unsafe_allow_html=True)
             return
 
         # --- EDIT VIEW TOOLBAR ---
@@ -197,7 +212,27 @@ def render_character_sheet() -> None:
             st.session_state["c_level"] = new_level
 
             # ROW 1: BASIC INFO
-            col_name, col_level, col_experience = st.columns([2, 1, 1])
+            col_img, col_name, col_level, col_experience = st.columns([1, 2, 1, 1])
+            
+            with col_img:
+                # Image Uploader
+                uploaded_img = st.file_uploader("Img", type=["png", "jpg", "jpeg"], label_visibility="collapsed", key="c_img_up")
+                if uploaded_img:
+                    try:
+                        bytes_data = uploaded_img.getvalue()
+                        b64_str = base64.b64encode(bytes_data).decode()
+                        mime_type = uploaded_img.type
+                        char["image"] = f"data:{mime_type};base64,{b64_str}"
+                    except Exception:
+                        pass
+                
+                # Show current image thumbnail if exists
+                if char.get("image"):
+                    st.image(char["image"], width=80)
+                    if st.button("❌", key="btn_clear_img"):
+                        char["image"] = None
+                        st.rerun()
+
             char["name"] = col_name.text_input("Name", key="c_name")
             # Level is derived from XP, so we disable manual input or just show it
             col_level.text_input("Level", value=str(char.get("level", 1)), disabled=True, help="Derived from XP (1000 XP per level)")
@@ -416,11 +451,10 @@ def render_character_sheet() -> None:
                 if c_craft_btn.button("🛠️ Crafting", use_container_width=True):
                     crafting_manager_dialog(char, save_callback=lambda: save_data(CHARACTERS_FILE, saved_chars))
 
-                render_inventory_management(
-                    char, "inventory", "Equipment",
-                    max_load=char.get("carry_load", 0),
-                    current_load=char.get("current_load", 0),
-                    effective_stats=effective_stats
+                # Use the live inventory fragment to see DM updates
+                render_live_inventory(
+                    char.get("id"), 
+                    st.session_state.active_char_idx
                 )
                 
                 st.markdown("**Caps**")

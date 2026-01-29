@@ -286,6 +286,7 @@ def calculate_stats(char):
     current_load = 0.0
     carried_caps = 0
     bonus_carry = 0
+    base_dt = 0
 
     for item in inventory:
         # Only count weight for root items in "carried"
@@ -295,6 +296,8 @@ def calculate_stats(char):
             # Calculate bonus carry from equipped items (must be root carried)
             if item.get("equipped", False):
                 bonus_carry += item.get("carry_bonus", 0)
+                # Calculate DT from equipped items
+                base_dt += int(item.get("dt", 0))
         
         # Count caps (anywhere in carried hierarchy)
         # We need to check if the item is effectively carried
@@ -354,6 +357,9 @@ def calculate_stats(char):
     
     effective_armor_class = int(get_effective_value(10, "Armor Class"))
     char["ac"] = effective_armor_class
+    
+    # Damage Threshold
+    char["dt"] = int(get_effective_value(base_dt, "DT"))
 
     # Healing Rate: END + Level
     base_healing_rate = effective_stats.get("END", 5) + char.get("level", 1)

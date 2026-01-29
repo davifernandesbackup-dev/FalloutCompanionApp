@@ -192,3 +192,4 @@ elif app_mode == "🗃️ Database Editor":
     database_editor.render()
 elif app_mode == "🖥️ DM Screen (WIP)":
     dm_screen.render()
+

@@ -4,6 +4,7 @@ import streamlit.components.v1 as components
 import re
 import uuid
 import random
+import time
 from utils.data_manager import load_data, save_data
 from utils.character_logic import get_default_character, calculate_stats, SKILL_MAP
 from utils.item_components import render_item_form, render_modifier_builder, parse_modifiers, join_modifiers, get_item_data_from_form
@@ -387,6 +388,27 @@ def confirm_delete_simple_dialog(item, item_list, callback=None):
     if st.button("Confirm Delete", type="primary", use_container_width=True):
         if item in item_list:
             item_list.remove(item)
+        if callback: callback()
+        st.rerun()
+
+@st.dialog("Confirm Deletion")
+def confirm_delete_group_dialog(group_items, all_items, callback=None):
+    if not group_items:
+        return
+
+    item = group_items[0]
+    total_qty = sum(i.get("quantity", 1) for i in group_items)
+    
+    st.markdown(f"Are you sure you want to delete **{item.get('name', 'Unknown')}**?")
+    
+    if total_qty > 1:
+        st.warning(f"⚠️ You are deleting a stack of {total_qty} items.")
+        st.info("To remove specific quantities, use the **Edit** button instead.")
+        
+    if st.button("Confirm Delete", type="primary", use_container_width=True):
+        for i in group_items:
+            if i in all_items:
+                all_items.remove(i)
         if callback: callback()
         st.rerun()
 
@@ -1320,7 +1342,7 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
         c_local.button("Add to Character Only", key=f"{prefix}_btn_add_local", on_click=add_local_callback)
         c_db.button("Save to DB & Add", key=f"{prefix}_btn_save_db", on_click=save_db_callback)
 
-def render_inventory_management(char, key, label, max_load=None, current_load=None, effective_stats=None):
+def render_inventory_management(char, key, label, max_load=None, current_load=None, effective_stats=None, save_callback=None):
     """Renders the inventory with Carried/Stash sections and nesting."""
     items = char.get(key, [])
     if not isinstance(items, list):
@@ -1361,9 +1383,9 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
             with c3:
                 ca, cb = st.columns(2)
                 if ca.button("✏️", key=f"{key}_edit_{i}"):
-                    edit_item_dialog(item, item.get("id", str(i)), items, lambda: None, show_load=False, show_type=False)
+                    edit_item_dialog(item, item.get("id", str(i)), items, save_callback, show_load=False, show_type=False)
                 if cb.button("🗑️", key=f"{key}_del_{i}"):
-                    confirm_delete_simple_dialog(item, items)
+                    confirm_delete_simple_dialog(item, items, callback=save_callback)
         return
 
     # --- INVENTORY TREE LOGIC ---
@@ -1375,8 +1397,30 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
         if pid not in tree: tree[pid] = []
         tree[pid].append(item)
 
+    @st.fragment
     def render_tree_node(item_list):
+        # Group items for display
+        # Key: (Name, Description, Decay, ItemType) -> List of items
+        groups = {}
+        order = []
+        
         for item in item_list:
+            # Don't group containers or equipped items
+            if item.get("is_container") or item.get("equipped"):
+                # Use unique ID as key to prevent grouping
+                key = f"unique_{item['id']}"
+            else:
+                # Group by visual identity
+                key = (item.get("name"), item.get("description"), item.get("decay", 0), item.get("item_type"))
+            
+            if key not in groups:
+                groups[key] = []
+                order.append(key)
+            groups[key].append(item)
+            
+        for key in order:
+            group_items = groups[key]
+            item = group_items[0] # Representative item
             is_container = item.get("is_container", False)
             
             if is_container:
@@ -1410,11 +1454,11 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                     with c_act:
                         with st.popover("⚙️", use_container_width=True):
                             if st.button("Delete", key=f"inv_del_{item['id']}", type="primary", use_container_width=True):
-                                confirm_delete_item_dialog(item, items)
+                                confirm_delete_item_dialog(item, items, callback=save_callback)
                             st.divider()
                             if st.button("Edit", key=f"inv_ed_{item['id']}", use_container_width=True):
-                                edit_item_dialog(item, item['id'], items, lambda: None, show_load=True)
-                            render_move_menu(item, items, f"inv_mv_{item['id']}")
+                                edit_item_dialog(item, item['id'], items, save_callback, show_load=True)
+                            render_move_menu(item, items, f"inv_mv_{item['id']}", callback=save_callback)
                             
                     
                     # Render Children
@@ -1438,7 +1482,8 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                 
                 # Name & Details
                 with c_name:
-                    qty_str = f" (x{item.get('quantity', 1)})" if item.get('quantity', 1) > 1 else ""
+                    total_qty = sum(i.get("quantity", 1) for i in group_items)
+                    qty_str = f" (x{total_qty})" if total_qty > 1 else ""
                     st.markdown(f"**{item.get('name')}{qty_str}**")
                     
                     desc_parts = []
@@ -1485,13 +1530,38 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                 with c_act:
                     with st.popover("⚙️", use_container_width=True):
                         if st.button("Delete", key=f"inv_del_{item['id']}", type="primary", use_container_width=True):
-                            confirm_delete_item_dialog(item, items)
+                            confirm_delete_group_dialog(group_items, items, callback=save_callback)
                         
                         st.divider()
 
                         if st.button("Edit", key=f"inv_ed_{item['id']}", use_container_width=True):
-                            edit_item_dialog(item, item['id'], items, lambda: None, show_load=True)
-                        render_move_menu(item, items, f"inv_mv_{item['id']}")
+                            edit_item_dialog(item, item['id'], items, save_callback, show_load=True)
+                        
+                        # Move menu only works for single items for now to avoid complexity, 
+                        # or we iterate. Let's iterate.
+                        # render_move_menu is complex, let's just show it for the representative item for now.
+                        # Moving the representative won't move the others in the group unless we implement bulk move.
+                        # For now, let's just allow moving the representative item to keep it simple, 
+                        # or we can assume the user will move them one by one if they really want to split the stack.
+                        # But wait, if they are grouped, they can't access the others.
+                        # Let's make a simple "Move All" button if it's a group.
+                        
+                        if len(group_items) > 1:
+                            if st.button("Move All to Stash", key=f"grp_stash_{item['id']}", use_container_width=True):
+                                for i in group_items:
+                                    i["location"] = "stash"
+                                    i["parent_id"] = None
+                                    i["equipped"] = False
+                                if save_callback: save_callback()
+                                st.rerun()
+                            if st.button("Move All to Carried", key=f"grp_carry_{item['id']}", use_container_width=True):
+                                for i in group_items:
+                                    i["location"] = "carried"
+                                    i["parent_id"] = None
+                                if save_callback: save_callback()
+                                st.rerun()
+                        else:
+                            render_move_menu(item, items, f"inv_mv_{item['id']}", callback=save_callback)
 
 
     # --- RENDER UI ---
@@ -1584,34 +1654,37 @@ def show_attack_result(weapon, char, attack_total, attack_roll, attack_mod, dama
             
             # Fire Button
             if c_fire.button("🔥 Fire", key=f"pop_fire_{weapon['id']}", use_container_width=True, disabled=(current_ammo <= 0)):
-                weapon["ammo_current"] -= 1
-                if save_callback: save_callback()
+                def fire_action(c, w):
+                    w["ammo_current"] = max(0, w.get("ammo_current", 0) - 1)
+                _safe_item_action(char.get("id"), weapon["id"], fire_action)
                 st.rerun()
             
             # Reload Button
             if c_reload.button("🔄 Reload", key=f"pop_reload_{weapon['id']}", use_container_width=True):
-                missing = ammo_cap - current_ammo
-                if missing > 0:
-                    ammo_inv = next((i for i in char.get("inventory", []) if i.get("name") == ammo_search_name), None)
-                    if ammo_inv and ammo_inv.get("quantity", 0) > 0:
-                        to_load = min(missing, ammo_inv["quantity"])
-                        weapon["ammo_current"] = current_ammo + to_load
-                        ammo_inv["quantity"] -= to_load
-                        if ammo_inv["quantity"] <= 0:
-                            char["inventory"].remove(ammo_inv)
+                def reload_action(c, w):
+                    # Re-find ammo in fresh inventory
+                    fresh_ammo = next((i for i in c.get("inventory", []) if i.get("name") == ammo_search_name), None)
+                    curr = w.get("ammo_current", 0)
+                    cap = w.get("ammo_capacity", 0)
+                    miss = cap - curr
+                    
+                    if miss > 0 and fresh_ammo and fresh_ammo.get("quantity", 0) > 0:
+                        load_amt = min(miss, fresh_ammo["quantity"])
+                        w["ammo_current"] = curr + load_amt
+                        fresh_ammo["quantity"] -= load_amt
+                        if fresh_ammo["quantity"] <= 0:
+                            c["inventory"].remove(fresh_ammo)
                         
-                        # Decay Logic
-                        weapon["reloads_count"] = weapon.get("reloads_count", 0) + 1
-                        if weapon["reloads_count"] % 10 == 0:
-                            weapon["decay"] = weapon.get("decay", 0) + 1
-                            st.toast(f"{weapon['name']} decay increased!")
-                        
-                        if save_callback: save_callback()
-                        st.rerun()
+                        w["reloads_count"] = w.get("reloads_count", 0) + 1
+                        if w["reloads_count"] % 10 == 0:
+                            w["decay"] = w.get("decay", 0) + 1
+                    elif miss <= 0:
+                        st.toast("Magazine full!")
                     else:
-                        st.error(f"No {ammo_search_name} found!")
-                else:
-                    st.info("Magazine full!")
+                        st.toast(f"No {ammo_search_name} found!")
+
+                _safe_item_action(char.get("id"), weapon["id"], reload_action)
+                st.rerun()
         
         # Direct Feed System
         elif ammo_identifier:
@@ -1620,14 +1693,267 @@ def show_attack_result(weapon, char, attack_total, attack_roll, attack_mod, dama
             st.caption(f"Ammo ({ammo_search_name}): {qty}")
             
             if c_fire.button("🔥 Fire", key=f"pop_fire_{weapon['id']}", use_container_width=True, disabled=(qty <= 0)):
-                if ammo_inv and qty > 0:
-                    ammo_inv["quantity"] -= 1
-                    if ammo_inv["quantity"] <= 0:
-                        char["inventory"].remove(ammo_inv)
-                    if save_callback: save_callback()
-                    st.rerun()
-                else:
-                    st.error(f"Out of {ammo_search_name}!")
+                def fire_direct(c):
+                    # Find ammo item (not the weapon itself)
+                    fresh_ammo = next((i for i in c.get("inventory", []) if i.get("name") == ammo_search_name), None)
+                    if fresh_ammo and fresh_ammo.get("quantity", 0) > 0:
+                        fresh_ammo["quantity"] -= 1
+                        if fresh_ammo["quantity"] <= 0:
+                            c["inventory"].remove(fresh_ammo)
+                
+                _safe_char_update(char.get("id"), fire_direct)
+                st.rerun()
+
+def _render_sb_inventory_content(char, effective_stats, save_callback):
+    """Helper to render the inventory tab content for the statblock."""
+    unique_id = char.get("name", "char")
+    primary = st.session_state.get("theme_primary", "#00ff00")
+    secondary = st.session_state.get("theme_secondary", "#00b300")
+    
+    st.markdown('<div class="section-header">Inventory & Equipment</div>', unsafe_allow_html=True)
+    if "inventory" not in char:
+        char["inventory"] = []
+    inventory = char["inventory"]
+    
+    if not inventory:
+        st.caption("Inventory is empty.")
+    
+    # Load Bar (Full Width)
+    max_load = char.get("carry_load", 0)
+    curr_load = char.get("current_load", 0)
+    is_over = char.get("is_overencumbered", False)
+    
+    bar_color = "load-fill"
+    text_style = "font-weight: bold;"
+    if is_over:
+        bar_color = "hp-fill" # Red
+        text_style = "font-weight: bold; color: #ff4444;"
+        
+    pct = min(1.0, curr_load / max_load) if max_load > 0 else 1.0
+    st.markdown(f"""
+    <div style="display: flex; justify-content: space-between; margin-bottom: 4px; {text_style}">
+        <span>Load{' (OVERENCUMBERED)' if is_over else ''}</span>
+        <span>{curr_load} / {max_load}</span>
+    </div>
+    <div class="custom-bar-bg" style="height: 12px; margin-bottom: 8px;">
+        <div class="custom-bar-fill {bar_color}" style="width: {pct*100}%;"></div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Buttons
+    c_craft, c_add = st.columns(2)
+    with c_craft:
+        if st.button("🛠️ Craft", use_container_width=True, key=f"sb_btn_craft_{unique_id}"):
+            crafting_manager_dialog(char, save_callback)
+
+    with c_add:
+        if st.button("➕ Add Item", use_container_width=True, key=f"sb_btn_add_{unique_id}"):
+            add_db_item_dialog("Equipment", ITEM_FILE, char, "inventory", f"sb_inv_sync_{unique_id}", f"sb_eq_{unique_id}", callback=save_callback)
+            if save_callback: save_callback()
+
+    # Statblock Inventory View (Simplified Tree)
+    tree = {}
+    for item in inventory:
+        pid = item.get("parent_id")
+        if pid not in tree: tree[pid] = []
+        tree[pid].append(item)
+
+    def render_sb_node(item_list):
+        # Group items for display
+        groups = {}
+        order = []
+        
+        for item in item_list:
+            # Don't group containers or equipped items
+            if item.get("is_container") or item.get("equipped"):
+                key = f"unique_{item['id']}"
+            else:
+                # Group by visual identity
+                key = (item.get("name"), item.get("description"), item.get("decay", 0), item.get("item_type"))
+            
+            if key not in groups:
+                groups[key] = []
+                order.append(key)
+            groups[key].append(item)
+
+        for key in order:
+            group_items = groups[key]
+            item = group_items[0]
+            is_container = item.get("is_container", False)
+            
+            if is_container:
+                # Container (Expander)
+                qty_str = f" (x{item.get('quantity', 1)})" if item.get('quantity', 1) > 1 else ""
+                weight_val = float(item.get('weight', 0))
+                weight_str = f" | {weight_val} Load" if weight_val > 0 else ""
+                desc_str = f" | {item.get('description')}" if item.get("description") else ""
+                
+                # Visual indicator for equipped state in label
+                eq_prefix = "🔗 " if item.get("equipped", False) else ""
+                label = f"{eq_prefix}📦 {item.get('name')}{qty_str}{weight_str}{desc_str}"
+                
+                c_chk, c_exp, c_act = st.columns([0.23, 9.5, 0.58], vertical_alignment="top")
+                
+                with c_chk:
+                    can_equip = (item.get("parent_id") is None and item.get("location") == "carried")
+                    if can_equip:
+                        is_equipped = item.get("equipped", False)
+                        button_type = "primary" if is_equipped else "secondary"
+                        if st.button(" ", key=f"sb_cont_eq_{item['id']}", help="Toggle Equip", use_container_width=True, type=button_type):
+                            def toggle_equip(c, i):
+                                i["equipped"] = not i.get("equipped", False)
+                            _safe_item_action(char.get("id"), item["id"], toggle_equip)
+                            st.rerun()
+
+                with c_act:
+                    with st.popover("⚙️", use_container_width=True):
+                        if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
+                            confirm_delete_item_dialog(item, inventory, callback=save_callback)
+                        
+                        st.divider()
+
+                        if st.button("Edit", key=f"sb_ed_{item['id']}", use_container_width=True):
+                            edit_item_dialog(item, item['id'], inventory, save_callback, show_load=True)
+                        render_move_menu(item, inventory, f"sb_mv_{item['id']}", callback=save_callback)
+                        
+
+                with c_exp:
+                    with st.expander(label, expanded=True):
+                        if item["id"] in tree:
+                            render_sb_node(tree[item["id"]])
+            else:
+                # Item (Row)
+                st.markdown(f'<div style="border-top: 1px dashed {{secondary}}33; margin-top: -5px; margin-bottom: 8px;"></div>', unsafe_allow_html=True)
+                c_chk, c_lbl, c_act = st.columns([0.2, 8.2, 0.5], vertical_alignment="top")
+                
+                # Equip Checkbox
+                is_caps = item.get("name") == "Cap"
+                can_equip = (item.get("parent_id") is None and item.get("location") == "carried" and not is_caps)
+                
+                with c_chk:
+                    if can_equip:
+                        is_equipped = item.get("equipped", False)
+                        button_type = "primary" if is_equipped else "secondary"
+                        if st.button(" ", key=f"sb_eq_btn_{item['id']}", help="Toggle Equip", use_container_width=True, type=button_type):
+                            def toggle_equip(c, i):
+                                i["equipped"] = not i.get("equipped", False)
+                            _safe_item_action(char.get("id"), item["id"], toggle_equip)
+                            st.rerun()
+                
+                with c_lbl:
+                    style = "color: #e6fffa;"
+                    total_qty = sum(i.get("quantity", 1) for i in group_items)
+                    qty_str = f" (x{total_qty})" if total_qty > 1 else ""
+                    
+                    desc_parts = []
+                    # Type Info
+                    i_type = item.get("item_type", "Misc")
+                    if i_type == "Weapon":
+                        sub = item.get("sub_type", "")
+                        if sub: desc_parts.append(sub)
+                        if sub in ["Guns", "Energy Weapons", "Archery", "Explosives"]:
+                            rn = int(item.get('range_normal', 0))
+                            rl = int(item.get('range_long', 0))
+                            if rn > 0:
+                                # Calculate Range using effective_stats from closure
+                                range_attr_map = {"Guns": "PER", "Energy Weapons": "PER", "Archery": "STR", "Explosives": "STR"}
+                                stat_key = range_attr_map.get(sub, "PER")
+                                stat_val = effective_stats.get(stat_key, 5)
+                                
+                                rn_ft = int(stat_val * rn)
+                                rl_ft = int(stat_val * rl)
+                                rn_m = round(rn_ft * 0.3)
+                                rl_m = round(rl_ft * 0.3)
+                                desc_parts.append(f"Range: Normal - {rn_m}m ({rn_ft}f, {rn}x) / Long - {rl_m}m ({rl_ft}f, {rl}x)")
+                                
+                                if item.get("ammo_capacity", 0) > 0:
+                                    desc_parts.append(f"Ammo: {item.get('ammo_current', 0)}/{item.get('ammo_capacity', 0)}")
+                    
+                    if float(item.get("weight", 0)) > 0: desc_parts.append(f"{float(item['weight'])} Load")
+                    if item.get("description"): desc_parts.append(item["description"])
+                    if item.get("decay", 0) > 0: desc_parts.append(f"Decay: {item['decay']}")
+                    
+                    if i_type == "Weapon" and item.get("crit_threshold", 20) < 20:
+                        desc_parts.append(f"Crit: {item['crit_threshold']}+")
+                    
+                    desc_html = f"<div style='font-size:0.85em; color:{secondary}; line-height: 1.2; margin-top: 2px;'>{' | '.join(desc_parts)}</div>" if desc_parts else ""
+                    
+                    st.markdown(f"<div style='line-height: 1.2; padding-top: 0px;'><span style='{style}'>{item.get('name')}{qty_str}</span>{desc_html}</div>", unsafe_allow_html=True)
+                
+                with c_act:
+                    with st.popover("⚙️", use_container_width=True):
+                        if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
+                            confirm_delete_group_dialog(group_items, inventory, callback=save_callback)
+                        
+                        st.divider()
+
+                        if st.button("Edit", key=f"sb_ed_{item['id']}", use_container_width=True):
+                            edit_item_dialog(item, item['id'], inventory, save_callback, show_load=True)
+                        
+                        if len(group_items) > 1:
+                            if st.button("Move All to Stash", key=f"sb_grp_stash_{item['id']}", use_container_width=True):
+                                for i in group_items:
+                                    i["location"] = "stash"
+                                    i["parent_id"] = None
+                                    i["equipped"] = False
+                                if save_callback: save_callback()
+                                st.rerun()
+                            if st.button("Move All to Carried", key=f"sb_grp_carry_{item['id']}", use_container_width=True):
+                                for i in group_items:
+                                    i["location"] = "carried"
+                                    i["parent_id"] = None
+                                if save_callback: save_callback()
+                                st.rerun()
+                        else:
+                            render_move_menu(item, inventory, f"sb_mv_{item['id']}", callback=save_callback)
+
+    # Tabs for Carried vs Stash
+    tab_carried, tab_stash = st.tabs(["🎒 Carried", "📦 Stash"])
+    
+    with tab_carried:
+        carried = [i for i in inventory if i.get("parent_id") is None and i.get("location") == "carried"]
+        if carried:
+            render_sb_node(carried)
+        else:
+            st.caption("Nothing carried.")
+    
+    with tab_stash:
+        stash = [i for i in inventory if i.get("parent_id") is None and i.get("location") == "stash"]
+        if stash:
+            render_sb_node(stash)
+        else:
+            st.caption("Stash is empty.")
+
+@st.fragment(run_every=5)
+def render_live_inventory(char_id, char_index, label="Equipment"):
+    """Fragment to render inventory that auto-updates from disk."""
+    # Reload char data
+    try:
+        data = load_data(CHARACTERS_FILE)
+        if data and len(data) > char_index:
+            char = data[char_index]
+            # Verify ID to ensure we have the right char
+            if char.get("id") == char_id:
+                # Calculate stats for load limits
+                _, _, _, effective_stats, _ = calculate_stats(char)
+                
+                def local_save():
+                    # Save changes back to disk
+                    all_chars = load_data(CHARACTERS_FILE)
+                    if all_chars and len(all_chars) > char_index:
+                        all_chars[char_index] = char
+                        save_data(CHARACTERS_FILE, all_chars)
+
+                # Render Inventory
+                render_inventory_management(
+                    char, "inventory", label,
+                    max_load=char.get("carry_load", 0),
+                    current_load=char.get("current_load", 0),
+                    effective_stats=effective_stats,
+                    save_callback=local_save
+                )
+    except Exception:
+        pass
 
 @st.fragment(run_every=3)
 def render_live_status_row(char_index, char_id=None):
@@ -1642,10 +1968,8 @@ def render_live_status_row(char_index, char_id=None):
     
     # Only reload and recalculate if the file has changed or cache is missing
     if cache_key not in st.session_state or st.session_state[cache_key]["mtime"] != mtime:
+            
         saved_chars = load_data(CHARACTERS_FILE)
-        if not saved_chars or char_index >= len(saved_chars):
-            st.error("Character data not found.")
-            return
         
         # Verify we are loading the correct character by ID to prevent index shift issues
         char = None
@@ -1770,8 +2094,118 @@ def render_live_status_row(char_index, char_id=None):
             if st.button("⚙️", key=f"btn_man_caps_{unique_id}_live", use_container_width=True, help="Manage Caps"):
                 caps_manager_dialog(char, local_save)
 
+@st.fragment
+def render_dm_health_bar(char_index):
+    """Renders HP/SP bars for the DM screen with auto-updates."""
+    try:
+        data = load_data(CHARACTERS_FILE)
+        if data and len(data) > char_index:
+            char = data[char_index]
+            # Calculate effective max stats
+            hp_max, sp_max, _, _, _ = calculate_stats(char)
+            
+            # Render Bars (Read-only or simple display)
+            curr_hp = char.get("hp_current", 0)
+            pct_hp = min(1.0, curr_hp / hp_max) if hp_max > 0 else 0
+            
+            curr_sp = char.get("stamina_current", 0)
+            pct_sp = min(1.0, curr_sp / sp_max) if sp_max > 0 else 0
+            
+            st.markdown(f"""
+            <div style="margin-bottom: 2px; font-size: 0.8em;">HP: {curr_hp}/{hp_max}</div>
+            <div class="custom-bar-bg" style="height: 8px; margin-bottom: 4px;">
+                <div class="custom-bar-fill hp-fill" style="width: {pct_hp*100}%;"></div>
+            </div>
+            <div style="margin-bottom: 2px; font-size: 0.8em;">SP: {curr_sp}/{sp_max}</div>
+            <div class="custom-bar-bg" style="height: 8px;">
+                <div class="custom-bar-fill stamina-fill" style="width: {pct_sp*100}%;"></div>
+            </div>
+            """, unsafe_allow_html=True)
+    except Exception:
+        st.error("Error loading char data")
+
+@st.fragment(run_every=5)
+def render_statblock_inventory_fragment(char_id, char_index):
+    """Fragment to render statblock inventory that auto-updates from disk."""
+    # --- Add mtime check and notification trigger ---
+    try:
+        mtime = os.path.getmtime(CHARACTERS_FILE)
+    except OSError:
+        mtime = 0
+    
+    cache_key = f"live_inv_cache_{char_index}"
+    
+    file_changed = cache_key not in st.session_state or st.session_state[cache_key].get("mtime") != mtime
+    
+    if file_changed:
+        if cache_key not in st.session_state: st.session_state[cache_key] = {}
+        st.session_state[cache_key]["mtime"] = mtime
+    try:
+        data = load_data(CHARACTERS_FILE)
+        if data and len(data) > char_index:
+            char = data[char_index]
+            if char.get("id") == char_id:
+                # Calculate stats for range/load
+                _, _, _, effective_stats, _ = calculate_stats(char)
+                
+                def local_save():
+                    all_chars = load_data(CHARACTERS_FILE)
+                    if all_chars and len(all_chars) > char_index:
+                        all_chars[char_index] = char
+                        save_data(CHARACTERS_FILE, all_chars)
+                
+                _render_sb_inventory_content(char, effective_stats, local_save)
+    except Exception:
+        pass
+
+def _safe_char_update(char_id, update_func):
+    """
+    Safely updates a character's data by reloading from disk, applying the update, and saving.
+    update_func(fresh_char) -> None
+    """
+    all_chars = load_data(CHARACTERS_FILE)
+    target_idx = -1
+    fresh_char = None
+    
+    for i, c in enumerate(all_chars):
+        if c.get("id") == char_id:
+            target_idx = i
+            fresh_char = c
+            break
+            
+    if fresh_char:
+        update_func(fresh_char)
+        all_chars[target_idx] = fresh_char
+        save_data(CHARACTERS_FILE, all_chars)
+        
+        # Update session state mirror if this is the active character
+        if "char_sheet" in st.session_state and st.session_state.char_sheet.get("id") == char_id:
+            st.session_state.char_sheet = fresh_char
+        return True
+    return False
+
+def _safe_item_action(char_id, item_id, action_func):
+    """
+    Safely updates a specific item on a character.
+    action_func(fresh_char, fresh_item) -> None
+    """
+    def wrapper(fresh_char):
+        # Find item in fresh inventory (flat list)
+        item = next((i for i in fresh_char.get("inventory", []) if i.get("id") == item_id), None)
+        if item:
+            action_func(fresh_char, item)
+        else:
+            st.warning(f"Item not found on character.")
+            
+    return _safe_char_update(char_id, wrapper)
+
 def render_character_statblock(char, save_callback=None, char_index=None, char_id=None):
     """Renders the character sheet as a visual statblock with interactive elements."""
+    
+    # Fix for dialog reopening bug
+    if "dialog_open" in st.session_state:
+        del st.session_state["dialog_open"]
+
     # Ensure stats are up to date within the fragment
     _, _, _, effective_stats, effective_skills = calculate_stats(char)
     
@@ -1929,7 +2363,32 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
     f'<span class="statblock-meta">Lvl {char.get("level", 1)} {bg_name}</span>'
     f'</div>'
     )
-    st.markdown(header_html, unsafe_allow_html=True)
+
+    img_url = char.get("image")
+    if img_url:
+        st.markdown(f"""
+        <style>
+            .image-header-banner {{
+                height: 800px;
+                background-image: linear-gradient(to top, #0d1117 15%, transparent 100%), url('{img_url}');
+                background-size: cover;
+                background-position: center 30%;
+                position: relative;
+                background-attachment: fixed; /* This creates the parallax effect */
+                margin: -10px -10px 0 -10px; /* Stretch to container edges */
+                border-radius: 6px 6px 0 0;
+            }}
+            .statblock-content-area {{
+                margin-top: -92px; /* Pull content up over the banner */
+                position: relative; /* Establish stacking context */
+            }}
+        </style>
+        <div class="image-header-banner"></div>
+        <div class="statblock-content-area">
+            {header_html}
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(header_html, unsafe_allow_html=True)
     
     unique_id = char.get("name", "char")
     
@@ -2037,6 +2496,7 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
         # Row 1: Combat
         grid_html = '<div class="special-grid">'
         grid_html += make_box("AC", char.get("ac", 10), "Armor Class")
+        grid_html += make_box("DT", char.get("dt", 0), "Damage Threshold")
         grid_html += make_box("SEQ", char.get("combat_sequence", 0), "Combat Sequence (PER Mod)")
         grid_html += make_box("AP", char.get("action_points", 0), "Action Points (AGI + 5)")
         grid_html += make_box("LOAD", f"{char.get('current_weight', 0)}/{char.get('carry_load', 0)}", "Current Load / Max Load")
@@ -2076,7 +2536,7 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
                 with c_atk_info:
                     st.markdown(
                         f'<div style="margin-bottom: 4px;">'
-                        f'<div style="font-weight: bold; color: #e6fffa;">Unarmed <span style="color: {secondary};">+{unarmed_skill}</span></div>'
+                        f'<div style="font-weight: bold; color: #e6fffa;">Unarmed <span style="color: {secondary};">{unarmed_skill}</span></div>'
                         f'<div style="font-size: 0.85em; color: {secondary};">Damage: 1d2{dmg_sign}{dmg_bonus}</div>'
                         f'</div>', unsafe_allow_html=True
                     )
@@ -2111,6 +2571,7 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
                     }
                     skill_name = skill_map.get(sub, "Melee Weapons")
                     atk_bonus = effective_skills.get(skill_name, 0)
+                    atk_sign = "+" if atk_bonus >= 0 else ""
                     
                     # Damage Mapping
                     dmg_attr_map = {"Archery": "END", "Guns": "AGI", "Melee": "STR", "Unarmed": "STR", "Energy Weapons": "PER", "Explosives": "PER"}
@@ -2148,7 +2609,7 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
                     with c_atk_info:
                         st.markdown(
                             f'<div style="margin-bottom: 6px;">'
-                            f'<div style="font-weight: bold; color: #e6fffa;">{w.get("name")} <span style="color: {secondary};">+{atk_bonus}</span></div>'
+                            f'<div style="font-weight: bold; color: #e6fffa;">{w.get("name")} <span style="color: {secondary};">{atk_sign}{atk_bonus}</span></div>'
                             f'<div style="font-size: 0.85em; color: {secondary};">Damage: {w.get("damage_dice_count", 1)}d{w.get("damage_dice_sides", 6)}{dmg_sign}{dmg_bonus}{range_str}{ammo_str}{decay_str}{crit_str}</div>'
                             f'</div>', unsafe_allow_html=True
                         )
@@ -2224,187 +2685,10 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
                                 show_attack_result(w, char, atk_total, atk_roll, atk_bonus, dmg_total, dmg_formula, is_crit, crit_dmg_val, w.get("crit_effect", ""), save_callback)
 
     with tab_inv:
-        # INVENTORY / EQUIPMENT
-        st.markdown('<div class="section-header">Inventory & Equipment</div>', unsafe_allow_html=True)
-        if "inventory" not in char:
-            char["inventory"] = []
-        inventory = char["inventory"]
-        
-        if not inventory:
-            st.caption("Inventory is empty.")
-        
-        # Load Bar (Full Width)
-        max_load = char.get("carry_load", 0)
-        curr_load = char.get("current_load", 0)
-        is_over = char.get("is_overencumbered", False)
-        
-        bar_color = "load-fill"
-        text_style = "font-weight: bold;"
-        if is_over:
-            bar_color = "hp-fill" # Red
-            text_style = "font-weight: bold; color: #ff4444;"
-            
-        pct = min(1.0, curr_load / max_load) if max_load > 0 else 1.0
-        st.markdown(f"""
-        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; {text_style}">
-            <span>Load{' (OVERENCUMBERED)' if is_over else ''}</span>
-            <span>{curr_load} / {max_load}</span>
-        </div>
-        <div class="custom-bar-bg" style="height: 12px; margin-bottom: 8px;">
-            <div class="custom-bar-fill {bar_color}" style="width: {pct*100}%;"></div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Buttons
-        c_craft, c_add = st.columns(2)
-        with c_craft:
-            if st.button("🛠️ Craft", use_container_width=True, key=f"sb_btn_craft_{unique_id}"):
-                crafting_manager_dialog(char, save_callback)
-
-        with c_add:
-            if st.button("➕ Add Item", use_container_width=True, key=f"sb_btn_add_{unique_id}"):
-                add_db_item_dialog("Equipment", ITEM_FILE, char, "inventory", f"sb_inv_sync_{unique_id}", f"sb_eq_{unique_id}", callback=save_callback)
-                if save_callback: save_callback()
-
-        # Statblock Inventory View (Simplified Tree)
-        # Only showing Carried items for statblock usually, but let's show all for management
-        
-        # We reuse the tree logic but simplified for statblock
-        tree = {}
-        for item in inventory:
-            pid = item.get("parent_id")
-            if pid not in tree: tree[pid] = []
-            tree[pid].append(item)
-
-        def render_sb_node(item_list):
-            for item in item_list:
-                is_container = item.get("is_container", False)
-                
-                if is_container:
-                    # Container (Expander)
-                    qty_str = f" (x{item.get('quantity', 1)})" if item.get('quantity', 1) > 1 else ""
-                    weight_val = float(item.get('weight', 0))
-                    weight_str = f" | {weight_val} Load" if weight_val > 0 else ""
-                    desc_str = f" | {item.get('description')}" if item.get("description") else ""
-                    
-                    # Visual indicator for equipped state in label
-                    eq_prefix = "🔗 " if item.get("equipped", False) else ""
-                    label = f"{eq_prefix}📦 {item.get('name')}{qty_str}{weight_str}{desc_str}"
-                    
-                    c_chk, c_exp, c_act = st.columns([0.23, 9.5, 0.58], vertical_alignment="top")
-                    
-                    with c_chk:
-                        can_equip = (item.get("parent_id") is None and item.get("location") == "carried")
-                        if can_equip:
-                            is_equipped = item.get("equipped", False)
-                            button_type = "primary" if is_equipped else "secondary"
-                            if st.button(" ", key=f"sb_cont_eq_{item['id']}", help="Toggle Equip", use_container_width=True, type=button_type):
-                                item["equipped"] = not is_equipped
-                                if save_callback: save_callback()
-                                st.rerun()
-
-                    with c_act:
-                        with st.popover("⚙️", use_container_width=True):
-                            if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
-                                confirm_delete_item_dialog(item, inventory, callback=save_callback)
-                            
-                            st.divider()
-
-                            if st.button("Edit", key=f"sb_ed_{item['id']}", use_container_width=True):
-                                edit_item_dialog(item, item['id'], inventory, save_callback, show_load=True)
-                            render_move_menu(item, inventory, f"sb_mv_{item['id']}", callback=save_callback)
-                            
-
-                    with c_exp:
-                        with st.expander(label, expanded=True):
-                            if item["id"] in tree:
-                                render_sb_node(tree[item["id"]])
-                else:
-                    # Item (Row)
-                    st.markdown(f'<div style="border-top: 1px dashed {{secondary}}33; margin-top: -5px; margin-bottom: 8px;"></div>', unsafe_allow_html=True)
-                    c_chk, c_lbl, c_act = st.columns([0.2, 8.2, 0.5], vertical_alignment="top")
-                    
-                    # Equip Checkbox
-                    is_caps = item.get("name") == "Cap"
-                    can_equip = (item.get("parent_id") is None and item.get("location") == "carried" and not is_caps)
-                    
-                    with c_chk:
-                        if can_equip:
-                            is_equipped = item.get("equipped", False)
-                            button_type = "primary" if is_equipped else "secondary"
-                            if st.button(" ", key=f"sb_eq_btn_{item['id']}", help="Toggle Equip", use_container_width=True, type=button_type):
-                                item["equipped"] = not is_equipped
-                                if save_callback: save_callback()
-                                st.rerun()
-                    
-                    with c_lbl:
-                        style = "color: #e6fffa;"
-                        qty_str = f" (x{item.get('quantity', 1)})" if item.get('quantity', 1) > 1 else ""
-                        
-                        desc_parts = []
-                        # Type Info
-                        i_type = item.get("item_type", "Misc")
-                        if i_type == "Weapon":
-                            sub = item.get("sub_type", "")
-                            if sub: desc_parts.append(sub)
-                            if sub in ["Guns", "Energy Weapons", "Archery", "Explosives"]:
-                                rn = int(item.get('range_normal', 0))
-                                rl = int(item.get('range_long', 0))
-                                if rn > 0:
-                                    # Calculate Range using effective_stats from closure
-                                    range_attr_map = {"Guns": "PER", "Energy Weapons": "PER", "Archery": "STR", "Explosives": "STR"}
-                                    stat_key = range_attr_map.get(sub, "PER")
-                                    stat_val = effective_stats.get(stat_key, 5)
-                                    
-                                    rn_ft = int(stat_val * rn)
-                                    rl_ft = int(stat_val * rl)
-                                    rn_m = round(rn_ft * 0.3)
-                                    rl_m = round(rl_ft * 0.3)
-                                    desc_parts.append(f"Range: Normal - {rn_m}m ({rn_ft}f, {rn}x) / Long - {rl_m}m ({rl_ft}f, {rl}x)")
-                                    
-                                    if item.get("ammo_capacity", 0) > 0:
-                                        desc_parts.append(f"Ammo: {item.get('ammo_current', 0)}/{item.get('ammo_capacity', 0)}")
-                        
-                        if float(item.get("weight", 0)) > 0: desc_parts.append(f"{float(item['weight'])} Load")
-                        if item.get("description"): desc_parts.append(item["description"])
-                        if item.get("decay", 0) > 0: desc_parts.append(f"Decay: {item['decay']}")
-                        
-                        if i_type == "Weapon" and item.get("crit_threshold", 20) < 20:
-                            desc_parts.append(f"Crit: {item['crit_threshold']}+")
-                        
-                        desc_html = f"<div style='font-size:0.85em; color:{secondary}; line-height: 1.2; margin-top: 2px;'>{' | '.join(desc_parts)}</div>" if desc_parts else ""
-                        
-                        st.markdown(f"<div style='line-height: 1.2; padding-top: 0px;'><span style='{style}'>{item.get('name')}{qty_str}</span>{desc_html}</div>", unsafe_allow_html=True)
-                    
-                    with c_act:
-                        with st.popover("⚙️", use_container_width=True):
-                            if st.button("Delete", key=f"sb_del_{item['id']}", type="primary", use_container_width=True):
-                                confirm_delete_item_dialog(item, inventory, callback=save_callback)
-                            
-                            st.divider()
-
-                            if st.button("Edit", key=f"sb_ed_{item['id']}", use_container_width=True):
-                                edit_item_dialog(item, item['id'], inventory, save_callback, show_load=True)
-                            render_move_menu(item, inventory, f"sb_mv_{item['id']}", callback=save_callback)
-
-                            
-
-        # Tabs for Carried vs Stash
-        tab_carried, tab_stash = st.tabs(["🎒 Carried", "📦 Stash"])
-        
-        with tab_carried:
-            carried = [i for i in inventory if i.get("parent_id") is None and i.get("location") == "carried"]
-            if carried:
-                render_sb_node(carried)
-            else:
-                st.caption("Nothing carried.")
-        
-        with tab_stash:
-            stash = [i for i in inventory if i.get("parent_id") is None and i.get("location") == "stash"]
-            if stash:
-                render_sb_node(stash)
-            else:
-                st.caption("Stash is empty.")
+        if char_index is not None and char_id:
+            render_statblock_inventory_fragment(char_id, char_index)
+        else:
+            _render_sb_inventory_content(char, effective_stats, save_callback)
 
     with tab_feat:
         # FEATURES & TRAITS SECTION
@@ -2436,3 +2720,6 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
         notes_key = f"sb_notes_{unique_id}"
         st.text_area("Notes", value=char.get("notes", ""), height=400, key=notes_key, label_visibility="collapsed",
                         on_change=update_stat_callback, args=(char, "notes", notes_key, save_callback))
+
+    if img_url:
+        st.markdown("</div>", unsafe_allow_html=True)
