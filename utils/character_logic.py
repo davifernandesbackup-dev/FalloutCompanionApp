@@ -25,6 +25,7 @@ def get_default_character():
         "id": str(uuid.uuid4()),
         "name": "New Character",
         "level": 1,
+        "last_processed_level": 1,
         "backgrounds": [],
         "xp": 0,
         "stats": {
@@ -140,6 +141,10 @@ def migrate_character(char):
     if "traits" not in char:
         char["traits"] = []
         
+    # Migrate Level Tracking
+    if "last_processed_level" not in char:
+        char["last_processed_level"] = char.get("level", 1)
+
     # Ensure Backgrounds have IDs
     for bg in char.get("backgrounds", []):
         if "id" not in bg: bg["id"] = str(uuid.uuid4())
@@ -347,12 +352,24 @@ def calculate_stats(char):
     base_action_points = effective_stats.get("AGI", 5) + 5
     char["action_points"] = int(get_effective_value(base_action_points, "Action Points"))
     
-    base_health = effective_stats.get("END", 5) + 5
-    effective_health_max = int(get_effective_value(base_health, "Max HP"))
+    # HP/SP Calculation based on Level Table
+    # Level 1-2: 10 + Mod*1
+    # Level 3-4: 15 + Mod*2
+    # ...
+    level = char.get("level", 1)
+    tier = (level - 1) // 2
+    base_val = 10 + (5 * tier)
+    multiplier = 1 + tier
+    
+    end_mod = effective_stats.get("END", 5) - 5
+    agi_mod = effective_stats.get("AGI", 5) - 5
+    
+    raw_hp = base_val + (end_mod * multiplier)
+    effective_health_max = int(get_effective_value(max(1, raw_hp), "Max HP"))
     char["hp_max"] = effective_health_max
     
-    base_stamina = effective_stats.get("AGI", 5) + 5
-    effective_stamina_max = int(get_effective_value(base_stamina, "Max SP"))
+    raw_sp = base_val + (agi_mod * multiplier)
+    effective_stamina_max = int(get_effective_value(max(0, raw_sp), "Max SP"))
     char["stamina_max"] = effective_stamina_max
     
     effective_armor_class = int(get_effective_value(10, "Armor Class"))

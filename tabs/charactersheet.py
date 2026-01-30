@@ -6,7 +6,7 @@ import base64
 from utils.data_manager import load_data, save_data
 from constants import CHARACTERS_FILE, ITEM_FILE, PERKS_FILE
 from utils.character_logic import get_default_character, sync_char_widgets, calculate_stats, roll_skill, migrate_character, SKILL_MAP
-from utils.character_components import render_css, render_bars, render_database_manager, render_inventory_management, render_character_statblock, caps_manager_dialog, crafting_manager_dialog, add_db_item_dialog, render_live_inventory
+from utils.character_components import render_css, render_bars, render_database_manager, render_inventory_management, render_character_statblock, caps_manager_dialog, crafting_manager_dialog, add_db_item_dialog, render_live_inventory, level_up_dialog
 
 BACKGROUNDS_FILE = "data/backgrounds.json"
 
@@ -234,8 +234,13 @@ def render_character_sheet() -> None:
                         st.rerun()
 
             char["name"] = col_name.text_input("Name", key="c_name")
-            # Level is derived from XP, so we disable manual input or just show it
-            col_level.text_input("Level", value=str(char.get("level", 1)), disabled=True, help="Derived from XP (1000 XP per level)")
+            
+            last_lvl = char.get("last_processed_level", 1)
+            if new_level > last_lvl:
+                if col_level.button(f"🔼 Lvl {new_level}", help="Click to Level Up"):
+                    level_up_dialog(char, new_level, save_callback=lambda: save_data(CHARACTERS_FILE, saved_chars))
+            else:
+                col_level.text_input("Level", value=str(char.get("level", 1)), disabled=True, help="Derived from XP (1000 XP per level)")
             char["xp"] = col_experience.number_input("XP", min_value=0, key="c_xp")
 
             # ROW 2: S.P.E.C.I.A.L.
@@ -414,7 +419,7 @@ def render_character_sheet() -> None:
                     if st.button("➕ Set Background", key="btn_add_bg", use_container_width=True):
                         st.session_state[bg_trig] = True
                     if st.session_state.get(bg_trig):
-                        add_db_item_dialog("Background", BACKGROUNDS_FILE, char, "backgrounds", "c_backgrounds", "bg_dlg", close_key=bg_trig)
+                        add_db_item_dialog("Background", BACKGROUNDS_FILE, char, "backgrounds", "c_backgrounds", "bg_dlg", close_key=bg_trig, key="dlg_add_bg")
                 else:
                     st.caption("Background set.")
                 
@@ -428,7 +433,7 @@ def render_character_sheet() -> None:
                     if st.button("➕ Add Trait", key="btn_add_trait", use_container_width=True):
                         st.session_state[trait_trig] = True
                     if st.session_state.get(trait_trig):
-                        add_db_item_dialog("Trait", PERKS_FILE, char, "traits", "c_traits", "trait_dlg", close_key=trait_trig)
+                        add_db_item_dialog("Trait", PERKS_FILE, char, "traits", "c_traits", "trait_dlg", close_key=trait_trig, key="dlg_add_trait")
                 else:
                     st.caption("Trait limit reached.")
                 
@@ -442,7 +447,7 @@ def render_character_sheet() -> None:
                 if st.button("➕ Add Perk", key="btn_add_perk", use_container_width=True):
                     st.session_state[perk_trig] = True
                 if st.session_state.get(perk_trig):
-                    add_db_item_dialog("Perk", PERKS_FILE, char, "perks", "c_perks", "perk_dlg", close_key=perk_trig)
+                    add_db_item_dialog("Perk", PERKS_FILE, char, "perks", "c_perks", "perk_dlg", close_key=perk_trig, key="dlg_add_perk")
                 
                 st.divider()
                 st.markdown("**Inventory**")

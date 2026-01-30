@@ -238,6 +238,8 @@ def give_item_to_player(player_name, item_data):
 def render_combatant_row(entry, is_active, data_key, key_prefix):
     """Renders a single combatant row."""
     
+    is_dead = entry.get('hp', 0) <= 0
+    
     if is_active:
         bg_color = "rgba(255, 255, 0, 0.15)"
         border = "1px solid #ffff00"
@@ -245,7 +247,20 @@ def render_combatant_row(entry, is_active, data_key, key_prefix):
         bg_color = "rgba(255, 255, 255, 0.05)"
         border = "1px solid #444"
     
-    name_color = "#4da6ff" if entry.get("is_player") else "#ff4d4d"
+    if "party" not in entry:
+        entry["party"] = "Players" if entry.get("is_player") else "Enemies"
+
+    party_colors = {
+        "Players": "#4da6ff",
+        "Enemies": "#ff4d4d",
+        "Neutral": "#ffcc00",
+        "Other": "#cc33ff"
+    }
+
+    if is_dead:
+        name_color = "#666666"
+    else:
+        name_color = party_colors.get(entry.get("party"), "#ff4d4d")
     
     # Construct Popout Link
     source_name = entry.get("source_name", entry["name"])
@@ -265,21 +280,71 @@ def render_combatant_row(entry, is_active, data_key, key_prefix):
     <div style="background-color: {bg_color}; border: {border}; padding: 5px; border-radius: 5px; margin-bottom: 5px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-weight: bold; font-size: 1.1em; min-width: 30px;">{seq_display}</span>
-            <span style="flex-grow: 1; margin-left: 10px; color: {name_color}; font-weight: bold;">{entry['name']}</span>
+            <span style="flex-grow: 1; margin-left: 10px; color: {name_color}; font-weight: bold; { 'text-decoration: line-through;' if is_dead else '' }">{entry['name']}</span>
             <a href="#" class="statblock-popout" data-url="{popout_url}" data-name="{window_name}" style="text-decoration: none; margin-left: 10px;" title="Open Statblock">📄</a>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    c_hp, c_sp, c_edit, c_del = st.columns([2.2, 2.2, 0.5, 0.5], vertical_alignment="center")
+    # Check for active loot generator
+    loot_gen_prefix = None
+    if "dm_grid_state" in st.session_state:
+        for k, v in st.session_state["dm_grid_state"].items():
+            if v == "Loot Generator":
+                loot_gen_prefix = k
+                break
+
+    if is_dead:
+        # Dead Layout: Skip | HP | Loot (if avail) | Edit | Delete
+        if loot_gen_prefix and not entry.get("is_player"):
+            c_skip, c_hp, c_loot, c_edit, c_del = st.columns([0.6, 2.6, 0.6, 0.6, 0.6], vertical_alignment="center")
+            with c_loot:
+                pool_key = f"{loot_gen_prefix}_combat_loot"
+                looted_key = f"{loot_gen_prefix}_looted_ids"
+                
+                if looted_key not in st.session_state: st.session_state[looted_key] = set()
+                if isinstance(st.session_state[looted_key], list): st.session_state[looted_key] = set(st.session_state[looted_key])
+                
+                is_looted = entry['id'] in st.session_state[looted_key]
+                
+                if st.button("🎁", key=f"btn_loot_{entry['id']}", disabled=is_looted, help="Add loot to pool"):
+                    bestiary = load_data(BESTIARY_FILE)
+                    source_name = entry.get("source_name", entry["name"])
+                    b_entry = bestiary.get(source_name)
+                    new_loot = []
+                    if b_entry:
+                        loot_table = b_entry.get("loot", [])
+                        for loot_str in loot_table:
+                            name, qty, _, decay_val, _ = parse_and_roll_loot(loot_str)
+                            new_loot.append({"name": name, "qty": qty, "decay": decay_val})
+                    
+                    if pool_key not in st.session_state: st.session_state[pool_key] = []
+                    st.session_state[pool_key].extend(new_loot)
+                    st.session_state[looted_key].add(entry['id'])
+                    st.rerun()
+        else:
+            c_skip, c_hp, c_edit, c_del = st.columns([0.6, 3.2, 0.6, 0.6], vertical_alignment="center")
+            
+        with c_skip:
+            is_skipped = entry.get("skip", True)
+            icon = "⏭️" if is_skipped else "🛑"
+            if st.button(icon, key=f"btn_skip_{entry['id']}", help="Toggle Turn Skipping"):
+                entry["skip"] = not is_skipped
+                st.rerun()
+                
+        with c_del:
+            if st.button("🗑️", key=f"btn_dead_del_{entry['id']}", type="primary"):
+                if entry in st.session_state[data_key]:
+                    st.session_state[data_key].remove(entry)
+                    st.rerun()
+    else:
+        c_hp, c_sp, c_edit = st.columns([2.5, 2.5, 0.6], vertical_alignment="center")
+        with c_sp:
+            render_sp_bar(entry)
     
     with c_hp:
         render_hp_bar(entry)
-
-    with c_sp:
-        render_sp_bar(entry)
     
-    # Edit Stats
     with c_edit:
         with st.popover("✏️"):
             st.markdown("**Damage / Heal**")
@@ -288,22 +353,33 @@ def render_combatant_row(entry, is_active, data_key, key_prefix):
             c_h1, c_h2 = st.columns(2)
             if c_h1.button("Heal HP", key=f"btn_heal_hp_{entry['id']}", use_container_width=True):
                 _apply_combat_change(entry, "heal_hp", dmg_amount)
+                st.rerun()
                 
             if c_h2.button("Heal SP", key=f"btn_heal_sp_{entry['id']}", use_container_width=True):
                 _apply_combat_change(entry, "heal_sp", dmg_amount)
-                
+                st.rerun()
 
             c_d1, c_d2 = st.columns(2)
             if c_d1.button("Dmg HP", key=f"btn_dmg_hp_{entry['id']}", use_container_width=True, help="Direct HP Damage"):
                 _apply_combat_change(entry, "dmg_hp", dmg_amount)
+                st.rerun()
                 
             if c_d2.button("Damage", key=f"btn_dmg_all_{entry['id']}", use_container_width=True, help="Damage SP then HP"):
                 _apply_combat_change(entry, "dmg_all", dmg_amount)
+                st.rerun()
                 
             if not entry.get("is_player"):
                 if st.button("Full Heal", key=f"btn_full_heal_{entry['id']}", use_container_width=True):
                     entry['hp'] = entry['max_hp']
                     entry['sp'] = entry['max_sp']
+                    st.rerun()
+                
+                party_opts = ["Players", "Enemies", "Neutral", "Other"]
+                curr_party = entry.get("party", "Enemies")
+                if curr_party not in party_opts: curr_party = "Enemies"
+                new_party = st.selectbox("Faction Color", party_opts, index=party_opts.index(curr_party), key=f"party_sel_{entry['id']}")
+                if new_party != curr_party:
+                    entry["party"] = new_party
                     st.rerun()
             
             st.divider()
@@ -321,7 +397,7 @@ def render_combatant_row(entry, is_active, data_key, key_prefix):
             
             else:
                 render_player_dt(entry)
-                
+
                 # Give Item Section for Players
                 with st.expander("Give Item"):
                     c_name, c_qty = st.columns([3, 1])
@@ -349,11 +425,12 @@ def render_combatant_row(entry, is_active, data_key, key_prefix):
             widget_key = f"ed_seq_{entry['id']}"
             entry['seq'] = c_seq.number_input("Sequence", value=entry['seq'], key=widget_key)
             c_roll.button("🎲", key=f"btn_reroll_{entry['id']}", help="Reroll Sequence", on_click=reroll_sequence_callback, args=(entry, data_key, widget_key))
-    
-    if c_del.button("❌", key=f"{key_prefix}_del_{entry['id']}"):
-        if entry in st.session_state[data_key]:
-            st.session_state[data_key].remove(entry)
-            st.rerun()
+
+            st.divider()
+            if st.button("🗑️ Delete Combatant", key=f"{key_prefix}_del_{entry['id']}", type="primary", use_container_width=True):
+                if entry in st.session_state[data_key]:
+                    st.session_state[data_key].remove(entry)
+                    st.rerun()
 
 @st.fragment
 def render_combat_sequence_tracker(key_prefix, grid_context=None):
@@ -386,6 +463,21 @@ def render_combat_sequence_tracker(key_prefix, grid_context=None):
                     if w_key in st.session_state:
                         st.session_state[w_key] = c['seq']
                 st.session_state[data_key].sort(key=lambda x: x['seq'], reverse=True)
+                st.rerun()
+            
+            if st.button("🔢 Sort by Sequence", key=f"{key_prefix}_sort_seq", use_container_width=True):
+                # Capture current active ID to preserve turn
+                active_id = None
+                if st.session_state[data_key] and st.session_state[turn_key] < len(st.session_state[data_key]):
+                    active_id = st.session_state[data_key][st.session_state[turn_key]]["id"]
+                
+                st.session_state[data_key].sort(key=lambda x: x['seq'], reverse=True)
+                
+                # Restore active index
+                if active_id:
+                    new_idx = next((i for i, c in enumerate(st.session_state[data_key]) if c["id"] == active_id), None)
+                    if new_idx is not None:
+                        st.session_state[turn_key] = new_idx
                 st.rerun()
             
             # Load Encounter
@@ -518,7 +610,23 @@ def render_combat_sequence_tracker(key_prefix, grid_context=None):
 
             st.divider()
             
-            if st.button("🗑️ Clear All", key=f"{key_prefix}_clear"):
+            if st.button(" Clear Dead (0 HP)", key=f"{key_prefix}_clear_dead", use_container_width=True):
+                # Capture current active ID
+                active_id = None
+                if st.session_state[data_key] and st.session_state[turn_key] < len(st.session_state[data_key]):
+                    active_id = st.session_state[data_key][st.session_state[turn_key]]["id"]
+
+                st.session_state[data_key] = [c for c in st.session_state[data_key] if c.get("hp", 0) > 0]
+                
+                # Restore active index
+                new_idx = next((i for i, c in enumerate(st.session_state[data_key]) if c["id"] == active_id), None) if active_id else None
+                if new_idx is not None:
+                    st.session_state[turn_key] = new_idx
+                else:
+                    st.session_state[turn_key] = min(st.session_state[turn_key], max(0, len(st.session_state[data_key]) - 1))
+                st.rerun()
+            
+            if st.button("🗑️ Clear All", key=f"{key_prefix}_clear", use_container_width=True):
                 st.session_state[data_key] = []
                 st.session_state[turn_key] = 0
                 st.session_state[round_key] = 1
@@ -577,12 +685,30 @@ def render_combat_sequence_tracker(key_prefix, grid_context=None):
                 st.rerun()
     
     if c_next.button("Next ➡️", key=f"{key_prefix}_next", use_container_width=True):
-        new_turn = st.session_state[turn_key] + 1
-        if new_turn >= len(combatants):
-            st.session_state[turn_key] = 0
-            st.session_state[round_key] += 1
+        if not combatants:
+            pass
         else:
-            st.session_state[turn_key] = new_turn
+            start_idx = st.session_state[turn_key]
+            curr_idx = start_idx
+            
+            # Loop to find next living
+            for _ in range(len(combatants) + 1):
+                curr_idx += 1
+                
+                if curr_idx >= len(combatants):
+                    curr_idx = 0
+                    st.session_state[round_key] += 1
+                
+                c = combatants[curr_idx]
+                is_alive = c.get('hp', 0) > 0
+                is_skipped = c.get('skip', True)
+                
+                if is_alive or not is_skipped:
+                    st.session_state[turn_key] = curr_idx
+                    break
+                
+                if curr_idx == start_idx:
+                    break
         st.rerun()
 
 def render_monster_lookup(key_prefix, grid_context=None):
@@ -680,6 +806,7 @@ def render_loot_generator(key_prefix, grid_context=None):
                 if f"{key_prefix}_looted_ids" in st.session_state:
                     del st.session_state[f"{key_prefix}_looted_ids"]
                 st.toast("Loot tracking reset.")
+                st.rerun()
             if st.button("Clear Loot Pool", key=f"{key_prefix}_rst_pool", use_container_width=True):
                 st.session_state[f"{key_prefix}_combat_loot"] = []
                 st.rerun()
@@ -855,6 +982,7 @@ def render_loot_generator(key_prefix, grid_context=None):
                     st.warning("No new dead monsters found in tracker.")
                 elif not new_loot:
                     st.info("Dead monsters had no loot.")
+                st.rerun()
             
             if f"{key_prefix}_combat_loot" in st.session_state:
                  _render_loot_list(st.session_state[f"{key_prefix}_combat_loot"], players, key_prefix, "combat", f"{key_prefix}_combat_loot")

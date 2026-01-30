@@ -5,6 +5,7 @@ import re
 import uuid
 import random
 import time
+import copy
 from utils.data_manager import load_data, save_data
 from utils.character_logic import get_default_character, calculate_stats, SKILL_MAP
 from utils.item_components import render_item_form, render_modifier_builder, parse_modifiers, join_modifiers, get_item_data_from_form
@@ -720,6 +721,161 @@ def crafting_manager_dialog(char, save_callback=None):
                     if save_callback: save_callback()
                     st.query_params["_update"] = str(uuid.uuid4())
 
+@st.dialog("Level Up")
+def level_up_dialog(char, current_level, save_callback):
+    st.markdown(f"### Level Up: {char.get('last_processed_level', 1)} ➔ {current_level}")
+    
+    # Calculate Points
+    start_lvl = char.get("last_processed_level", 1)
+    skill_levels = {5, 9, 13, 17, 21, 25, 29}
+    
+    # Get stats for calculation
+    _, _, _, eff_stats, _ = calculate_stats(char)
+    int_score = eff_stats.get("INT", 5)
+    sp_per_level = 3
+    if int_score >= 6: sp_per_level = 5
+    elif int_score == 5: sp_per_level = 4
+    
+    total_perk_points = 0
+    total_skill_points = 0
+    
+    for l in range(start_lvl + 1, current_level + 1):
+        if l in skill_levels:
+            total_skill_points += sp_per_level
+        else:
+            total_perk_points += 1
+            
+    # Initialize Session State for tracking choices if not present
+    dlg_id = f"lvl_up_{char.get('id', 'new')}_{current_level}"
+    
+    if f"{dlg_id}_init" not in st.session_state:
+        st.session_state[f"{dlg_id}_perks_spent"] = 0
+        st.session_state[f"{dlg_id}_skills_spent"] = 0
+        st.session_state[f"{dlg_id}_new_perks"] = []
+        st.session_state[f"{dlg_id}_stat_boosts"] = {k: 0 for k in ["STR", "PER", "END", "CHA", "INT", "AGI", "LCK"]}
+        st.session_state[f"{dlg_id}_skill_boosts"] = {k: 0 for k in SKILL_MAP.keys()}
+        st.session_state[f"{dlg_id}_init"] = True
+
+    # --- PERK POINTS UI ---
+    if total_perk_points > 0:
+        st.markdown(f"**Perk Points Available:** {total_perk_points - st.session_state[f'{dlg_id}_perks_spent']} / {total_perk_points}")
+        
+        tab_p, tab_s = st.tabs(["New Perk", "Ability Score"])
+        
+        with tab_p:
+            perks_db = load_data(PERKS_FILE)
+            if not isinstance(perks_db, list): perks_db = []
+            perk_opts = [p["name"] for p in perks_db if "name" in p]
+            sel_perk = st.selectbox("Select Perk", [""] + perk_opts, key=f"{dlg_id}_perk_sel")
+            
+            if st.button("Add Perk", key=f"{dlg_id}_btn_add_perk"):
+                if st.session_state[f"{dlg_id}_perks_spent"] < total_perk_points:
+                    if sel_perk:
+                        p_data = next((p for p in perks_db if p["name"] == sel_perk), None)
+                        if p_data:
+                            new_p = copy.deepcopy(p_data)
+                            new_p["id"] = str(uuid.uuid4())
+                            new_p["active"] = True
+                            st.session_state[f"{dlg_id}_new_perks"].append(new_p)
+                            st.session_state[f"{dlg_id}_perks_spent"] += 1
+                            st.rerun()
+                else:
+                    st.error("No Perk Points remaining.")
+
+        with tab_s:
+            st.caption("Increase an Ability Score by 1.")
+            c_stat, c_btn = st.columns([3, 1])
+            stat_to_boost = c_stat.selectbox("Ability", ["STR", "PER", "END", "CHA", "INT", "AGI", "LCK"], key=f"{dlg_id}_stat_sel")
+            if c_btn.button("Boost", key=f"{dlg_id}_btn_boost"):
+                if st.session_state[f"{dlg_id}_perks_spent"] < total_perk_points:
+                    st.session_state[f"{dlg_id}_stat_boosts"][stat_to_boost] += 1
+                    st.session_state[f"{dlg_id}_perks_spent"] += 1
+                    st.rerun()
+                else:
+                    st.error("No Perk Points remaining.")
+
+        if st.session_state[f"{dlg_id}_new_perks"]:
+            st.caption("Selected Perks:")
+            for i, p in enumerate(st.session_state[f"{dlg_id}_new_perks"]):
+                c1, c2 = st.columns([4, 1])
+                c1.write(f"• {p['name']}")
+                if c2.button("❌", key=f"{dlg_id}_rm_p_{i}"):
+                    st.session_state[f"{dlg_id}_new_perks"].pop(i)
+                    st.session_state[f"{dlg_id}_perks_spent"] -= 1
+                    st.rerun()
+        
+        active_boosts = {k: v for k, v in st.session_state[f"{dlg_id}_stat_boosts"].items() if v > 0}
+        if active_boosts:
+            st.caption("Stat Boosts:")
+            for k, v in active_boosts.items():
+                c1, c2 = st.columns([4, 1])
+                c1.write(f"• {k} +{v}")
+                if c2.button("❌", key=f"{dlg_id}_rm_s_{k}"):
+                    st.session_state[f"{dlg_id}_stat_boosts"][k] -= 1
+                    st.session_state[f"{dlg_id}_perks_spent"] -= 1
+                    st.rerun()
+        st.divider()
+
+    # --- SKILL POINTS UI ---
+    if total_skill_points > 0:
+        remaining_sp = total_skill_points - st.session_state[f"{dlg_id}_skills_spent"]
+        st.markdown(f"**Skill Points Available:** {remaining_sp} / {total_skill_points}")
+        
+        c_skill, c_amt, c_add = st.columns([2, 1, 1])
+        skill_sel = c_skill.selectbox("Skill", sorted(list(SKILL_MAP.keys())), key=f"{dlg_id}_skill_sel")
+        amt = c_amt.number_input("Amount", min_value=1, max_value=max(1, remaining_sp), value=1, key=f"{dlg_id}_sp_amt")
+        
+        if c_add.button("Add Points", key=f"{dlg_id}_btn_add_sp"):
+            if remaining_sp >= amt:
+                st.session_state[f"{dlg_id}_skill_boosts"][skill_sel] += amt
+                st.session_state[f"{dlg_id}_skills_spent"] += amt
+                st.rerun()
+            else:
+                st.error("Not enough points.")
+        
+        active_skills = {k: v for k, v in st.session_state[f"{dlg_id}_skill_boosts"].items() if v > 0}
+        if active_skills:
+            st.caption("Skill Increases:")
+            for k, v in active_skills.items():
+                c1, c2 = st.columns([4, 1])
+                c1.write(f"• {k} +{v}")
+                if c2.button("❌", key=f"{dlg_id}_rm_sk_{k}"):
+                    st.session_state[f"{dlg_id}_skills_spent"] -= v
+                    st.session_state[f"{dlg_id}_skill_boosts"][k] = 0
+                    st.rerun()
+        st.divider()
+
+    if st.button("✅ Confirm Level Up", type="primary", use_container_width=True):
+        if "perks" not in char: char["perks"] = []
+        char["perks"].extend(st.session_state[f"{dlg_id}_new_perks"])
+        
+        if "stats" not in char: char["stats"] = {}
+        for k, v in st.session_state[f"{dlg_id}_stat_boosts"].items():
+            char["stats"][k] = char["stats"].get(k, 5) + v
+            
+        # Skill Points as Hidden Perk
+        skill_boosts = st.session_state[f"{dlg_id}_skill_boosts"]
+        active_boosts = {k: v for k, v in skill_boosts.items() if v > 0}
+        
+        if active_boosts:
+            mod_list = [f"{{{k} +{v}}}" for k, v in active_boosts.items()]
+            desc = "Skill increases from Level Up. " + " ".join(mod_list)
+            new_perk = {
+                "id": str(uuid.uuid4()),
+                "name": f"Level {current_level} Skills",
+                "description": desc,
+                "active": True,
+                "hidden": True,
+                "quantity": 1,
+                "item_type": "Perk"
+            }
+            char["perks"].append(new_perk)
+            
+        char["last_processed_level"] = current_level
+        if save_callback: save_callback()
+        del st.session_state[f"{dlg_id}_init"]
+        st.rerun()
+
 def convert_nested_to_flat(nested_item):
     """Converts a new schema item (nested props) to the flat inventory format."""
     props = nested_item.get("props", {})
@@ -933,7 +1089,7 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
     mods_key = f"{dialog_id}_mods"
     
     db_items = load_data(ITEM_FILE)
-    render_item_form(dialog_id, current_values, mods_key, db_items, show_quantity=True)
+    render_item_form(dialog_id, current_values, mods_key, db_items, show_quantity=True, is_equipment=show_load)
     
     # Retrieve updated data
     updated_nested = get_item_data_from_form(dialog_id, mods_key)
@@ -1117,7 +1273,7 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
     
     # Use render_item_form but we need to manage the values manually since it's not bound to an existing item
     # We can pass empty dict and let it use keys
-    render_item_form(prefix + "_dlg", {}, mod_key, data_list, show_quantity=False)
+    render_item_form(prefix + "_dlg", {}, mod_key, data_list, show_quantity=False, is_equipment=(label == "Equipment"))
 
     if st.button("Create & Add", type="primary", use_container_width=True, key=f"{prefix}_btn_create_dlg"):
         nested_data = get_item_data_from_form(prefix + "_dlg", mod_key)
@@ -1273,7 +1429,7 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
         mod_key = f"{prefix}_modifiers"
         if mod_key not in st.session_state: st.session_state[mod_key] = []
         
-        render_item_form(prefix, {}, mod_key, data_list, show_quantity=False)
+        render_item_form(prefix, {}, mod_key, data_list, show_quantity=False, is_equipment=(label == "Equipment"))
         
         c_local, c_db = st.columns(2)
         
@@ -1369,6 +1525,7 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
     if label == "Perk":
         # Simple list for perks
         for i, item in enumerate(items):
+            if item.get("hidden"): continue
             c1, c2, c3 = st.columns([0.5, 4, 1.5], vertical_alignment="center")
             is_active = item.get("active", True)
             if c1.checkbox("##", value=is_active, key=f"{key}_act_{i}", label_visibility="collapsed"):
@@ -1579,7 +1736,7 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                 """, unsafe_allow_html=True)
         with c_add:
             if st.button("➕ Add Item", use_container_width=True, key=f"btn_open_add_{key}"):
-                add_db_item_dialog("Equipment", ITEM_FILE, char, key, "c_inv_db", "eq")
+                add_db_item_dialog("Equipment", ITEM_FILE, char, key, "c_inv_db", "eq", key=f"dlg_add_inv_{key}")
 
         # Tabs for Carried vs Stash
         tab_carried, tab_stash = st.tabs(["🎒 Carried", "📦 Stash"])
@@ -1748,7 +1905,7 @@ def _render_sb_inventory_content(char, effective_stats, save_callback):
 
     with c_add:
         if st.button("➕ Add Item", use_container_width=True, key=f"sb_btn_add_{unique_id}"):
-            add_db_item_dialog("Equipment", ITEM_FILE, char, "inventory", f"sb_inv_sync_{unique_id}", f"sb_eq_{unique_id}", callback=save_callback)
+            add_db_item_dialog("Equipment", ITEM_FILE, char, "inventory", f"sb_inv_sync_{unique_id}", f"sb_eq_{unique_id}", callback=save_callback, key=f"dlg_sb_add_{unique_id}")
             if save_callback: save_callback()
 
     # Statblock Inventory View (Simplified Tree)
@@ -2206,6 +2363,12 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
     if "dialog_open" in st.session_state:
         del st.session_state["dialog_open"]
 
+    # Ensure Level is consistent with XP
+    current_xp = char.get("xp", 0)
+    calculated_level = 1 + int(current_xp / 1000)
+    if char.get("level") != calculated_level:
+        char["level"] = calculated_level
+
     # Ensure stats are up to date within the fragment
     _, _, _, effective_stats, effective_skills = calculate_stats(char)
     
@@ -2390,6 +2553,12 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
     else:
         st.markdown(header_html, unsafe_allow_html=True)
     
+    # Level Up Button (Statblock View)
+    last_lvl = char.get("last_processed_level", 1)
+    if calculated_level > last_lvl:
+        if st.button(f"🔼 Level Up Available! ({last_lvl} ➔ {calculated_level})", key=f"sb_lvl_up_btn_{char.get('id')}", type="primary", use_container_width=True):
+            level_up_dialog(char, calculated_level, save_callback)
+
     unique_id = char.get("name", "char")
     
     tab_stats, tab_inv, tab_feat = st.tabs(["📊 Stats", "🎒 Inventory", "🧬 Features"])
