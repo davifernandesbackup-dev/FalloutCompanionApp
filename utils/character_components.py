@@ -1199,7 +1199,7 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
         st.rerun()
 
 @st.dialog("Add Item")
-def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, callback=None, close_key=None):
+def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, callback=None, close_key=None, key=None):
     """Dialog to add items from database or custom."""
     
     # Check for cleanup flag from previous run
