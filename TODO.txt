@@ -1,0 +1,8 @@
+5; lidar com special properties das armas
+6; lidar com special properties das armaduras
+16; fazer popout statblock atualizar a vida de monstros automaticamente baseado no combat tracker da dm screen caso tenha sido aberto na dm screen
+17; criar db de itens
+18; fazer tracking de AP
+13; 
+14; criar db de itens
+15; fazer tracking de AP

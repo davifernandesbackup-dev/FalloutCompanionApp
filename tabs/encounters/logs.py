@@ -62,6 +62,17 @@ def render_saved() -> None:
         cost = encounter.get('cost', 0)
         cost_str = f" | CR: {cost}" if cost > 0 else ""
         
+        # Generate descriptive title
+        threats = encounter.get('threats', {})
+        if threats:
+            threat_list = [f"{qty}x {name}" for name, qty in threats.items()]
+            threat_str = ", ".join(threat_list)
+            if len(threat_str) > 60:
+                threat_str = threat_str[:57] + "..."
+            title = f"📁 **{biome}**: {threat_str} ({date_str}){cost_str}"
+        else:
+            title = f"📁 **{biome}** ({date_str}){cost_str}"
+
         # Check if this expander should be kept open
         is_expanded = False
         if st.session_state.get("saved_log_open_idx") == real_index:
@@ -69,10 +80,9 @@ def render_saved() -> None:
             # Consume the state so it doesn't stay open on subsequent, unrelated reruns
             del st.session_state["saved_log_open_idx"]
         
-        with st.expander(f"📁 **{biome}** ({date_str}){cost_str}", expanded=is_expanded):
+        with st.expander(title, expanded=is_expanded):
             
             # --- THREATS SECTION ---
-            threats = encounter.get('threats', {})
             if threats:
                 st.markdown("**⚠️ Threats**")
                 

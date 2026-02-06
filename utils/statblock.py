@@ -2,6 +2,80 @@ import streamlit as st
 import streamlit.components.v1 as components
 from typing import Dict, Any
 import urllib.parse
+from utils.character_logic import calculate_stats
+
+def convert_character_to_statblock(char: Dict[str, Any]) -> Dict[str, Any]:
+    """Converts a player character dictionary into a monster statblock format."""
+    # Calculate effective stats (HP, SP, AC, SPECIAL, Skills)
+    eff_hp, eff_sp, eff_ac, eff_stats, eff_skills = calculate_stats(char)
+    
+    sb = {}
+    sb["name"] = char.get("name", "Unknown")
+    sb["size"] = "Medium"
+    sb["type"] = "Human" # Default, could be derived if race was stored
+    sb["subtype"] = "Player Character"
+    sb["level"] = char.get("level", 1)
+    sb["description"] = char.get("notes", "") or "A wasteland wanderer."
+    
+    sb["hp"] = eff_hp
+    sb["sp"] = eff_sp
+    sb["ac"] = eff_ac
+    sb["dt"] = char.get("dt", 0)
+    sb["ap"] = char.get("action_points", 0)
+    
+    sb["special"] = eff_stats
+    
+    # Format Skills
+    skill_strs = []
+    for s, v in eff_skills.items():
+        if v > 0:
+            skill_strs.append(f"{s} +{v}")
+    sb["skills"] = ", ".join(skill_strs)
+    
+    sb["senses"] = f"Passive Sense {char.get('passive_sense', 10)}"
+    sb["healing_rate"] = char.get("healing_rate", 1)
+    
+    # Traits & Perks
+    trait_list = []
+    for t in char.get("traits", []) + char.get("perks", []):
+        if t.get("active", True):
+            trait_list.append(f"**{t.get('name')}**: {t.get('description')}")
+    sb["traits"] = trait_list
+    
+    # Actions (Equipped Weapons)
+    actions = []
+    inventory = char.get("inventory", [])
+    for item in inventory:
+        if item.get("equipped") and item.get("item_type") == "Weapon":
+            name = item.get("name", "Weapon")
+            ap_cost = item.get("ap_cost", 4)
+            
+            # Calculate Hit & Damage
+            sub = item.get("sub_type", "Melee")
+            skill_map = {"Archery": "Survival", "Guns": "Guns", "Melee": "Melee Weapons", "Unarmed": "Unarmed", "Energy Weapons": "Energy Weapons", "Explosives": "Explosives"}
+            skill_name = skill_map.get(sub, "Melee Weapons")
+            atk_bonus = eff_skills.get(skill_name, 0) + int(item.get("attack_bonus", 0))
+            
+            dmg_attr_map = {"Archery": "END", "Guns": "AGI", "Melee": "STR", "Unarmed": "STR", "Energy Weapons": "PER", "Explosives": "PER"}
+            attr_key = dmg_attr_map.get(sub, "STR")
+            attr_val = eff_stats.get(attr_key, 5)
+            dmg_bonus = (attr_val - 5) + int(item.get("damage_bonus", 0))
+            
+            dmg_str = f"{item.get('damage_dice_count', 1)}d{item.get('damage_dice_sides', 6)}"
+            if dmg_bonus != 0:
+                dmg_str += f"{'+' if dmg_bonus > 0 else ''}{dmg_bonus}"
+                
+            range_info = f"Range {item.get('range_normal', 0)}/{item.get('range_long', 0)}" if item.get('range_normal', 0) > 0 else "Reach 5 ft."
+            crit_str = f"Crit {item.get('crit_threshold', 20)}"
+            
+            actions.append(f"{ap_cost} AP **{name}**. {sub} attack: +{atk_bonus} to hit, {range_info}. {crit_str}. Hit: {dmg_str} damage.")
+            
+    sb["actions"] = actions
+    
+    # Loot
+    sb["loot"] = [f"x{i.get('quantity', 1)} {i.get('name')}" for i in inventory]
+    
+    return sb
 
 # --- UI: STATBLOCK DISPLAY ---
 def render_statblock(name: str, data: Dict[str, Any], container: Any = st) -> None:
@@ -10,6 +84,10 @@ def render_statblock(name: str, data: Dict[str, Any], container: Any = st) -> No
     if not data:
         container.warning(f"No statblock data found for **{name}**.")
         return
+        
+    # Auto-convert Character Sheet data to Statblock format
+    if "stats" in data and "special" not in data:
+        data = convert_character_to_statblock(data)
 
     primary = st.session_state.get("theme_primary", "#00ff00")
     secondary = st.session_state.get("theme_secondary", "#00b300")

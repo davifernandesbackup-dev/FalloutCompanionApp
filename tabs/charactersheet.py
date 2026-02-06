@@ -5,7 +5,7 @@ import copy
 import base64
 from utils.data_manager import load_data, save_data
 from constants import CHARACTERS_FILE, ITEM_FILE, PERKS_FILE
-from utils.character_logic import get_default_character, sync_char_widgets, calculate_stats, roll_skill, migrate_character, SKILL_MAP
+from utils.character_logic import get_default_character, sync_char_widgets, calculate_stats, roll_skill, migrate_character, SKILL_MAP, duplicate_character
 from utils.character_components import render_css, render_bars, render_database_manager, render_inventory_management, render_character_statblock, caps_manager_dialog, crafting_manager_dialog, add_db_item_dialog, render_live_inventory, level_up_dialog
 
 BACKGROUNDS_FILE = "data/backgrounds.json"
@@ -20,6 +20,21 @@ def delete_char_dialog(index, saved_chars):
         save_data(CHARACTERS_FILE, saved_chars)
         st.session_state.char_sheet_mode = "SELECT"
         st.rerun()
+
+def check_rads_overflow():
+    """Callback to handle Rads overflow into Radiation Level."""
+    if "c_rads" in st.session_state:
+        rads = st.session_state["c_rads"]
+        if rads >= 10:
+            overflow = rads // 10
+            remainder = rads % 10
+            
+            st.session_state["c_rads"] = remainder
+            st.session_state["c_radiation"] = st.session_state.get("c_radiation", 0) + overflow
+            
+            if "char_sheet" in st.session_state:
+                st.session_state.char_sheet["rads"] = remainder
+                st.session_state.char_sheet["radiation"] = st.session_state["c_radiation"]
 
 def update_skills_callback():
     """Callback to update skills immediately on edit to fix desync."""
@@ -90,18 +105,26 @@ def render_character_sheet() -> None:
             st.info("No saved characters found.")
         else:
             for index, char_entry in enumerate(saved_chars):
-                col_char_info, col_char_load = st.columns([4, 1])
-                name_display = char_entry.get("name", "Unnamed")
-                lvl_display = char_entry.get("level", 1)
-                col_char_info.markdown(f"**{name_display}** (Level {lvl_display})")
-                
-                if col_char_load.button("Load", key=f"load_char_{index}", use_container_width=True):
-                    st.session_state.char_sheet = copy.deepcopy(char_entry)
-                    sync_char_widgets()
-                    st.session_state.active_char_idx = index
-                    st.session_state.char_sheet_mode = "EDIT"
-                    st.session_state.char_sheet_view = "Statblock"
-                    st.rerun()
+                with st.container():
+                    col_char_info, col_char_act = st.columns([3, 2])
+                    name_display = char_entry.get("name", "Unnamed")
+                    lvl_display = char_entry.get("level", 1)
+                    col_char_info.markdown(f"**{name_display}** (Level {lvl_display})")
+                    
+                    with col_char_act:
+                        c_load, c_dup = st.columns(2)
+                        if c_load.button("Load", key=f"load_char_{index}", use_container_width=True):
+                            st.session_state.char_sheet = copy.deepcopy(char_entry)
+                            sync_char_widgets()
+                            st.session_state.active_char_idx = index
+                            st.session_state.char_sheet_mode = "EDIT"
+                            st.session_state.char_sheet_view = "Statblock"
+                            st.rerun()
+                        if c_dup.button("📋", key=f"dup_char_{index}", help="Duplicate Character", use_container_width=True):
+                            new_char = duplicate_character(char_entry)
+                            saved_chars.append(new_char)
+                            save_data(CHARACTERS_FILE, saved_chars)
+                            st.rerun()
                 st.markdown("---")
 
     # --- VIEW: EDIT SHEET ---
@@ -142,7 +165,7 @@ def render_character_sheet() -> None:
                     if current_db and len(current_db) > st.session_state.active_char_idx:
                         current_db[st.session_state.active_char_idx] = st.session_state.char_sheet
                         save_data(CHARACTERS_FILE, current_db)
-            
+
             render_character_statblock(st.session_state.char_sheet, save_callback=auto_save, char_index=st.session_state.active_char_idx, char_id=st.session_state.char_sheet.get("id"))
             # --- SPACER TO PREVENT CONTENT JUMPING ---
             st.markdown('<div style="height: 600px;"></div>', unsafe_allow_html=True)
@@ -348,12 +371,14 @@ def render_character_sheet() -> None:
 
             # Conditions & Tactical Row
             st.caption("Conditions & Tactical")
-            c_cond1, c_cond2, c_cond3, c_cond4, c_tac1, c_tac2, c_tac3 = st.columns(7)
+            c_cond1, c_cond2, c_cond3, c_cond4, c_cond5, c_cond6, c_tac1, c_tac2, c_tac3 = st.columns(9)
             
             with c_cond1: char["fatigue"] = st.number_input("Fatigue", min_value=0, step=1, key="c_fatigue", help="-1 penalty to d20 rolls per level.")
             with c_cond2: char["exhaustion"] = st.number_input("Exhaustion", min_value=0, step=1, key="c_exhaustion", help="-1 penalty to d20 rolls per level. Requires rest.")
             with c_cond3: char["hunger"] = st.number_input("Hunger", min_value=0, step=1, key="c_hunger", help="-1 penalty to d20 rolls per level. Requires food.")
             with c_cond4: char["dehydration"] = st.number_input("Dehydration", min_value=0, step=1, key="c_dehydration", help="-1 penalty to d20 rolls per level. Requires water.")
+            with c_cond5: char["radiation"] = st.number_input("Radiation", min_value=0, step=1, key="c_radiation", help="Current Radiation Level.")
+            with c_cond6: char["rads"] = st.number_input("Rads", min_value=0, step=1, key="c_rads", help="10 Rads = +1 Radiation Level", on_change=check_rads_overflow)
             
             with c_tac1: char["group_sneak"] = st.number_input("Grp Sneak", step=1, key="c_group_sneak", help="Average of all players sneak skill rounded down.")
             with c_tac2: char["party_nerve"] = st.number_input("Pty Nerve", step=1, key="c_party_nerve", help="Sum of all players CHA mod, halved, rounded down.")

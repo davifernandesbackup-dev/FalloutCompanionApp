@@ -1,7 +1,8 @@
 import streamlit as st
 from tabs import utilities, encounters, bestiary, charactersheet, database_editor, dm_screen
-from utils.data_manager import load_data
+from utils.data_manager import load_data, save_data, push_to_cloud, pull_from_cloud
 from utils.statblock import render_statblock
+from utils.character_components import render_character_statblock
 from constants import BESTIARY_FILE, CHARACTERS_FILE
 
 # --- PAGE CONFIGURATION ---
@@ -99,12 +100,18 @@ if "popout" in st.query_params:
                 render_statblock(target_id, data[target_id])
             else:
                 # Fallback to characters
-                chars = load_data(CHARACTERS_FILE)
-                char_data = next((c for c in chars if c.get("name") == target_id), None)
-                if char_data:
-                    render_statblock(target_id, char_data)
-                else:
-                    st.error(f"Entity '{target_id}' not found.")
+                @st.fragment(run_every=2)
+                def render_player_popout(target_name):
+                    chars = load_data(CHARACTERS_FILE)
+                    char_idx = next((i for i, c in enumerate(chars) if c.get("name") == target_name), -1)
+                    
+                    if char_idx != -1:
+                        char_data = chars[char_idx]
+                        render_statblock(target_name, char_data)
+                    else:
+                        st.error(f"Entity '{target_name}' not found.")
+                
+                render_player_popout(target_id)
         st.stop()
         
 def navigate_to(page):
@@ -118,6 +125,17 @@ with st.sidebar:
     st.divider()
     st.selectbox("Interface Color", list(THEMES.keys()), key="app_theme")
     st.divider()
+    
+    # --- CLOUD SYNC ---
+    st.markdown("### ☁️ Database")
+    c_pull, c_push = st.columns(2)
+    if c_pull.button("⬇️ Pull", help="Overwrite local data with cloud data"):
+        if pull_from_cloud():
+            st.cache_data.clear()
+            st.rerun()
+            
+    if c_push.button("⬆️ Push", help="Save local data to cloud"):
+        push_to_cloud()
 
 # Global Back Button
 if app_mode != "🏠 Home" and app_mode != "🖥️ DM Screen (WIP)":
@@ -192,4 +210,3 @@ elif app_mode == "🗃️ Database Editor":
     database_editor.render()
 elif app_mode == "🖥️ DM Screen (WIP)":
     dm_screen.render()
-

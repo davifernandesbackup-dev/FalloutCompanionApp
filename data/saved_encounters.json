@@ -1,24 +1,18 @@
 [
   {
-    "date": "2026-01-26 03:51",
+    "date": "2026-01-31 06:06",
     "biome": "Manual Scan",
     "threats": {
-      "Raider Psycho": 1,
-      "The Roach King": 1
+      "Gunner Private": 3
     },
     "loot": {
-      "multilayered armor (Decay: 5) [1d6-1 levels of decay]": 1,
-      "machete (Decay: 5) [1d6 levels of decay]": 1,
-      "psycho [2]": 2,
-      "jet [1, 3]": 4,
-      "frag grenade [1]": 1,
-      "caps [1d6, 2d4]": 11,
-      "multilayered armor (Decay: 3) [1d6+2 levels of decay]": 1,
-      "spear (Decay: 2) [1d6 levels of decay]": 1,
-      "BB Gun (Decay: 1) [1d4 levels of decay]": 1,
-      "BBs [10d10]": 61,
-      "radroach meat [2d4]": 5,
-      "dirty water [1d4]": 1
-    }
+      "cloth armor (Decay: 7) [1d6+2 levels of decay]": 2,
+      "10mm pistol (Decay: 4) [1d4+2 levels of decay]": 3,
+      "10mm rounds [2d8]": 17,
+      "frag grenade [1]": 3,
+      "caps [2d8]": 34,
+      "cloth armor (Decay: 5) [1d6+2 levels of decay]": 1
+    },
+    "cost": 258
   }
 ]

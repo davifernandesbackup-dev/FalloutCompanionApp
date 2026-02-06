@@ -156,7 +156,7 @@ def render_scanner() -> None:
                 difficulty = st.selectbox("Difficulty Preset", ["Custom", "Easy", "Medium", "Hard", "Deadly"], key="scanner_diff_preset")
                 
                 if difficulty != "Custom" and difficulty != st.session_state.scanner_diff_prev:
-                    multipliers = {"Easy": 0.5, "Medium": 0.75, "Hard": 1.0, "Deadly": 1.5}
+                    multipliers = {"Easy": 0.5, "Medium": 1.0, "Hard": 1.5, "Deadly": 2.0}
                     st.session_state.scanner_budget = int(party_cr * multipliers[difficulty])
                 
                 st.session_state.scanner_diff_prev = difficulty
@@ -181,6 +181,9 @@ def render_scanner() -> None:
             actual_budget = random.randint(int(budget - variation), int(budget + variation))
         #    st.info(f"Actual Budget (with variation): {actual_budget}")
         
+        # Overflow allowance (15%) to help fill the budget completely
+        overflow_allowance = int(actual_budget * 0.15)
+        
         if st.button("⚡ Generate from Budget", use_container_width=True):
             if not candidates:
                 st.warning("No candidates available with current filters.")
@@ -194,71 +197,89 @@ def render_scanner() -> None:
                     pool.append({"name": name, "cr": cr, "role": role})
                 
                 # 2. Fill Budget
-                current_budget = actual_budget
-                generated = []
-                attempts = 0
+                best_generated = []
+                best_remaining = actual_budget
                 
-                # Try to fill the budget
-                while current_budget > 0 and attempts < 50:
-                    # Find creatures that fit in remaining budget
-                    # In advanced mode, costs are dynamic, so we filter by base CR first as a rough check
-                    affordable = [x for x in pool if x["cr"] <= current_budget]
+                # Try up to 10 times to get a good fill (> 70%)
+                for _ in range(10):
+                    current_budget = actual_budget
+                    generated = []
+                    attempts = 0
                     
-                    if not affordable:
-                        break
+                    # Try to fill the budget
+                    while current_budget > 0 and attempts < 50:
+                        # Find creatures that fit in remaining budget
+                        # In advanced mode, costs are dynamic, so we filter by base CR first as a rough check
+                        affordable = [x for x in pool if x["cr"] <= (current_budget + overflow_allowance)]
                         
-                    if enable_weight_bias:
-                        # Bias towards higher CR enemies
-                        weights = [item["cr"] for item in affordable]
-                        pick = random.choices(affordable, weights=weights, k=1)[0]
-                    else:
-                        pick = random.choice(affordable)
+                        if not affordable:
+                            break
+                            
+                        if enable_weight_bias:
+                            # Bias towards higher CR enemies
+                            weights = [item["cr"] for item in affordable]
+                            pick = random.choices(affordable, weights=weights, k=1)[0]
+                        else:
+                            pick = random.choice(affordable)
 
-                    pick_name = pick["name"]
-                    pick_cr = pick["cr"]
-                    pick_role = pick["role"]
-                    
-                    final_cost = pick_cr
-                    
-                    # --- ADVANCED LOGIC ---
-                    if enable_group_multiplier:
-                        # Group Multiplier (Tax for diverse groups)
-                        total_enemies_so_far = sum(item['count'] for item in generated)
-                        if total_enemies_so_far > 0:
-                            # Mild Group Multiplier: +2% cost per existing creature in the encounter
-                            final_cost *= (1.0 + (total_enemies_so_far * 0.08))
+                        pick_name = pick["name"]
+                        pick_cr = pick["cr"]
+                        pick_role = pick["role"]
                         
-                    if enable_role_synergy_tax:
-                        # Role Synergy Tax
-                        # Check if complementary roles exist in generated list
-                        roles_present = set()
-                        for gen_item in generated:
-                            # Find role from pool data
-                            p_data = next((p for p in pool if p["name"] == gen_item["name"]), None)
-                            if p_data: roles_present.add(p_data["role"])
+                        final_cost = pick_cr
                         
-                        if (pick_role == "Striker" and "Tank" in roles_present) or \
-                           (pick_role == "Tank" and "Striker" in roles_present):
-                            final_cost *= 1.15 # +15% Synergy Tax
+                        # --- ADVANCED LOGIC ---
+                        if enable_group_multiplier:
+                            # Group Multiplier (Tax for diverse groups)
+                            total_enemies_so_far = sum(item['count'] for item in generated)
+                            if total_enemies_so_far > 0:
+                                # Mild Group Multiplier: +2% cost per existing creature in the encounter
+                                final_cost *= (1.0 + (total_enemies_so_far * 0.08))
+                            
+                        if enable_role_synergy_tax:
+                            # Role Synergy Tax
+                            # Check if complementary roles exist in generated list
+                            roles_present = set()
+                            for gen_item in generated:
+                                # Find role from pool data
+                                p_data = next((p for p in pool if p["name"] == gen_item["name"]), None)
+                                if p_data: roles_present.add(p_data["role"])
+                            
+                            if (pick_role == "Striker" and "Tank" in roles_present) or \
+                               (pick_role == "Tank" and "Striker" in roles_present):
+                                final_cost *= 1.15 # +15% Synergy Tax
 
-                    # Check affordability again with final cost
-                    if final_cost > current_budget:
+                        # Check affordability again with final cost
+                        if final_cost > (current_budget + overflow_allowance):
+                            attempts += 1
+                            continue
+                        
+                        # Add to list
+                        existing = next((x for x in generated if x["name"] == pick_name), None)
+                        if existing:
+                            existing["count"] += 1
+                        else:
+                            generated.append({"name": pick_name, "count": 1})
+                        
+                        current_budget -= int(final_cost)
                         attempts += 1
-                        continue
                     
-                    # Add to list
-                    existing = next((x for x in generated if x["name"] == pick_name), None)
-                    if existing:
-                        existing["count"] += 1
-                    else:
-                        generated.append({"name": pick_name, "count": 1})
+                    # Check fill ratio
+                    filled = actual_budget - current_budget
+                    ratio = filled / actual_budget if actual_budget > 0 else 0
                     
-                    current_budget -= int(final_cost)
-                    attempts += 1
+                    # Keep track of best attempt (most filled)
+                    if filled > (actual_budget - best_remaining):
+                        best_generated = generated
+                        best_remaining = current_budget
+                    
+                    # If we hit > 70%, we are good
+                    if ratio >= 0.70:
+                        break
                 
-                if generated:
-                    st.session_state.current_encounter = generated
-                    st.toast(f"Generated encounter! Remaining Budget: {current_budget}", icon="⚡")
+                if best_generated:
+                    st.session_state.current_encounter = best_generated
+                    st.toast(f"Generated encounter! Remaining Budget: {best_remaining}", icon="⚡")
                     st.rerun()
                 else:
                     st.warning("Could not generate encounter. Budget might be too low for selected creatures.")
@@ -358,15 +379,19 @@ def render_scanner() -> None:
                 total_cr_cost += entry_cost
 
                 with st.container(border=True):
-                    c1, c2, c3, c4 = st.columns([4, 1, 1, 1], vertical_alignment="center")
+                    c1, c2, c3, c4, c5 = st.columns([3.5, 1, 0.8, 0.8, 0.8], vertical_alignment="center")
                     c1.markdown(f"**{name}** (Lvl {lvl})")
                     c1.caption(breakdown_text)
                     c2.markdown(f"**x{count}**")
                     
-                    if c3.button("📄", key=f"view_{i}"):
+                    if c3.button("📋", key=f"dup_{i}", help="Duplicate (Add another)"):
+                        entry["count"] += 1
+                        st.rerun()
+
+                    if c4.button("📄", key=f"view_{i}"):
                         view_statblock_dialog(name, stats)
                     
-                    if c4.button("❌", key=f"rem_{i}"):
+                    if c5.button("❌", key=f"rem_{i}"):
                         st.session_state.current_encounter.pop(i)
                         st.rerun()
 

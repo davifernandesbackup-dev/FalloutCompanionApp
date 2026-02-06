@@ -12,6 +12,8 @@ from utils.item_components import render_item_form, render_modifier_builder, par
 from utils.dice import roll_dice
 from constants import ITEM_FILE, PERKS_FILE, RECIPES_FILE, CHARACTERS_FILE
 
+BESTIARY_FILE = "data/bestiary.json"
+
 def render_css(compact=True):
     primary = st.session_state.get("theme_primary", "#00ff00")
     secondary = st.session_state.get("theme_secondary", "#00b300")
@@ -876,9 +878,51 @@ def level_up_dialog(char, current_level, save_callback):
         del st.session_state[f"{dlg_id}_init"]
         st.rerun()
 
+@st.dialog("Add Monster")
+def add_monster_dialog(tracker_key, callback=None):
+    bestiary = load_data(BESTIARY_FILE)
+    if not bestiary:
+        st.error("Bestiary not found or empty.")
+        return
+
+    # Search
+    monster_names = sorted(list(bestiary.keys()))
+    selected_name = st.selectbox("Search Monster", [""] + monster_names, key="mob_search_sel")
+    
+    if selected_name:
+        monster = bestiary[selected_name]
+        st.markdown(f"**{monster.get('name')}** (Lvl {monster.get('level')})")
+        st.caption(monster.get('description', ''))
+        
+        c1, c2 = st.columns(2)
+        quantity = c1.number_input("Quantity", min_value=1, value=1, step=1, key="mob_add_qty")
+        
+        if st.button("Add to Tracker", type="primary", use_container_width=True, key="btn_add_mob_confirm"):
+            if tracker_key not in st.session_state:
+                st.session_state[tracker_key] = []
+            
+            for _ in range(quantity):
+                new_mob = copy.deepcopy(monster)
+                new_mob["id"] = str(uuid.uuid4())
+                new_mob["hp_current"] = new_mob.get("hp", 10)
+                new_mob["hp_max"] = new_mob.get("hp", 10)
+                new_mob["stamina_current"] = new_mob.get("sp", 10)
+                new_mob["stamina_max"] = new_mob.get("sp", 10)
+                new_mob["is_player"] = False
+                new_mob["initiative"] = 0
+                
+                st.session_state[tracker_key].append(new_mob)
+            
+            if callback: callback()
+            st.rerun()
+
 def convert_nested_to_flat(nested_item):
     """Converts a new schema item (nested props) to the flat inventory format."""
+    # Handle both new (props dict) and old (flat) structures
     props = nested_item.get("props", {})
+    if not props and "damage" in nested_item: # Heuristic for old structure
+        props = nested_item
+        
     category = nested_item.get("category", "gear")
     
     # Map Category to Item Type
@@ -942,6 +986,10 @@ def convert_nested_to_flat(nested_item):
         flat_item["ammo_capacity"] = props.get("magazineSize", 0)
         if flat_item["ammo_capacity"] > 0:
             flat_item["uses_ammo"] = True
+        
+        flat_item["attack_bonus"] = int(props.get("attackBonus", 0))
+        flat_item["damage_bonus"] = int(props.get("damageBonus", 0))
+        flat_item["ap_cost"] = int(props.get("apCost", 4))
             
     # Bag Specifics
     if category == "bag":
@@ -998,6 +1046,12 @@ def convert_nested_to_flat(nested_item):
     if category == "magazine":
         if props.get("targetSkill"):
             flat_item["description"] = (flat_item["description"] + f" | Skill: {props['targetSkill']}").strip(" | ")
+            
+    if category == "ammo_mod":
+        if props.get("specialEffect"):
+            flat_item["description"] = (flat_item["description"] + f" | {props['specialEffect']}").strip(" | ")
+        if props.get("ammoCategory"):
+             flat_item["description"] = (flat_item["description"] + f" | Type: {props['ammoCategory']}").strip(" | ")
         
     # Generic Special/Effect Appending (Apply to all if not already handled)
     extras = []
@@ -1068,6 +1122,8 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
             
             w_type_map = {"Guns": "ballistic", "Energy Weapons": "energy", "Melee": "melee", "Explosives": "explosive", "Archery": "archery"}
             st.session_state[f"{dialog_id}_p_weaponType"] = w_type_map.get(item.get("sub_type"), "ballistic")
+            st.session_state[f"{dialog_id}_p_attackBonus"] = int(item.get("attack_bonus", 0))
+            st.session_state[f"{dialog_id}_p_damageBonus"] = int(item.get("damage_bonus", 0))
         
         elif category in ["armor", "power_armor"]:
             st.session_state[f"{dialog_id}_p_ac"] = int(item.get("ac_bonus", 0))
@@ -1093,6 +1149,10 @@ def edit_item_dialog(item, item_id, all_items, callback, show_load=True, show_ty
     
     # Retrieve updated data
     updated_nested = get_item_data_from_form(dialog_id, mods_key)
+
+    # Ensure quantity is captured from session state if not present in updated_nested
+    if f"{dialog_id}_qty" in st.session_state:
+        updated_nested["quantity"] = st.session_state[f"{dialog_id}_qty"]
 
     st.divider()
     
@@ -1329,90 +1389,23 @@ def render_database_manager(label, file_path, char, char_key, session_key, prefi
             if selected_id:
                 entry = next((e for e in valid_items if e["id"] == selected_id), None)
                 
-                # --- SCHEMA MAPPING (New items.json -> Inventory) ---
-                props = entry.get("props", {})
-                category = entry.get("category", "misc")
+                # Use shared conversion logic
+                new_item = convert_nested_to_flat(entry)
                 
-                cat_map = {
-                    "weapon": "Weapon", "armor": "Armor", "power_armor": "Power Armor", "bag": "Bag",
-                    "ammo": "Ammo", "ammo_mod": "Mod", "explosive": "Weapon", "food": "Food", "drink": "Drink",
-                    "medicine": "Medicine", "chem": "Chem", "mod": "Mod", "gear": "Gear",
-                    "program": "Program", "magazine": "Magazine"
-                }
-                item_type = cat_map.get(category, "Misc")
-                
-                # Construct Description
-                desc_parts = []
-                if entry.get("description"): desc_parts.append(entry["description"])
-                if "special" in props: desc_parts.extend(props["special"])
-                if "effects" in props: desc_parts.extend(props["effects"])
-                if "specialText" in props: desc_parts.append(props["specialText"])
-                if "specialEffect" in props: desc_parts.append(props["specialEffect"])
-                description = " | ".join(desc_parts)
-                
-                is_bag = (category == "bag")
-                new_item = {
-                    "name": entry.get("name", "Unknown"),
-                    "description": description,
-                    "weight": float(entry.get("load", 0.0)) if entry else 0.0,
-                    "cost": entry.get("cost", 0),
-                    "equipped": False if label == "Equipment" else True,
-                    "active": True,
-                    "quantity": 1,
+                # Apply instance-specific defaults
+                is_bag = (entry.get("category") == "bag")
+                new_item.update({
                     "id": str(uuid.uuid4()),
                     "source_id": entry.get("id"),
                     "parent_id": None,
                     "location": "carried",
                     "is_container": is_bag,
-                    "item_type": item_type,
-                    "category": category
-                }
-                
-                # Weapon Specifics
-                if category in ["weapon", "explosive"]:
-                    w_type = props.get("weaponType", "")
-                    if w_type == "ballistic": new_item["sub_type"] = "Guns"
-                    elif w_type == "energy": new_item["sub_type"] = "Energy Weapons"
-                    elif w_type == "melee": new_item["sub_type"] = "Melee"
-                    elif w_type == "archery": new_item["sub_type"] = "Archery"
-                    elif category == "explosive": new_item["sub_type"] = "Explosives"
-                    
-                    dmg = str(props.get("damage", "1d6"))
-                    if "d" in dmg:
-                        parts = dmg.split("d")
-                        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
-                            new_item["damage_dice_count"] = int(parts[0])
-                            new_item["damage_dice_sides"] = int(parts[1])
-                    elif dmg.isdigit():
-                        new_item["damage_dice_count"] = int(dmg)
-                        new_item["damage_dice_sides"] = 1
-                    
-                    rng = str(props.get("range", ""))
-                    if "/" in rng:
-                        parts = rng.replace("x", "").split("/")
-                        if len(parts) == 2:
-                            new_item["range_normal"] = int(parts[0]) if parts[0].isdigit() else 0
-                            new_item["range_long"] = int(parts[1]) if parts[1].isdigit() else 0
-                    
-                    new_item["ammo_item"] = props.get("ammoType", "")
-                    new_item["ammo_capacity"] = props.get("magazineSize", 0)
-                    if new_item["ammo_capacity"] > 0:
-                        new_item["uses_ammo"] = True
-                        new_item["ammo_current"] = new_item["ammo_capacity"]
-
-                if category == "bag":
-                    new_item["load_worn"] = float(props.get("loadWorn", 0.0))
-                    new_item["carry_bonus"] = int(props.get("carryCapacityBonus", 0))
-                    try:
-                        new_item["encumbrance_rule"] = int(props.get("encumbranceRule", 0))
-                    except (ValueError, TypeError):
-                        new_item["encumbrance_rule"] = 0
-
-                if category in ["armor", "power_armor"]:
-                    new_item["ac_bonus"] = props.get("ac", 0)
-                    new_item["dt"] = props.get("dt", 0)
-                    new_item["sub_type"] = props.get("type", "")
-                    new_item["load_worn"] = float(props.get("loadWorn", 0.0))
+                    "equipped": False if label == "Equipment" else True,
+                    "active": True,
+                    "ammo_current": new_item.get("ammo_capacity", 0) if new_item.get("uses_ammo") else 0,
+                    "decay": 0,
+                    "reloads_count": 0
+                })
                 
                 if char_key not in char or not isinstance(char[char_key], list):
                     char[char_key] = []
@@ -2356,6 +2349,26 @@ def _safe_item_action(char_id, item_id, action_func):
             
     return _safe_char_update(char_id, wrapper)
 
+def update_rads_callback(char, widget_key, unique_id, save_callback=None):
+    """Callback to handle Rads overflow in Statblock view."""
+    rads = st.session_state[widget_key]
+    if rads >= 10:
+        overflow = rads // 10
+        remainder = rads % 10
+        st.session_state[widget_key] = remainder
+        char["rads"] = remainder
+        
+        # Update Radiation Level
+        char["radiation"] = char.get("radiation", 0) + overflow
+        rad_key = f"sb_radiation_{unique_id}"
+        if rad_key in st.session_state:
+            st.session_state[rad_key] = char["radiation"]
+    else:
+        char["rads"] = rads
+        
+    if save_callback:
+        save_callback()
+
 def render_character_statblock(char, save_callback=None, char_index=None, char_id=None):
     """Renders the character sheet as a visual statblock with interactive elements."""
     
@@ -2370,7 +2383,7 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
         char["level"] = calculated_level
 
     # Ensure stats are up to date within the fragment
-    _, _, _, effective_stats, effective_skills = calculate_stats(char)
+    _, _, effective_ac, effective_stats, effective_skills = calculate_stats(char)
     
     primary = st.session_state.get("theme_primary", "#00ff00")
     secondary = st.session_state.get("theme_secondary", "#00b300")
@@ -2640,7 +2653,7 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
                         caps_manager_dialog(char, save_callback)
 
         # CONDITIONS ROW
-        cond1, cond2, cond3, cond4 = st.columns(4)
+        cond1, cond2, cond3, cond4, cond5, cond6 = st.columns(6)
         
         with cond1:
             st.markdown("<div class='stat-label'>Fatigue</div>", unsafe_allow_html=True)
@@ -2658,17 +2671,24 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
             st.markdown("<div class='stat-label'>Dehydration</div>", unsafe_allow_html=True)
             d_key = f"sb_dehydration_{unique_id}"
             st.number_input("Dehydration", value=char.get("dehydration", 0), min_value=0, step=1, key=d_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "dehydration", d_key, save_callback))
+        with cond5:
+            st.markdown("<div class='stat-label'>Radiation</div>", unsafe_allow_html=True)
+            r_key = f"sb_radiation_{unique_id}"
+            st.number_input("Radiation", value=char.get("radiation", 0), min_value=0, step=1, key=r_key, label_visibility="collapsed", on_change=update_stat_callback, args=(char, "radiation", r_key, save_callback))
+        with cond6:
+            st.markdown("<div class='stat-label'>Rads</div>", unsafe_allow_html=True)
+            rads_key = f"sb_rads_{unique_id}"
+            st.number_input("Rads", value=char.get("rads", 0), min_value=0, step=1, key=rads_key, label_visibility="collapsed", on_change=update_rads_callback, args=(char, rads_key, unique_id, save_callback))
 
         # DERIVED & TACTICAL GRID
         st.markdown('<div class="section-header">Combat & Survival</div>', unsafe_allow_html=True)
         
         # Row 1: Combat
         grid_html = '<div class="special-grid">'
-        grid_html += make_box("AC", char.get("ac", 10), "Armor Class")
+        grid_html += make_box("AC", effective_ac, "Armor Class")
         grid_html += make_box("DT", char.get("dt", 0), "Damage Threshold")
         grid_html += make_box("SEQ", char.get("combat_sequence", 0), "Combat Sequence (PER Mod)")
         grid_html += make_box("AP", char.get("action_points", 0), "Action Points (AGI + 5)")
-        grid_html += make_box("LOAD", f"{char.get('current_weight', 0)}/{char.get('carry_load', 0)}", "Current Load / Max Load")
         grid_html += '</div>'
         
         # Row 2: Survival / Tactical
@@ -2740,13 +2760,14 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
                     }
                     skill_name = skill_map.get(sub, "Melee Weapons")
                     atk_bonus = effective_skills.get(skill_name, 0)
+                    atk_bonus += int(w.get("attack_bonus", 0))
                     atk_sign = "+" if atk_bonus >= 0 else ""
                     
                     # Damage Mapping
                     dmg_attr_map = {"Archery": "END", "Guns": "AGI", "Melee": "STR", "Unarmed": "STR", "Energy Weapons": "PER", "Explosives": "PER"}
                     attr_key = dmg_attr_map.get(sub, "STR")
                     attr_val = effective_stats.get(attr_key, 5)
-                    dmg_bonus = attr_val - 5
+                    dmg_bonus = (attr_val - 5) + int(w.get("damage_bonus", 0))
                     dmg_sign = "+" if dmg_bonus >= 0 else ""
                     
                     # Range Calc
@@ -2826,32 +2847,47 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
                                         st.toast("Magazine full!", icon="ℹ️")
 
                         with c_roll:
-                            if st.button("🎲", key=f"btn_roll_{w['id']}", use_container_width=True):
-                                atk_roll = random.randint(1, 20)
-                                atk_total = atk_roll + atk_bonus
+                            with st.popover("🎲", use_container_width=True):
+                                st.markdown("### Attack Options")
+                                extra_dice = st.text_input("Extra Damage (e.g. 1d6)", key=f"ex_dmg_{w['id']}")
                                 
-                                # Crit Logic
-                                eff_luc = effective_stats.get("LCK", 5)
-                                luc_mod = eff_luc - 5
-                                luck_reduction = int(luc_mod // 2)
-                                base_crit = w.get("crit_threshold", 20)
-                                crit_threshold = min(20, base_crit - luck_reduction)
-                                is_crit = atk_roll >= crit_threshold
-                                
-                                d_count = w.get("damage_dice_count", 1)
-                                d_sides = w.get("damage_dice_sides", 6)
-                                dmg_roll = roll_dice(f"{d_count}d{d_sides}")
-                                
-                                crit_dmg_val = 0
-                                if is_crit and w.get("crit_damage"):
-                                    crit_dmg_val = roll_dice(w.get("crit_damage"))
-                                
-                                dmg_total = max(1, dmg_roll + dmg_bonus + crit_dmg_val)
-                                dmg_formula = f"{d_count}d{d_sides}{dmg_sign}{dmg_bonus}"
-                                if is_crit and crit_dmg_val > 0:
-                                    dmg_formula += f" + {crit_dmg_val} (Crit)"
-                                
-                                show_attack_result(w, char, atk_total, atk_roll, atk_bonus, dmg_total, dmg_formula, is_crit, crit_dmg_val, w.get("crit_effect", ""), save_callback)
+                                if st.button("Roll Attack", key=f"btn_roll_confirm_{w['id']}", type="primary", use_container_width=True):
+                                    atk_roll = random.randint(1, 20)
+                                    atk_total = atk_roll + atk_bonus
+                                    
+                                    # Crit Logic
+                                    eff_luc = effective_stats.get("LCK", 5)
+                                    luc_mod = eff_luc - 5
+                                    luck_reduction = int(luc_mod // 2)
+                                    base_crit = w.get("crit_threshold", 20)
+                                    crit_threshold = min(20, base_crit - luck_reduction)
+                                    is_crit = atk_roll >= crit_threshold
+                                    
+                                    d_count = w.get("damage_dice_count", 1)
+                                    d_sides = w.get("damage_dice_sides", 6)
+                                    dmg_roll = roll_dice(f"{d_count}d{d_sides}")
+                                    
+                                    crit_dmg_val = 0
+                                    if is_crit and w.get("crit_damage"):
+                                        crit_dmg_val = roll_dice(w.get("crit_damage"))
+                                    
+                                    extra_dmg_val = 0
+                                    extra_dmg_str = ""
+                                    if extra_dice:
+                                        try:
+                                            extra_dmg_val = roll_dice(extra_dice)
+                                            extra_dmg_str = f" + {extra_dice} ({extra_dmg_val})"
+                                        except:
+                                            st.error("Invalid dice format")
+                                    
+                                    dmg_total = max(1, dmg_roll + dmg_bonus + crit_dmg_val + extra_dmg_val)
+                                    dmg_formula = f"{d_count}d{d_sides}{dmg_sign}{dmg_bonus}"
+                                    if extra_dmg_str:
+                                        dmg_formula += extra_dmg_str
+                                    if is_crit and crit_dmg_val > 0:
+                                        dmg_formula += f" + {crit_dmg_val} (Crit)"
+                                    
+                                    show_attack_result(w, char, atk_total, atk_roll, atk_bonus, dmg_total, dmg_formula, is_crit, crit_dmg_val, w.get("crit_effect", ""), save_callback)
 
     with tab_inv:
         if char_index is not None and char_id:

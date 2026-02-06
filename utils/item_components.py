@@ -122,6 +122,10 @@ def render_item_form(prefix, current_values, mod_list_key, all_db_items, show_qu
             c1.text_input("Range", value=props.get("range", "x6/x10"), help="e.g., x6/x10", key=f"{prefix}_p_range")
             c2.text_input("Critical", value=str(props.get("critical", "20, x2")), help="e.g., 20, x2 or 19, 1d6", key=f"{prefix}_p_critical")
 
+            c1, c2 = st.columns(2)
+            c1.number_input("Attack Bonus", value=int(props.get("attackBonus", 0)), key=f"{prefix}_p_attackBonus")
+            c2.number_input("Damage Bonus", value=int(props.get("damageBonus", 0)), key=f"{prefix}_p_damageBonus")
+
             st.markdown("---")
             c1, c2 = st.columns(2)
             ammo_ids = [""] + sorted([i['id'] for i in all_db_items if i.get('category') == 'ammo' and 'id' in i])

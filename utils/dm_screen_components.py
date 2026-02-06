@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import random
+import copy
 import uuid
 import re
 import urllib.parse
@@ -78,6 +79,51 @@ def render_quick_ref(key_prefix, grid_context=None):
         st.caption("**1/2 Cover**: +2 AC/Dex Saves.")
         st.caption("**3/4 Cover**: +5 AC/Dex Saves.")
         st.caption("**Total Cover**: Can't be targeted directly.")
+
+def _parse_action_string(action_str):
+    """Parses a bestiary action string for Cost, Name, Hit Mod, Damage, Description, Crit Threshold, and Crit Mod."""
+    cost = 0
+    name = "Action"
+    hit_mod = None
+    damage = None
+    description = ""
+    crit_threshold = 20
+    crit_mod = None
+    
+    # Extract AP Cost (e.g., "5 AP ...")
+    cost_match = re.match(r"^(\d+)\s*AP", action_str, re.IGNORECASE)
+    if cost_match:
+        cost = int(cost_match.group(1))
+        remaining = action_str[cost_match.end():].strip()
+    else:
+        remaining = action_str
+        
+    # Extract Name (up to first period or colon)
+    name_match = re.match(r"^([^.:]+)(?:[.:]+)?\s*(.*)", remaining)
+    if name_match:
+        name = name_match.group(1).strip()
+        description = name_match.group(2).strip()
+    else:
+        name = remaining[:20] + "..."
+        description = remaining
+        
+    # Extract Hit/Roll Modifier ("+X to hit" or "+X to roll")
+    hit_match = re.search(r"\+(\d+)\s*to\s*(?:hit|roll)", action_str, re.IGNORECASE)
+    if hit_match:
+        hit_mod = int(hit_match.group(1))
+        
+    # Extract Damage ("Hit: ...")
+    dmg_match = re.search(r"Hit:\s*([^.]*)", action_str, re.IGNORECASE)
+    if dmg_match:
+        damage = dmg_match.group(1).strip()
+        
+    # Extract Crit Info ("Crit chance Y/Modifier")
+    crit_match = re.search(r"Crit chance:?\s*(\d+)\s*/\s*([^.]+)", action_str, re.IGNORECASE)
+    if crit_match:
+        crit_threshold = int(crit_match.group(1))
+        crit_mod = crit_match.group(2).strip()
+        
+    return cost, name, hit_mod, damage, description, crit_threshold, crit_mod
 
 def inject_dm_scripts():
     """Injects necessary JS for the DM screen. Should be called once outside fragments."""
@@ -427,6 +473,16 @@ def render_combatant_row(entry, is_active, data_key, key_prefix):
             c_roll.button("🎲", key=f"btn_reroll_{entry['id']}", help="Reroll Sequence", on_click=reroll_sequence_callback, args=(entry, data_key, widget_key))
 
             st.divider()
+            if st.button("📋 Duplicate", key=f"{key_prefix}_dup_{entry['id']}", use_container_width=True):
+                if entry in st.session_state[data_key]:
+                    idx = st.session_state[data_key].index(entry)
+                    new_entry = copy.deepcopy(entry)
+                    new_entry["id"] = str(uuid.uuid4())
+                    new_entry["name"] = f"{entry['name']} (Copy)"
+                    st.session_state[data_key].insert(idx + 1, new_entry)
+                    st.rerun()
+
+            st.divider()
             if st.button("🗑️ Delete Combatant", key=f"{key_prefix}_del_{entry['id']}", type="primary", use_container_width=True):
                 if entry in st.session_state[data_key]:
                     st.session_state[data_key].remove(entry)
@@ -599,9 +655,26 @@ def render_combat_sequence_tracker(key_prefix, grid_context=None):
             st.caption("Add Custom Combatant")
             name = st.text_input("Name", key=f"{key_prefix}_name", placeholder="Name")
             c_seq, c_hp, c_sp = st.columns(3)
-            seq = c_seq.number_input("Seq", value=0, step=1, key=f"{key_prefix}_val", help="Combat Sequence")
-            hp_in = c_hp.number_input("HP", value=10, step=1, key=f"{key_prefix}_hp_in", help="Hit Points")
-            sp_in = c_sp.number_input("SP", value=10, step=1, key=f"{key_prefix}_sp_in", help="Stamina Points")
+            
+            # Avoid "created with default value" error by checking session state
+            seq_key = f"{key_prefix}_val"
+            hp_key = f"{key_prefix}_hp_in"
+            sp_key = f"{key_prefix}_sp_in"
+            
+            if seq_key in st.session_state:
+                seq = c_seq.number_input("Seq", step=1, key=seq_key, help="Combat Sequence")
+            else:
+                seq = c_seq.number_input("Seq", value=0, step=1, key=seq_key, help="Combat Sequence")
+                
+            if hp_key in st.session_state:
+                hp_in = c_hp.number_input("HP", step=1, key=hp_key, help="Hit Points")
+            else:
+                hp_in = c_hp.number_input("HP", value=10, step=1, key=hp_key, help="Hit Points")
+                
+            if sp_key in st.session_state:
+                sp_in = c_sp.number_input("SP", step=1, key=sp_key, help="Stamina Points")
+            else:
+                sp_in = c_sp.number_input("SP", value=10, step=1, key=sp_key, help="Stamina Points")
             
             if st.button("➕ Add Custom", key=f"{key_prefix}_add"):
                 st.session_state[data_key].append({"name": name if name else "Unknown", "source_name": name if name else "Unknown", "seq": seq, "hp": hp_in, "max_hp": hp_in, "sp": sp_in, "max_sp": sp_in, "dt": 0, "is_player": False, "id": str(uuid.uuid4())})
@@ -670,7 +743,12 @@ def render_combat_sequence_tracker(key_prefix, grid_context=None):
     c_prev, c_round, c_next = st.columns([1, 1.1, 1], vertical_alignment="center")
     
     if c_prev.button("⬅️ Prev", key=f"{key_prefix}_prev", use_container_width=True):
-        st.session_state[turn_key] = (st.session_state[turn_key] - 1) % len(combatants) if combatants else 0
+        if combatants:
+            new_idx = st.session_state[turn_key] - 1
+            if new_idx < 0:
+                new_idx = len(combatants) - 1
+                st.session_state[round_key] = max(1, st.session_state[round_key] - 1)
+            st.session_state[turn_key] = new_idx
         st.rerun()
         
     with c_round:
@@ -987,6 +1065,176 @@ def render_loot_generator(key_prefix, grid_context=None):
             if f"{key_prefix}_combat_loot" in st.session_state:
                  _render_loot_list(st.session_state[f"{key_prefix}_combat_loot"], players, key_prefix, "combat", f"{key_prefix}_combat_loot")
 
+def render_active_turn_manager(key_prefix, grid_context=None):
+    c_title, c_conf = st.columns([5, 1], vertical_alignment="center")
+    c_title.markdown("##### ⚡ Active Turn")
+    with c_conf:
+        _render_panel_settings(key_prefix, grid_context)
+
+    # 1. Find Active Combat Trackers
+    active_trackers = []
+    if "dm_grid_state" in st.session_state:
+        grid_state = st.session_state["dm_grid_state"]
+        # Simple scan for combat modules
+        for p_key, p_type in grid_state.items():
+            if p_type == "Combat Sequence":
+                data_k = f"{p_key}_data"
+                turn_k = f"{p_key}_turn"
+                if data_k in st.session_state:
+                    active_trackers.append((p_key, data_k, turn_k))
+    
+    if not active_trackers:
+        st.info("No active combat tracker found.")
+        return
+
+    # Select Tracker (if multiple)
+    selected_tracker = active_trackers[0]
+    if len(active_trackers) > 1:
+        opts = [t[0] for t in active_trackers]
+        sel = st.selectbox("Tracker", opts, key=f"{key_prefix}_sel_tracker", label_visibility="collapsed")
+        selected_tracker = next((t for t in active_trackers if t[0] == sel), active_trackers[0])
+    
+    p_key, data_key, turn_key = selected_tracker
+    combat_data = st.session_state.get(data_key, [])
+    turn_idx = st.session_state.get(turn_key, 0)
+    
+    if not combat_data:
+        st.caption("Combat tracker is empty.")
+        return
+        
+    # Ensure turn index is valid
+    if turn_idx >= len(combat_data):
+        turn_idx = 0
+        
+    current_combatant = combat_data[turn_idx]
+    
+    # 2. Load Stats (Bestiary or Character)
+    stats = {}
+    actions = []
+    traits = []
+    
+    if current_combatant.get("is_player"):
+        # Load from Characters
+        try:
+            chars = load_data(CHARACTERS_FILE)
+            c_data = next((c for c in chars if c.get("name") == current_combatant.get("source_name", current_combatant["name"])), None)
+            if c_data:
+                # Convert player data to statblock-like format for easier parsing
+                # (Simplified for this view)
+                stats["ap"] = c_data.get("action_points", 10)
+                # Player actions are complex (inventory), we might just show basic info or skip actions for players
+                # For now, let's just show traits/perks
+                traits = [p["name"] for p in c_data.get("perks", []) if p.get("active")]
+        except:
+            pass
+    else:
+        # Load from Bestiary
+        try:
+            bestiary = load_data(BESTIARY_FILE)
+            b_data = bestiary.get(current_combatant.get("source_name", current_combatant["name"]))
+            if b_data:
+                stats["ap"] = b_data.get("ap", 10)
+                actions = b_data.get("actions", [])
+                traits = b_data.get("traits", [])
+        except:
+            pass
+
+    # 3. AP Management
+    # Initialize AP in the combatant entry if not present
+    # We use the combatant entry to persist AP changes during their turn
+    if "current_ap" not in current_combatant:
+        current_combatant["current_ap"] = stats.get("ap", 10)
+        
+    # Refresh AP on Round Change
+    round_key = f"{p_key}_round"
+    current_round = st.session_state.get(round_key, 1)
+    
+    if current_combatant.get("last_round_ap_reset", 0) < current_round:
+        current_combatant["current_ap"] = stats.get("ap", 10)
+        current_combatant["last_round_ap_reset"] = current_round
+
+    # Header & AP
+    st.markdown(f"**{current_combatant['name']}** — AP: **{current_combatant['current_ap']}**")
+    
+    last_roll_key = f"{key_prefix}_last_roll"
+    if last_roll_key in st.session_state:
+        st.markdown(f":game_die: {st.session_state[last_roll_key]}")
+
+    c_move, c_reset = st.columns(2)
+    if c_move.button("🏃 Move (1 AP)", key=f"{key_prefix}_move", use_container_width=True):
+        if current_combatant["current_ap"] >= 1:
+            current_combatant["current_ap"] -= 1
+            st.rerun()
+        else:
+            st.toast("Not enough AP!", icon="⚠️")
+            
+    if c_reset.button("Reset AP", key=f"{key_prefix}_rst_ap", use_container_width=True):
+        current_combatant["current_ap"] = stats.get("ap", 10)
+        st.rerun()
+
+    # 4. Actions & Traits
+    tab_act, tab_trait = st.tabs(["Actions", "Traits"])
+    
+    with tab_act:
+        if not actions:
+            st.caption("No actions available.")
+        else:
+            for i, act in enumerate(actions):
+                # Handle both string and dict actions (legacy support)
+                act_str = act if isinstance(act, str) else f"{act.get('name')}: {act.get('effect')}"
+                cost, name, hit_mod, damage, description, crit_threshold, crit_mod = _parse_action_string(act_str)
+                
+                c_info, c_btn = st.columns([3, 1], vertical_alignment="center")
+                with c_info:
+                    if hit_mod is not None:
+                        display_text = damage if damage else (description if description else '?')
+                        short_info = (display_text[:60] + '..') if len(display_text) > 60 else display_text
+                        tooltip_text = description.replace("'", "&#39;") if description else display_text.replace("'", "&#39;")
+                        st.markdown(f"**{name}** ({cost} AP)  \n<span style='color:#aaa; font-size:0.8em' title='{tooltip_text}'>+{hit_mod} Mod | {short_info}</span>", unsafe_allow_html=True)
+                    else:
+                        short_desc = (act_str[:50] + '..') if len(act_str) > 50 else act_str
+                        st.markdown(f"**{name}** ({cost} AP)  \n<span style='color:#aaa; font-size:0.8em' title='{act_str}'>{short_desc}</span>", unsafe_allow_html=True)
+                        
+                with c_btn:
+                    if st.button("Use", key=f"{key_prefix}_use_{i}", use_container_width=True, disabled=(current_combatant["current_ap"] < cost)):
+                        current_combatant["current_ap"] -= cost
+                        
+                        # If it's an attack, roll it
+                        if hit_mod is not None:
+                            d20 = random.randint(1, 20)
+                            total = d20 + hit_mod
+                            
+                            crit_msg = ""
+                            if d20 >= crit_threshold:
+                                crit_msg = " **CRIT!**"
+                                if damage:
+                                    # Extract base damage (e.g. "8 (2d4+4)")
+                                    base_dmg = damage
+                                    dmg_match_clean = re.match(r"^[\d\s\(\)d\+\-]+", damage)
+                                    if dmg_match_clean:
+                                        base_dmg = dmg_match_clean.group(0).strip()
+                                    crit_msg += f" {base_dmg}"
+                                if crit_mod:
+                                    crit_msg += f" {crit_mod}"
+                            
+                            msg = f"Rolled {total} (d20: {d20} + {hit_mod}){crit_msg}"
+                            st.toast(msg, icon="🎲")
+                            st.session_state[last_roll_key] = f"**{name}**: {msg}"
+                        else:
+                            st.toast(f"Used {name}", icon="✅")
+                            if last_roll_key in st.session_state:
+                                del st.session_state[last_roll_key]
+                        st.rerun()
+                
+                st.markdown("<hr style='margin: 2px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
+
+    with tab_trait:
+        if traits:
+            for t in traits:
+                st.info(t)
+        else:
+            st.caption("No traits found.")
+
 # Registry of available panels
 PANEL_REGISTRY = {
     "Empty": None,
@@ -994,6 +1242,7 @@ PANEL_REGISTRY = {
     "Scratchpad": render_scratchpad,
     "Quick Ref": render_quick_ref,
     "Combat Sequence": render_combat_sequence_tracker,
+    "Active Turn": render_active_turn_manager,
     "Monster Lookup": render_monster_lookup,
     "Loot Generator": render_loot_generator
 }

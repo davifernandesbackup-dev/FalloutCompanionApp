@@ -1,6 +1,7 @@
 import streamlit as st
 import re
 import random
+import copy
 import uuid
 
 SKILL_MAP = {
@@ -40,7 +41,7 @@ def get_default_character():
         "hp_max": 10, "hp_current": 10, "stamina_max": 10, "stamina_current": 10,
         "ac": 10, "combat_sequence": 0, "action_points": 10, 
         "carry_load": 50, "perks": [], "traits": [], "inventory": [],
-        "fatigue": 0, "exhaustion": 0, "hunger": 0, "dehydration": 0,
+        "fatigue": 0, "exhaustion": 0, "hunger": 0, "dehydration": 0, "radiation": 0, "rads": 0,
         "group_sneak": 0, "party_nerve": 0,
         "notes": ""
     }
@@ -66,6 +67,8 @@ def sync_char_widgets():
     st.session_state["c_exhaustion"] = char.get("exhaustion", 0)
     st.session_state["c_hunger"] = char.get("hunger", 0)
     st.session_state["c_dehydration"] = char.get("dehydration", 0)
+    st.session_state["c_radiation"] = char.get("radiation", 0)
+    st.session_state["c_rads"] = char.get("rads", 0)
     st.session_state["c_group_sneak"] = char.get("group_sneak", 0)
     st.session_state["c_party_nerve"] = char.get("party_nerve", 0)
     st.session_state["c_notes"] = char.get("notes", "")
@@ -180,6 +183,12 @@ def migrate_character(char):
         if item.get("name") == "Cap":
             item["weight"] = 0.02
             item["item_type"] = "Currency"
+
+    # Ensure Radiation exists
+    if "radiation" not in char:
+        char["radiation"] = 0
+    if "rads" not in char:
+        char["rads"] = 0
 
     # Migrate Stats LUC -> LCK
     if "stats" in char:
@@ -403,3 +412,10 @@ def roll_skill(stat_val, skill_val, name):
     is_success = roll <= target
     result_text = "SUCCESS" if is_success else "FAILURE"
     return roll, target, result_text
+
+def duplicate_character(char):
+    """Creates a deep copy of a character with a new ID and (Copy) appended to name."""
+    new_char = copy.deepcopy(char)
+    new_char["id"] = str(uuid.uuid4())
+    new_char["name"] = f"{new_char.get('name', 'Unnamed')} (Copy)"
+    return new_char
