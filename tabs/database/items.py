@@ -23,6 +23,18 @@ def delete_recipe_dialog(index, data_list, target_file):
         save_data(target_file, data_list)
         st.rerun()
 
+def remove_duplicates(data_list):
+    seen = set()
+    unique_list = []
+    removed_count = 0
+    for item in data_list:
+        if item.get('id') and item['id'] not in seen:
+            unique_list.append(item)
+            seen.add(item['id'])
+        else:
+            removed_count += 1
+    return unique_list, removed_count
+
 def render() -> None:
     st.subheader("🎒 Item & Recipe Database")
 
@@ -35,6 +47,16 @@ def render() -> None:
         
     # Sort for display
     data_list.sort(key=lambda x: x.get("name", ""))
+
+    with st.expander("🛠️ Database Tools"):
+        if st.button(f"🧹 Remove Duplicate {db_type}"):
+            cleaned_data, count = remove_duplicates(data_list)
+            if count > 0:
+                save_data(target_file, cleaned_data)
+                st.success(f"Removed {count} duplicates from {db_type}.")
+                st.rerun()
+            else:
+                st.info("No duplicates found.")
 
     # --- RECIPE EDITOR LOGIC ---
     if db_type == "Recipes":
@@ -109,7 +131,7 @@ def render() -> None:
         
         # Pass all items for ammo lookup
         all_items = load_data(ITEM_FILE) if db_type == "Equipment" else []
-        render_item_form("new_db_item", {}, mod_key, all_items)
+        render_item_form("new_db_item", {}, mod_key, all_items, show_quantity=True)
         
         def create_db_item_callback():
             item_data = get_item_data_from_form("new_db_item", mod_key)
@@ -144,7 +166,7 @@ def render() -> None:
     ]
     
     for i, item in filtered_list:
-        item_key = f"db_item_{item.get('name', 'unknown')}"
+        item_key = f"db_item_{i}_{item.get('id', 'unknown')}"
         with st.expander(f"**{item.get('name')}**"):
             mod_key = f"{item_key}_mods"
             # Initialize modifiers from description if not already in session state
@@ -154,7 +176,7 @@ def render() -> None:
             
             # Pass all items for ammo lookup
             all_items = load_data(ITEM_FILE) if db_type == "Equipment" else []
-            render_item_form(item_key, item, mod_key, all_items)
+            render_item_form(item_key, item, mod_key, all_items, show_quantity=True)
             
             c_save, c_del = st.columns([1, 1])
             

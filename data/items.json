@@ -28,17 +28,6 @@
     }
   },
   {
-    "id": "ammo_nails",
-    "name": "Nails (Pack of 5)",
-    "category": "ammo",
-    "cost": 2,
-    "load": 0.1,
-    "props": {
-      "packSize": 5,
-      "loadRule": "10 rounds = 1 load"
-    }
-  },
-  {
     "id": "arm_leather",
     "name": "Leather Armor",
     "category": "armor",
@@ -7349,17 +7338,6 @@
     }
   },
   {
-    "id": "ammo_32",
-    "name": ".32 Round",
-    "category": "ammo",
-    "cost": 1,
-    "load": 0.1,
-    "props": {
-      "packSize": 1,
-      "loadRule": "10 rounds = 1 load"
-    }
-  },
-  {
     "id": "ammo_22lr",
     "name": ".22LR Round",
     "category": "ammo",
@@ -11568,6 +11546,2485 @@
     "props": {
       "programType": ["Anabolic"],
       "addictionType": "Anabolic Addiction"
+    }
+  },
+  {
+    "id": "mat_acid",
+    "name": "Acid",
+    "category": "material",
+    "cost": 5,
+    "load": 0,
+    "props": { "rarity": 1 }
+  },
+  {
+    "id": "mat_adhesive",
+    "name": "Adhesive",
+    "category": "material",
+    "cost": 5,
+    "load": 0,
+    "props": { "rarity": 1 }
+  },
+  {
+    "id": "mat_aluminum",
+    "name": "Aluminum",
+    "category": "material",
+    "cost": 8,
+    "load": 0,
+    "props": { "rarity": 2 }
+  },
+  {
+    "id": "mat_antiseptic",
+    "name": "Antiseptic",
+    "category": "material",
+    "cost": 5,
+    "load": 0,
+    "props": { "rarity": 1 }
+  },
+  {
+    "id": "mat_asbestos",
+    "name": "Asbestos",
+    "category": "material",
+    "cost": 12,
+    "load": 0,
+    "props": { "rarity": 3 }
+  },
+  {
+    "id": "mat_ballistic_fiber",
+    "name": "Ballistic Fiber",
+    "category": "material",
+    "cost": 15,
+    "load": 0,
+    "props": { "rarity": 4 }
+  },
+  {
+    "id": "mat_black_titanium",
+    "name": "Black Titanium",
+    "category": "material",
+    "cost": 15,
+    "load": 0,
+    "props": { "rarity": 4 }
+  },
+  {
+    "id": "mat_bone",
+    "name": "Bone",
+    "category": "material",
+    "cost": 2,
+    "load": 0.1,
+    "props": { "rarity": 0 }
+  },
+  {
+    "id": "mat_ceramic",
+    "name": "Ceramic",
+    "category": "material",
+    "cost": 3,
+    "load": 0.1,
+    "props": { "rarity": 1 }
+  },
+  {
+    "id": "mat_circuitry",
+    "name": "Circuitry",
+    "category": "material",
+    "cost": 10,
+    "load": 0.1,
+    "props": { "rarity": 3 }
+  },
+  {
+    "id": "mat_cloth",
+    "name": "Cloth",
+    "category": "material",
+    "cost": 2,
+    "load": 0.1,
+    "props": { "rarity": 0 }
+  },
+  {
+    "id": "mat_coal",
+    "name": "Coal",
+    "category": "material",
+    "cost": 5,
+    "load": 0.1,
+    "props": { "rarity": 1 }
+  },
+  {
+    "id": "mat_concrete",
+    "name": "Concrete",
+    "category": "material",
+    "cost": 2,
+    "load": 1,
+    "props": { "rarity": 0 }
+  },
+  {
+    "id": "mat_copper",
+    "name": "Copper",
+    "category": "material",
+    "cost": 8,
+    "load": 0.5,
+    "props": { "rarity": 2 }
+  },
+  {
+    "id": "mat_cork",
+    "name": "Cork",
+    "category": "material",
+    "cost": 3,
+    "load": 0.1,
+    "props": { "rarity": 1 }
+  },
+  {
+    "id": "mat_crystal",
+    "name": "Crystal",
+    "category": "material",
+    "cost": 8,
+    "load": 0.1,
+    "props": { "rarity": 2 }
+  },
+  {
+    "id": "mat_fertilizer",
+    "name": "Fertilizer",
+    "category": "material",
+    "cost": 3,
+    "load": 0.5,
+    "props": { "rarity": 1 }
+  },
+  {
+    "id": "mat_fiber_optics",
+    "name": "Fiber Optics",
+    "category": "material",
+    "cost": 12,
+    "load": 0.1,
+    "props": { "rarity": 3 }
+  },
+  {
+    "id": "mat_fiberglass",
+    "name": "Fiberglass",
+    "category": "material",
+    "cost": 8,
+    "load": 0.1,
+    "props": { "rarity": 2 }
+  },
+  {
+    "id": "mat_flux_cobalt",
+    "name": "Flux, Stable Cobalt",
+    "category": "material",
+    "cost": 50,
+    "load": 0.1,
+    "props": { "rarity": 5 }
+  },
+  {
+    "id": "mat_flux_crimson",
+    "name": "Flux, Stable Crimson",
+    "category": "material",
+    "cost": 50,
+    "load": 0.1,
+    "props": { "rarity": 5 }
+  },
+  {
+    "id": "mat_flux_fluorescent",
+    "name": "Flux, Stable Fluorescent",
+    "category": "material",
+    "cost": 50,
+    "load": 0.1,
+    "props": { "rarity": 5 }
+  },
+  {
+    "id": "mat_flux_violet",
+    "name": "Flux, Stable Violet",
+    "category": "material",
+    "cost": 50,
+    "load": 0.1,
+    "props": { "rarity": 5 }
+  },
+  {
+    "id": "mat_flux_yellowcake",
+    "name": "Flux, Stable Yellowcake",
+    "category": "material",
+    "cost": 50,
+    "load": 0.1,
+    "props": { "rarity": 5 }
+  },
+  {
+    "id": "mat_gears",
+    "name": "Gears",
+    "category": "material",
+    "cost": 8,
+    "load": 0.2,
+    "props": { "rarity": 2 }
+  },
+  {
+    "id": "mat_glass",
+    "name": "Glass",
+    "category": "material",
+    "cost": 3,
+    "load": 0.1,
+    "props": { "rarity": 1 }
+  },
+  {
+    "id": "mat_gold",
+    "name": "Gold",
+    "category": "material",
+    "cost": 20,
+    "load": 1,
+    "props": { "rarity": 4 }
+  },
+  {
+    "id": "mat_lead",
+    "name": "Lead",
+    "category": "material",
+    "cost": 8,
+    "load": 1,
+    "props": { "rarity": 2 }
+  },
+  {
+    "id": "mat_leather",
+    "name": "Leather",
+    "category": "material",
+    "cost": 5,
+    "load": 0.1,
+    "props": { "rarity": 1 }
+  },
+  {
+    "id": "mat_nuclear_material",
+    "name": "Nuclear Material",
+    "category": "material",
+    "cost": 15,
+    "load": 0.1,
+    "props": { "rarity": 3 }
+  },
+  {
+    "id": "mat_oil",
+    "name": "Oil",
+    "category": "material",
+    "cost": 6,
+    "load": 0.1,
+    "props": { "rarity": 2 }
+  },
+  {
+    "id": "mat_plastic",
+    "name": "Plastic",
+    "category": "material",
+    "cost": 3,
+    "load": 0.1,
+    "props": { "rarity": 1 }
+  },
+  {
+    "id": "mat_rubber",
+    "name": "Rubber",
+    "category": "material",
+    "cost": 4,
+    "load": 0.1,
+    "props": { "rarity": 1 }
+  },
+  {
+    "id": "mat_screw",
+    "name": "Screw",
+    "category": "material",
+    "cost": 6,
+    "load": 0.1,
+    "props": { "rarity": 2 }
+  },
+  {
+    "id": "mat_silver",
+    "name": "Silver",
+    "category": "material",
+    "cost": 15,
+    "load": 0.2,
+    "props": { "rarity": 3 }
+  },
+  {
+    "id": "mat_spring",
+    "name": "Spring",
+    "category": "material",
+    "cost": 8,
+    "load": 0.1,
+    "props": { "rarity": 2 }
+  },
+  {
+    "id": "mat_steel",
+    "name": "Steel",
+    "category": "material",
+    "cost": 4,
+    "load": 1,
+    "props": { "rarity": 0 }
+  },
+  {
+    "id": "mat_ultracite",
+    "name": "Ultracite",
+    "category": "material",
+    "cost": 20,
+    "load": 0.1,
+    "props": { "rarity": 5 }
+  },
+  {
+    "id": "mat_wood",
+    "name": "Wood",
+    "category": "material",
+    "cost": 1,
+    "load": 0.2,
+    "props": { "rarity": 0 }
+  },
+  {
+    "id": "mat_paint",
+    "name": "Paint",
+    "category": "material",
+    "cost": 5,
+    "load": 0.1,
+    "props": { "rarity": 2 }
+  },
+  {
+    "id": "junk_abraxo_cleaner",
+    "name": "Abraxo Cleaner",
+    "category": "junk",
+    "cost": 6,
+    "load": 1,
+    "props": {
+      "materials": ["Acid x1", "Antiseptic x2"]
+    }
+  },
+  {
+    "id": "junk_accordion",
+    "name": "Accordion",
+    "category": "junk",
+    "cost": 30,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x2", "Steel x1", "Wood x1", "Screws x1"]
+    }
+  },
+  {
+    "id": "junk_acetone_canister",
+    "name": "Acetone Canister",
+    "category": "junk",
+    "cost": 8,
+    "load": 1,
+    "props": {
+      "materials": ["Steel x1", "Copper x1"]
+    }
+  },
+  {
+    "id": "junk_acoustic_guitar",
+    "name": "Acoustic Guitar",
+    "category": "junk",
+    "cost": 30,
+    "load": 4,
+    "props": {
+      "materials": ["Wood x2", "Steel x1"]
+    }
+  },
+  {
+    "id": "junk_adjustable_wrench",
+    "name": "Adjustable Wrench",
+    "category": "junk",
+    "cost": 10,
+    "load": 1,
+    "props": {
+      "materials": ["Steel x2", "Gear x1"]
+    }
+  },
+  {
+    "id": "junk_alarm_clock",
+    "name": "Alarm Clock",
+    "category": "junk",
+    "cost": 12,
+    "load": 1,
+    "props": {
+      "materials": ["Aluminum x2", "Glass x1", "Spring x1"]
+    }
+  },
+  {
+    "id": "junk_aluminum_can",
+    "name": "Aluminum Can",
+    "category": "junk",
+    "cost": 2,
+    "load": 0.5,
+    "props": {
+      "materials": ["Aluminum x1", "Lead x1"]
+    }
+  },
+  {
+    "id": "junk_aluminum_canister",
+    "name": "Aluminum Canister",
+    "category": "junk",
+    "cost": 12,
+    "load": 1.5,
+    "props": {
+      "materials": ["Aluminum x1", "Fiberglass x1", "Oil x1"]
+    }
+  },
+  {
+    "id": "junk_animal_hide",
+    "name": "Animal Hide",
+    "category": "junk",
+    "cost": 15,
+    "load": 8,
+    "props": {
+      "materials": ["Leather x3"]
+    }
+  },
+  {
+    "id": "junk_anti_freeze_bottle",
+    "name": "Anti-Freeze Bottle",
+    "category": "junk",
+    "cost": 4,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x2", "Acid x2"]
+    }
+  },
+  {
+    "id": "junk_ashtray",
+    "name": "Ashtray",
+    "category": "junk",
+    "cost": 2,
+    "load": 0.5,
+    "props": {
+      "materials": ["Ceramic x1"]
+    }
+  },
+  {
+    "id": "junk_baby_bottle",
+    "name": "Baby Bottle",
+    "category": "junk",
+    "cost": 8,
+    "load": 1,
+    "props": {
+      "materials": ["Glass x2", "Rubber x1"]
+    }
+  },
+  {
+    "id": "junk_baby_rattle",
+    "name": "Baby Rattle",
+    "category": "junk",
+    "cost": 3,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x1", "Lead x1"]
+    }
+  },
+  {
+    "id": "junk_bag_of_cement",
+    "name": "Bag of Cement",
+    "category": "junk",
+    "cost": 15,
+    "load": 10,
+    "props": {
+      "materials": ["Cloth x1", "Concrete x8"]
+    }
+  },
+  {
+    "id": "junk_bag_of_chlorine",
+    "name": "Bag of Chlorine",
+    "category": "junk",
+    "cost": 11,
+    "load": 4,
+    "props": {
+      "materials": ["Cloth x1", "Acid x4"]
+    }
+  },
+  {
+    "id": "junk_bag_of_fertilizer",
+    "name": "Bag of Fertilizer",
+    "category": "junk",
+    "cost": 12,
+    "load": 8,
+    "props": {
+      "materials": ["Cloth x1", "Fertilizer x8"]
+    }
+  },
+  {
+    "id": "junk_ball_peen_hammer",
+    "name": "Ball-Peen Hammer",
+    "category": "junk",
+    "cost": 4,
+    "load": 1.5,
+    "props": {
+      "materials": ["Wood x1", "Steel x2"]
+    }
+  },
+  {
+    "id": "junk_baseball",
+    "name": "Baseball",
+    "category": "junk",
+    "cost": 4,
+    "load": 0.5,
+    "props": {
+      "materials": ["Cloth x2", "Leather x2"]
+    }
+  },
+  {
+    "id": "junk_baseball_glove",
+    "name": "Baseball Glove",
+    "category": "junk",
+    "cost": 6,
+    "load": 1,
+    "props": {
+      "materials": ["Leather x3"]
+    }
+  },
+  {
+    "id": "junk_basketball",
+    "name": "Basketball",
+    "category": "junk",
+    "cost": 6,
+    "load": 1,
+    "props": {
+      "materials": ["Rubber x3"]
+    }
+  },
+  {
+    "id": "junk_biometric_scanner",
+    "name": "Biometric Scanner",
+    "category": "junk",
+    "cost": 30,
+    "load": 3,
+    "props": {
+      "materials": ["Fiber Optics x1", "Asbestos x1", "Nuclear Material x1"]
+    }
+  },
+  {
+    "id": "junk_bloatfly_gland",
+    "name": "Bloatfly Gland",
+    "category": "junk",
+    "cost": 2,
+    "load": 1,
+    "props": {
+      "materials": ["Acid x2"]
+    }
+  },
+  {
+    "id": "junk_bloodbug_proboscis",
+    "name": "Bloodbug Proboscis",
+    "category": "junk",
+    "cost": 10,
+    "load": 0,
+    "props": {
+      "materials": ["Acid x2"]
+    }
+  },
+  {
+    "id": "junk_blowtorch",
+    "name": "Blowtorch",
+    "category": "junk",
+    "cost": 15,
+    "load": 3,
+    "props": {
+      "materials": ["Steel x2", "Oil x1"],
+      "notes": "Can be used 3 times to start a small flame. After 3 times, it no longer gives x1 oil when scrapped."
+    }
+  },
+  {
+    "id": "junk_board_game_autopsy",
+    "name": "Board Game (Autopsy)",
+    "category": "junk",
+    "cost": 8,
+    "load": 1,
+    "props": {
+      "materials": ["Wood x2", "Antiseptic x1", "Plastic x1", "Bone x1"]
+    }
+  },
+  {
+    "id": "junk_board_game_blast_radius",
+    "name": "Board Game (Blast Radius)",
+    "category": "junk",
+    "cost": 17,
+    "load": 1,
+    "props": {
+      "materials": ["Wood x2", "Nuclear Material x1"]
+    }
+  },
+  {
+    "id": "junk_board_game_catch_the_commie",
+    "name": "Board Game (Catch the Commie)",
+    "category": "junk",
+    "cost": 8,
+    "load": 1,
+    "props": {
+      "materials": ["Wood x2", "Asbestos x1", "Steel x1"]
+    }
+  },
+  {
+    "id": "junk_bonesaw",
+    "name": "Bonesaw",
+    "category": "junk",
+    "cost": 5,
+    "load": 1.5,
+    "props": {
+      "materials": ["Rubber x1", "Steel x1"]
+    }
+  },
+  {
+    "id": "junk_book",
+    "name": "Book",
+    "category": "junk",
+    "cost": 1,
+    "load": 1,
+    "props": {
+      "materials": ["Cloth x1"]
+    }
+  },
+  {
+    "id": "junk_bottle",
+    "name": "Bottle",
+    "category": "junk",
+    "cost": 1,
+    "load": 0.5,
+    "props": {
+      "materials": ["Glass x1"],
+      "notes": "Can be filled with 1 use of a drink, such as water."
+    }
+  },
+  {
+    "id": "junk_bowling_ball",
+    "name": "Bowling Ball",
+    "category": "junk",
+    "cost": 5,
+    "load": 8,
+    "props": {
+      "materials": ["Plastic x7"]
+    }
+  },
+  {
+    "id": "junk_bowling_pin",
+    "name": "Bowling Pin",
+    "category": "junk",
+    "cost": 4,
+    "load": 3,
+    "props": {
+      "materials": ["Plastic x2", "Wood x2"]
+    }
+  },
+  {
+    "id": "junk_brahmin_skull",
+    "name": "Brahmin Skull",
+    "category": "junk",
+    "cost": 2,
+    "load": 3,
+    "props": {
+      "materials": ["Bones x5"]
+    }
+  },
+  {
+    "id": "junk_bread_box",
+    "name": "Bread Box",
+    "category": "junk",
+    "cost": 3,
+    "load": 2,
+    "props": {
+      "materials": ["Plastic x3"]
+    }
+  },
+  {
+    "id": "junk_broken_camera",
+    "name": "Broken Camera",
+    "category": "junk",
+    "cost": 12,
+    "load": 3,
+    "props": {
+      "materials": ["Gear x1", "Spring x1", "Crystal x1"],
+      "notes": "Can be used to craft Cameras."
+    }
+  },
+  {
+    "id": "junk_broken_fire_extinguisher",
+    "name": "Broken Fire Extinguisher",
+    "category": "junk",
+    "cost": 10,
+    "load": 4,
+    "props": {
+      "materials": ["Steel x2", "Asbestos x1", "Rubber x1"],
+      "notes": "Can be used to craft a Fire Extinguisher."
+    }
+  },
+  {
+    "id": "junk_broken_lantern",
+    "name": "Broken Lantern",
+    "category": "junk",
+    "cost": 17,
+    "load": 2.5,
+    "props": {
+      "materials": ["Glass x2", "Oil x2", "Steel x3"],
+      "notes": "Can be used to craft a Lantern."
+    }
+  },
+  {
+    "id": "junk_broom",
+    "name": "Broom",
+    "category": "junk",
+    "cost": 3,
+    "load": 3,
+    "props": {
+      "materials": ["Wood x1", "Plastic x1"]
+    }
+  },
+  {
+    "id": "junk_bunsen_burner",
+    "name": "Bunsen Burner",
+    "category": "junk",
+    "cost": 6,
+    "load": 1,
+    "props": {
+      "materials": ["Steel x2", "Copper x1"]
+    }
+  },
+  {
+    "id": "junk_cafeteria_tray",
+    "name": "Cafeteria Tray",
+    "category": "junk",
+    "cost": 2,
+    "load": 1,
+    "props": {
+      "materials": ["Plastic x2"]
+    }
+  },
+  {
+    "id": "junk_cake_pan",
+    "name": "Cake Pan",
+    "category": "junk",
+    "cost": 15,
+    "load": 1,
+    "props": {
+      "materials": ["Aluminum x3"]
+    }
+  },
+  {
+    "id": "junk_car_bumper",
+    "name": "Car Bumper",
+    "category": "junk",
+    "cost": 10,
+    "load": 6,
+    "props": {
+      "materials": ["Steel x6"],
+      "notes": "Can be used to craft Bumper Swords."
+    }
+  },
+  {
+    "id": "junk_cat_bowl",
+    "name": "Cat Bowl",
+    "category": "junk",
+    "cost": 1,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x1"]
+    }
+  },
+  {
+    "id": "junk_cazador_venom_gland",
+    "name": "Cazador Venom Gland",
+    "category": "junk",
+    "cost": 18,
+    "load": 2,
+    "props": {
+      "materials": ["Acid x2"]
+    }
+  },
+  {
+    "id": "junk_ceramic_bowl",
+    "name": "Ceramic Bowl",
+    "category": "junk",
+    "cost": 2,
+    "load": 1,
+    "props": {
+      "materials": ["Ceramic x1"]
+    }
+  },
+  {
+    "id": "junk_chalk",
+    "name": "Chalk",
+    "category": "junk",
+    "cost": 3,
+    "load": 0.5,
+    "props": {
+      "materials": ["Asbestos x1"]
+    }
+  },
+  {
+    "id": "junk_chessboard",
+    "name": "Chessboard",
+    "category": "junk",
+    "cost": 2,
+    "load": 1,
+    "props": {
+      "materials": ["Wood x2"]
+    }
+  },
+  {
+    "id": "junk_cigar_box",
+    "name": "Cigar Box",
+    "category": "junk",
+    "cost": 15,
+    "load": 0.5,
+    "props": {
+      "materials": ["Wood x2", "Fiberglass x2", "Cloth x3"]
+    }
+  },
+  {
+    "id": "junk_cigarette_carton",
+    "name": "Cigarette Carton",
+    "category": "junk",
+    "cost": 15,
+    "load": 1,
+    "props": {
+      "materials": ["Plastic x2", "Cloth x1", "Asbestos x2"]
+    }
+  },
+  {
+    "id": "junk_claw_hammer",
+    "name": "Claw Hammer",
+    "category": "junk",
+    "cost": 3,
+    "load": 3,
+    "props": {
+      "materials": ["Steel x2", "Wood x1"]
+    }
+  },
+  {
+    "id": "junk_clipboard",
+    "name": "Clipboard",
+    "category": "junk",
+    "cost": 3,
+    "load": 0.5,
+    "props": {
+      "materials": ["Wood x1", "Spring x1"]
+    }
+  },
+  {
+    "id": "junk_clothes_hanger",
+    "name": "Clothes Hanger",
+    "category": "junk",
+    "cost": 1,
+    "load": 0.5,
+    "props": {
+      "materials": ["Steel x1"]
+    }
+  },
+  {
+    "id": "junk_clothing_iron",
+    "name": "Clothing Iron",
+    "category": "junk",
+    "cost": 3,
+    "load": 3,
+    "props": {
+      "materials": ["Steel x2", "Plastic x1"]
+    }
+  },
+  {
+    "id": "junk_coffee_cup",
+    "name": "Coffee Cup",
+    "category": "junk",
+    "cost": 4,
+    "load": 0.5,
+    "props": {
+      "materials": ["Ceramic x1"]
+    }
+  },
+  {
+    "id": "junk_coffee_pot",
+    "name": "Coffee Pot",
+    "category": "junk",
+    "cost": 16,
+    "load": 1,
+    "props": {
+      "materials": ["Steel x2", "Plastic x2", "Asbestos x2"]
+    }
+  },
+  {
+    "id": "junk_connecting_rod",
+    "name": "Connecting Rod",
+    "category": "junk",
+    "cost": 2,
+    "load": 5,
+    "props": {
+      "materials": ["Steel x2"]
+    }
+  },
+  {
+    "id": "junk_cooking_oil",
+    "name": "Cooking Oil",
+    "category": "junk",
+    "cost": 9,
+    "load": 0.5,
+    "props": {
+      "materials": ["Oil x1", "Plastic x1"]
+    }
+  },
+  {
+    "id": "junk_cooking_pan",
+    "name": "Cooking Pan",
+    "category": "junk",
+    "cost": 2,
+    "load": 0.5,
+    "props": {
+      "materials": ["Steel x2"]
+    }
+  },
+  {
+    "id": "junk_cooking_pot",
+    "name": "Cooking Pot",
+    "category": "junk",
+    "cost": 6,
+    "load": 1,
+    "props": {
+      "materials": ["Steel x2", "Copper x1"]
+    }
+  },
+  {
+    "id": "junk_coolant",
+    "name": "Coolant",
+    "category": "junk",
+    "cost": 7,
+    "load": 1,
+    "props": {
+      "materials": ["Acid x1", "Plastic x1", "Rubber x2"]
+    }
+  },
+  {
+    "id": "junk_coolant_cap",
+    "name": "Coolant Cap",
+    "category": "junk",
+    "cost": 10,
+    "load": 1,
+    "props": {
+      "materials": ["Aluminum x2"]
+    }
+  },
+  {
+    "id": "junk_cotton_yarn",
+    "name": "Cotton Yarn",
+    "category": "junk",
+    "cost": 1,
+    "load": 0.5,
+    "props": {
+      "materials": ["Cloth x1"]
+    }
+  },
+  {
+    "id": "junk_crutch",
+    "name": "Crutch",
+    "category": "junk",
+    "cost": 5,
+    "load": 2,
+    "props": {
+      "materials": ["Wood x2", "Cloth x1"]
+    }
+  },
+  {
+    "id": "junk_crystal_liquor_decanter",
+    "name": "Crystal Liquor Decanter",
+    "category": "junk",
+    "cost": 16,
+    "load": 3,
+    "props": {
+      "materials": ["Leather x1", "Crystal x3"]
+    }
+  },
+  {
+    "id": "junk_cutting_board",
+    "name": "Cutting Board",
+    "category": "junk",
+    "cost": 2,
+    "load": 0.5,
+    "props": {
+      "materials": ["Wood x2"]
+    }
+  },
+  {
+    "id": "junk_cutting_fluid",
+    "name": "Cutting Fluid",
+    "category": "junk",
+    "cost": 13,
+    "load": 1,
+    "props": {
+      "materials": ["Oil x3", "Steel x1"]
+    }
+  },
+  {
+    "id": "junk_deathclaw_hand",
+    "name": "Deathclaw Hand",
+    "category": "junk",
+    "cost": 25,
+    "load": 5,
+    "props": {
+      "materials": ["Bone x2", "Leather x3"],
+      "notes": "Can be used to craft the Deathclaw Gauntlet."
+    }
+  },
+  {
+    "id": "junk_desk_fan",
+    "name": "Desk Fan",
+    "category": "junk",
+    "cost": 14,
+    "load": 3,
+    "props": {
+      "materials": ["Gears x1", "Screws x1", "Steel x2"]
+    }
+  },
+  {
+    "id": "junk_dinner_fork",
+    "name": "Dinner Fork",
+    "category": "junk",
+    "cost": 1,
+    "load": 0,
+    "props": {
+      "materials": ["Steel x1"]
+    }
+  },
+  {
+    "id": "junk_dinner_plate",
+    "name": "Dinner Plate",
+    "category": "junk",
+    "cost": 1,
+    "load": 0.5,
+    "props": {
+      "materials": ["Steel x1"]
+    }
+  },
+  {
+    "id": "junk_dishrag",
+    "name": "Dishrag",
+    "category": "junk",
+    "cost": 1,
+    "load": 0,
+    "props": {
+      "materials": ["Cloth x1"]
+    }
+  },
+  {
+    "id": "junk_dog_bowl",
+    "name": "Dog Bowl",
+    "category": "junk",
+    "cost": 1,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x2"]
+    }
+  },
+  {
+    "id": "junk_dog_tags",
+    "name": "Dog Tags",
+    "category": "junk",
+    "cost": 1,
+    "load": 0,
+    "props": {
+      "materials": ["Steel x1"]
+    }
+  },
+  {
+    "id": "junk_doll",
+    "name": "Doll",
+    "category": "junk",
+    "cost": 2,
+    "load": 1,
+    "props": {
+      "materials": ["Plastic x1", "Cloth x1"]
+    }
+  },
+  {
+    "id": "junk_duct_tape",
+    "name": "Duct Tape",
+    "category": "junk",
+    "cost": 7,
+    "load": 0.5,
+    "props": {
+      "materials": ["Adhesive x1", "Cloth x1"]
+    }
+  },
+  {
+    "id": "junk_dumbell",
+    "name": "Dumbell",
+    "category": "junk",
+    "cost": 45,
+    "load": 20,
+    "props": {
+      "materials": ["Lead x5"]
+    }
+  },
+  {
+    "id": "junk_economy_wonderglue",
+    "name": "Economy Wonderglue",
+    "category": "junk",
+    "cost": 30,
+    "load": 1,
+    "props": {
+      "materials": ["Adhesive x5"]
+    }
+  },
+  {
+    "id": "junk_eggtimer",
+    "name": "Eggtimer",
+    "category": "junk",
+    "cost": 8,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x1", "Circuitry x1"]
+    }
+  },
+  {
+    "id": "junk_enamel_bucket",
+    "name": "Enamel Bucket",
+    "category": "junk",
+    "cost": 2,
+    "load": 1.5,
+    "props": {
+      "materials": ["Steel x1", "Plastic x1"]
+    }
+  },
+  {
+    "id": "junk_enhanced_targeting_card",
+    "name": "Enhanced Targeting Card",
+    "category": "junk",
+    "cost": 17,
+    "load": 0,
+    "props": {
+      "materials": ["Plastic x1", "Silver x1", "Circuitry x2"]
+    }
+  },
+  {
+    "id": "junk_fancy_hairbrush",
+    "name": "Fancy Hairbrush",
+    "category": "junk",
+    "cost": 7,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x1", "Silver x1"]
+    }
+  },
+  {
+    "id": "junk_feather_duster",
+    "name": "Feather Duster",
+    "category": "junk",
+    "cost": 1,
+    "load": 1,
+    "props": {
+      "materials": ["Plastic x2", "Cloth x1"]
+    }
+  },
+  {
+    "id": "junk_firehose_nozzle",
+    "name": "Firehose Nozzle",
+    "category": "junk",
+    "cost": 5,
+    "load": 2,
+    "props": {
+      "materials": ["Steel x2", "Rubber x1", "Asbestos x1"]
+    }
+  },
+  {
+    "id": "junk_fishing_rod",
+    "name": "Fishing Rod",
+    "category": "junk",
+    "cost": 10,
+    "load": 2.5,
+    "props": {
+      "materials": ["Gear x1", "Spring x1", "Wood x1"]
+    }
+  },
+  {
+    "id": "junk_fission_battery",
+    "name": "Fission Battery",
+    "category": "junk",
+    "cost": 15,
+    "load": 3,
+    "props": {
+      "materials": ["Lead x2", "Acid x2", "Copper x1"]
+    }
+  },
+  {
+    "id": "junk_flask",
+    "name": "Flask",
+    "category": "junk",
+    "cost": 3,
+    "load": 0.5,
+    "props": {
+      "materials": ["Glass x1"]
+    }
+  },
+  {
+    "id": "junk_flip_lighter",
+    "name": "Flip Lighter",
+    "category": "junk",
+    "cost": 8,
+    "load": 0.5,
+    "props": {
+      "materials": ["Oil x1", "Spring x1", "Steel x1"],
+      "notes": "Can be used 3 times to light a small flame. After 3 times, it no longer gives x1 oil when scrapped."
+    }
+  },
+  {
+    "id": "junk_floater_flamer_pus_sac",
+    "name": "Floater Flamer Pus Sac",
+    "category": "junk",
+    "cost": 25,
+    "load": 0.5,
+    "props": {
+      "materials": ["Leather x3", "Oil x2"],
+      "notes": "Can be used to craft Floater Flamer Grenades."
+    }
+  },
+  {
+    "id": "junk_floater_freezer_pus_sac",
+    "name": "Floater Freezer Pus Sac",
+    "category": "junk",
+    "cost": 25,
+    "load": 0.5,
+    "props": {
+      "materials": ["Leather x3", "Crystals x2"],
+      "notes": "Can be used to craft Floater Freezer Grenades."
+    }
+  },
+  {
+    "id": "junk_floater_gnasher_pus_sac",
+    "name": "Floater Gnasher Pus Sac",
+    "category": "junk",
+    "cost": 25,
+    "load": 0.5,
+    "props": {
+      "materials": ["Leather x3", "Acid x2"],
+      "notes": "Can be used to craft Floater Gnasher Grenades."
+    }
+  },
+  {
+    "id": "junk_flower_pot",
+    "name": "Flower Pot",
+    "category": "junk",
+    "cost": 3,
+    "load": 1,
+    "props": {
+      "materials": ["Ceramic x1"]
+    }
+  },
+  {
+    "id": "junk_flute",
+    "name": "Flute",
+    "category": "junk",
+    "cost": 30,
+    "load": 0.5,
+    "props": {
+      "materials": ["Steel x2", "Silver x1", "Screws x1"]
+    }
+  },
+  {
+    "id": "junk_folder",
+    "name": "Folder",
+    "category": "junk",
+    "cost": 1,
+    "load": 0,
+    "props": {
+      "materials": ["Cloth x1"]
+    }
+  },
+  {
+    "id": "junk_fuel_tank",
+    "name": "Fuel Tank",
+    "category": "junk",
+    "cost": 15,
+    "load": 5,
+    "props": {
+      "materials": ["Oil x2", "Steel x2"]
+    }
+  },
+  {
+    "id": "junk_fumigus_blowtorch",
+    "name": "Fumigus Blowtorch",
+    "category": "junk",
+    "cost": 25,
+    "load": 3,
+    "props": {
+      "materials": ["Oil x3", "Steel x3"],
+      "notes": "Can be used 9 times to light a small flame. After every 3 uses, it no longer gives x1 oil when scrapped."
+    }
+  },
+  {
+    "id": "junk_fuse",
+    "name": "Fuse",
+    "category": "junk",
+    "cost": 7,
+    "load": 0,
+    "props": {
+      "materials": ["Copper x1", "Glass x1"]
+    }
+  },
+  {
+    "id": "junk_garden_gnome",
+    "name": "Garden Gnome",
+    "category": "junk",
+    "cost": 5,
+    "load": 3,
+    "props": {
+      "materials": ["Concrete x3", "Ceramic x1"]
+    }
+  },
+  {
+    "id": "junk_gas_canister",
+    "name": "Gas Canister",
+    "category": "junk",
+    "cost": 7,
+    "load": 3,
+    "props": {
+      "materials": ["Steel x2", "Oil x1"]
+    }
+  },
+  {
+    "id": "junk_gear",
+    "name": "Gear",
+    "category": "junk",
+    "cost": 9,
+    "load": 1,
+    "props": {
+      "materials": ["Steel x1", "Gears x2"]
+    }
+  },
+  {
+    "id": "junk_giddyup_buttercup",
+    "name": "Giddyup Buttercup",
+    "category": "junk",
+    "cost": 35,
+    "load": 8,
+    "props": {
+      "materials": ["Gears x2", "Steel x5", "Springs x2", "Screws x3"]
+    }
+  },
+  {
+    "id": "junk_glass_bowl",
+    "name": "Glass Bowl",
+    "category": "junk",
+    "cost": 6,
+    "load": 1,
+    "props": {
+      "materials": ["Glass x2"]
+    }
+  },
+  {
+    "id": "junk_glass_jar",
+    "name": "Glass Jar",
+    "category": "junk",
+    "cost": 3,
+    "load": 1,
+    "props": {
+      "materials": ["Glass x2"]
+    }
+  },
+  {
+    "id": "junk_glass_jar_top",
+    "name": "Glass Jar Top",
+    "category": "junk",
+    "cost": 5,
+    "load": 0.5,
+    "props": {
+      "materials": ["Aluminum x1"]
+    }
+  },
+  {
+    "id": "junk_glass_pitcher",
+    "name": "Glass Pitcher",
+    "category": "junk",
+    "cost": 6,
+    "load": 1,
+    "props": {
+      "materials": ["Glass x2"]
+    }
+  },
+  {
+    "id": "junk_globe",
+    "name": "Globe",
+    "category": "junk",
+    "cost": 9,
+    "load": 3,
+    "props": {
+      "materials": ["Screws x2", "Leather x2", "Plastic x1"]
+    }
+  },
+  {
+    "id": "junk_gold_bar",
+    "name": "Gold Bar",
+    "category": "junk",
+    "cost": 450,
+    "load": 15,
+    "props": {
+      "materials": ["Gold x10"]
+    }
+  },
+  {
+    "id": "junk_gold_plated_flip_lighter",
+    "name": "Gold Plated Flip Lighter",
+    "category": "junk",
+    "cost": 17,
+    "load": 0.5,
+    "props": {
+      "materials": ["Gold x1", "Oil x1", "Steel x1"],
+      "notes": "Can be used 3 times to light a small flame. After 3 times, it no longer gives x1 oil when scrapped."
+    }
+  },
+  {
+    "id": "junk_gold_pocket_watch",
+    "name": "Gold Pocket Watch",
+    "category": "junk",
+    "cost": 25,
+    "load": 0.5,
+    "props": {
+      "materials": ["Gear x1", "Gold x1", "Spring x1"]
+    }
+  },
+  {
+    "id": "junk_golf_ball",
+    "name": "Golf Ball",
+    "category": "junk",
+    "cost": 1,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x1"]
+    }
+  },
+  {
+    "id": "junk_hairbrush",
+    "name": "Hairbrush",
+    "category": "junk",
+    "cost": 2,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x2"]
+    }
+  },
+  {
+    "id": "junk_hallucigen_gas_canister",
+    "name": "HalluciGen Gas Canister",
+    "category": "junk",
+    "cost": 17,
+    "load": 3,
+    "props": {
+      "materials": ["Steel x2", "Acid x5"]
+    }
+  },
+  {
+    "id": "junk_handmade_glue",
+    "name": "Handmade Glue",
+    "category": "junk",
+    "cost": 3,
+    "load": 0.5,
+    "props": {
+      "materials": ["Glass x1", "Adhesive x1"]
+    }
+  },
+  {
+    "id": "junk_high_powered_magnet",
+    "name": "High-Powered Magnet",
+    "category": "junk",
+    "cost": 29,
+    "load": 5,
+    "props": {
+      "materials": ["Copper x3", "Ceramic x1", "Nuclear Material x1"]
+    }
+  },
+  {
+    "id": "junk_hoe",
+    "name": "Hoe",
+    "category": "junk",
+    "cost": 6,
+    "load": 2,
+    "props": {
+      "materials": ["Steel x2", "Wood x2"]
+    }
+  },
+  {
+    "id": "junk_hot_plate",
+    "name": "Hot Plate",
+    "category": "junk",
+    "cost": 12,
+    "load": 2,
+    "props": {
+      "materials": ["Circuitry x1", "Copper x1", "Screw x1"],
+      "notes": "Can be used to cook food with a power source."
+    }
+  },
+  {
+    "id": "junk_hubcap",
+    "name": "Hubcap",
+    "category": "junk",
+    "cost": 6,
+    "load": 4,
+    "props": {
+      "materials": ["Steel x3"]
+    }
+  },
+  {
+    "id": "junk_human_arm_bones",
+    "name": "Human Arm Bones",
+    "category": "junk",
+    "cost": 3,
+    "load": 1,
+    "props": {
+      "materials": ["Bones x3"]
+    }
+  },
+  {
+    "id": "junk_human_foot_bones",
+    "name": "Human Foot Bones",
+    "category": "junk",
+    "cost": 2,
+    "load": 0.5,
+    "props": {
+      "materials": ["Bones x2"]
+    }
+  },
+  {
+    "id": "junk_human_hand_bones",
+    "name": "Human Hand Bones",
+    "category": "junk",
+    "cost": 2,
+    "load": 0.5,
+    "props": {
+      "materials": ["Bones x1"]
+    }
+  },
+  {
+    "id": "junk_human_leg_bones",
+    "name": "Human Leg Bones",
+    "category": "junk",
+    "cost": 3,
+    "load": 1.5,
+    "props": {
+      "materials": ["Bones x3"]
+    }
+  },
+  {
+    "id": "junk_human_rib_cage",
+    "name": "Human Rib Cage",
+    "category": "junk",
+    "cost": 6,
+    "load": 5,
+    "props": {
+      "materials": ["Bones x5"]
+    }
+  },
+  {
+    "id": "junk_human_skull",
+    "name": "Human Skull",
+    "category": "junk",
+    "cost": 3,
+    "load": 2.5,
+    "props": {
+      "materials": ["Bones x2"]
+    }
+  },
+  {
+    "id": "junk_human_spine",
+    "name": "Human Spine",
+    "category": "junk",
+    "cost": 5,
+    "load": 1,
+    "props": {
+      "materials": ["Bones x4"]
+    }
+  },
+  {
+    "id": "junk_industrial_oil_canister",
+    "name": "Industrial Oil Canister",
+    "category": "junk",
+    "cost": 14,
+    "load": 2,
+    "props": {
+      "materials": ["Aluminum x1", "Oil x2"]
+    }
+  },
+  {
+    "id": "junk_industrial_size_shortening",
+    "name": "Industrial Size Shortening",
+    "category": "junk",
+    "cost": 16,
+    "load": 4,
+    "props": {
+      "materials": ["Oil x4"]
+    }
+  },
+  {
+    "id": "junk_industrial_solvent",
+    "name": "Industrial Solvent",
+    "category": "junk",
+    "cost": 15,
+    "load": 1,
+    "props": {
+      "materials": ["Steel x3", "Antiseptic x3"]
+    }
+  },
+  {
+    "id": "junk_jangles_the_moon_monkey",
+    "name": "Jangles the Moon Monkey",
+    "category": "junk",
+    "cost": 15,
+    "load": 5,
+    "props": {
+      "materials": ["Cloth x3", "Plastic x1", "Fiberglass x1"]
+    }
+  },
+  {
+    "id": "junk_kickball",
+    "name": "Kickball",
+    "category": "junk",
+    "cost": 6,
+    "load": 0.5,
+    "props": {
+      "materials": ["Rubber x3"]
+    }
+  },
+  {
+    "id": "junk_kitchen_scale",
+    "name": "Kitchen Scale",
+    "category": "junk",
+    "cost": 12,
+    "load": 2,
+    "props": {
+      "materials": ["Steel x3", "Spring x1"]
+    }
+  },
+  {
+    "id": "junk_ladle",
+    "name": "Ladle",
+    "category": "junk",
+    "cost": 1,
+    "load": 0.5,
+    "props": {
+      "materials": ["Steel x1"]
+    }
+  },
+  {
+    "id": "junk_lamp",
+    "name": "Lamp",
+    "category": "junk",
+    "cost": 7,
+    "load": 2,
+    "props": {
+      "materials": ["Copper x1", "Glass x1"]
+    }
+  },
+  {
+    "id": "junk_leaf_blower",
+    "name": "Leaf Blower",
+    "category": "junk",
+    "cost": 8,
+    "load": 5,
+    "props": {
+      "materials": ["Steel x3", "Gears x2", "Rubber x1"]
+    }
+  },
+  {
+    "id": "junk_leather_belt",
+    "name": "Leather Belt",
+    "category": "junk",
+    "cost": 6,
+    "load": 1,
+    "props": {
+      "materials": ["Leather x2"]
+    }
+  },
+  {
+    "id": "junk_light_bulb",
+    "name": "Light Bulb",
+    "category": "junk",
+    "cost": 4,
+    "load": 0.5,
+    "props": {
+      "materials": ["Copper x1"]
+    }
+  },
+  {
+    "id": "junk_log",
+    "name": "Log",
+    "category": "junk",
+    "cost": 15,
+    "load": 8,
+    "props": {
+      "materials": ["Wood x10"]
+    }
+  },
+  {
+    "id": "junk_lunchbox",
+    "name": "Lunchbox",
+    "category": "junk",
+    "cost": 3,
+    "load": 1,
+    "props": {
+      "materials": ["Steel x1"]
+    }
+  },
+  {
+    "id": "junk_magnifying_glass",
+    "name": "Magnifying Glass",
+    "category": "junk",
+    "cost": 15,
+    "load": 0.5,
+    "props": {
+      "materials": ["Glass x2", "Copper x1", "Crystal x1"]
+    }
+  },
+  {
+    "id": "junk_makeshift_battery",
+    "name": "Makeshift Battery",
+    "category": "junk",
+    "cost": 12,
+    "load": 4,
+    "props": {
+      "materials": ["Lead x2", "Wood x2", "Acid x2"]
+    }
+  },
+  {
+    "id": "junk_medical_brace",
+    "name": "Medical Brace",
+    "category": "junk",
+    "cost": 14,
+    "load": 2,
+    "props": {
+      "materials": ["Leather x2", "Rubber x1", "Steel x1"]
+    }
+  },
+  {
+    "id": "junk_medical_liquid_nitrogen_dispenser",
+    "name": "Medical Liquid Nitrogen Dispenser",
+    "category": "junk",
+    "cost": 12,
+    "load": 5,
+    "props": {
+      "materials": ["Steel x2"]
+    }
+  },
+  {
+    "id": "junk_metal_bucket",
+    "name": "Metal Bucket",
+    "category": "junk",
+    "cost": 2,
+    "load": 0.5,
+    "props": {
+      "materials": ["Steel x1"]
+    }
+  },
+  {
+    "id": "junk_metal_tub",
+    "name": "Metal Tub",
+    "category": "junk",
+    "cost": 2,
+    "load": 2,
+    "props": {
+      "materials": ["Steel x2"]
+    }
+  },
+  {
+    "id": "junk_microscope",
+    "name": "Microscope",
+    "category": "junk",
+    "cost": 18,
+    "load": 4,
+    "props": {
+      "materials": ["Gear x1", "Glass x1", "Crystal x1", "Fiber Optics x1"]
+    }
+  },
+  {
+    "id": "junk_military_ammo_bag",
+    "name": "Military Ammo Bag",
+    "category": "junk",
+    "cost": 4,
+    "load": 3,
+    "props": {
+      "materials": ["Ballistic Fiber x2"]
+    }
+  },
+  {
+    "id": "junk_military_grade_circuit_board",
+    "name": "Military Grade Circuit Board",
+    "category": "junk",
+    "cost": 25,
+    "load": 1.5,
+    "props": {
+      "materials": ["Circuitry x2"]
+    }
+  },
+  {
+    "id": "junk_military_grade_duct_tape",
+    "name": "Military Grade Duct Tape",
+    "category": "junk",
+    "cost": 22,
+    "load": 0.5,
+    "props": {
+      "materials": ["Ballistic Fiber x2", "Adhesive x4"]
+    }
+  },
+  {
+    "id": "junk_mining_suit_rebreather",
+    "name": "Mining Suit Rebreather",
+    "category": "junk",
+    "cost": 5,
+    "load": 0.5,
+    "props": {
+      "materials": ["Aluminum x1", "Rubber x1"]
+    }
+  },
+  {
+    "id": "junk_mole_rat_teeth",
+    "name": "Mole Rat Teeth",
+    "category": "junk",
+    "cost": 1,
+    "load": 0.5,
+    "props": {
+      "materials": ["Bones x1"]
+    }
+  },
+  {
+    "id": "junk_mop",
+    "name": "Mop",
+    "category": "junk",
+    "cost": 4,
+    "load": 2,
+    "props": {
+      "materials": ["Wood x2", "Cloth x1", "Rubber x1"]
+    }
+  },
+  {
+    "id": "junk_motorcycle_gas_tank",
+    "name": "Motorcycle Gas Tank",
+    "category": "junk",
+    "cost": 8,
+    "load": 4,
+    "props": {
+      "materials": ["Steel x3", "Oil x2"]
+    }
+  },
+  {
+    "id": "junk_mr_handy_fuel",
+    "name": "Mr. Handy Fuel",
+    "category": "junk",
+    "cost": 11,
+    "load": 5,
+    "props": {
+      "materials": ["Oil x6", "Steel x3"],
+      "notes": "Can be used to refuel a Mr. Handy for 1 week."
+    }
+  },
+  {
+    "id": "junk_oil_can",
+    "name": "Oil Can",
+    "category": "junk",
+    "cost": 19,
+    "load": 0.5,
+    "props": {
+      "materials": ["Oil x2", "Aluminum x1"]
+    }
+  },
+  {
+    "id": "junk_oil_canister",
+    "name": "Oil Canister",
+    "category": "junk",
+    "cost": 10,
+    "load": 1.5,
+    "props": {
+      "materials": ["Steel x2", "Oil x2"]
+    }
+  },
+  {
+    "id": "junk_ophthalmoscope",
+    "name": "Ophthalmoscope",
+    "category": "junk",
+    "cost": 12,
+    "load": 1,
+    "props": {
+      "materials": ["Steel x1", "Circuitry x1", "Crystal x1"]
+    }
+  },
+  {
+    "id": "junk_oven_mitt",
+    "name": "Oven Mitt",
+    "category": "junk",
+    "cost": 8,
+    "load": 1,
+    "props": {
+      "materials": ["Asbestos x1", "Cloth x1"]
+    }
+  },
+  {
+    "id": "junk_pack_of_duct_tape",
+    "name": "Pack of Duct Tape",
+    "category": "junk",
+    "cost": 26,
+    "load": 0.5,
+    "props": {
+      "materials": ["Adhesive x4", "Cloth x1"]
+    }
+  },
+  {
+    "id": "junk_paint_can_empty",
+    "name": "Paint Can (Empty)",
+    "category": "junk",
+    "cost": 2,
+    "load": 0.5,
+    "props": {
+      "materials": ["Steel x2"]
+    }
+  },
+  {
+    "id": "junk_paint_can_full",
+    "name": "Paint Can (Full)",
+    "category": "junk",
+    "cost": 15,
+    "load": 3,
+    "props": {
+      "materials": ["Steel x2", "Paint x5"],
+      "notes": "Can be used to paint a small area with one color 5 times. After each use, it no longer gives x1 paint when scrapped."
+    }
+  },
+  {
+    "id": "junk_paperweight",
+    "name": "Paperweight",
+    "category": "junk",
+    "cost": 3,
+    "load": 3,
+    "props": {
+      "materials": ["Lead x3"]
+    }
+  },
+  {
+    "id": "junk_pen",
+    "name": "Pen",
+    "category": "junk",
+    "cost": 1,
+    "load": 0,
+    "props": {
+      "materials": ["Plastic x1"]
+    }
+  },
+  {
+    "id": "junk_pencil",
+    "name": "Pencil",
+    "category": "junk",
+    "cost": 1,
+    "load": 0,
+    "props": {
+      "materials": ["Lead x1", "Wood x1"]
+    }
+  },
+  {
+    "id": "junk_pepper_mill",
+    "name": "Pepper Mill",
+    "category": "junk",
+    "cost": 2,
+    "load": 0.5,
+    "props": {
+      "materials": ["Screws x2", "Plastic x2"]
+    }
+  },
+  {
+    "id": "junk_picture_frame",
+    "name": "Picture Frame",
+    "category": "junk",
+    "cost": 2,
+    "load": 1,
+    "props": {
+      "materials": ["Wood x2"]
+    }
+  },
+  {
+    "id": "junk_pillow",
+    "name": "Pillow",
+    "category": "junk",
+    "cost": 3,
+    "load": 1,
+    "props": {
+      "materials": ["Cloth x2"]
+    }
+  },
+  {
+    "id": "junk_plastic_bowl",
+    "name": "Plastic Bowl",
+    "category": "junk",
+    "cost": 2,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x2"]
+    }
+  },
+  {
+    "id": "junk_plunger",
+    "name": "Plunger",
+    "category": "junk",
+    "cost": 5,
+    "load": 1,
+    "props": {
+      "materials": ["Rubber x1", "Wood x1"]
+    }
+  },
+  {
+    "id": "junk_pool_ball",
+    "name": "Pool Ball",
+    "category": "junk",
+    "cost": 2,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x1"]
+    }
+  },
+  {
+    "id": "junk_power_relay_coil",
+    "name": "Power Relay Coil",
+    "category": "junk",
+    "cost": 10,
+    "load": 0.5,
+    "props": {
+      "materials": ["Copper x2", "Steel x2"]
+    }
+  },
+  {
+    "id": "junk_pre_war_money",
+    "name": "Pre-War Money",
+    "category": "junk",
+    "cost": 5,
+    "load": 0,
+    "props": {
+      "materials": ["Cloth x1"]
+    }
+  },
+  {
+    "id": "junk_radioactive_gland",
+    "name": "Radioactive Gland",
+    "category": "junk",
+    "cost": 40,
+    "load": 2,
+    "props": {
+      "materials": ["Nuclear Material x5"]
+    }
+  },
+  {
+    "id": "junk_radscorpion_venom_gland",
+    "name": "Radscorpion Venom Gland",
+    "category": "junk",
+    "cost": 20,
+    "load": 0.5,
+    "props": {
+      "materials": ["Nuclear Material x2"],
+      "notes": "Can be used to craft Antivenom."
+    }
+  },
+  {
+    "id": "junk_rat_poison",
+    "name": "Rat Poison",
+    "category": "junk",
+    "cost": 17,
+    "load": 0.5,
+    "props": {
+      "materials": ["Asbestos x1", "Fiberglass x1", "Lead x5"]
+    }
+  },
+  {
+    "id": "junk_salt_shaker",
+    "name": "Salt Shaker",
+    "category": "junk",
+    "cost": 1,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x1"]
+    }
+  },
+  {
+    "id": "junk_saucepan",
+    "name": "Saucepan",
+    "category": "junk",
+    "cost": 2,
+    "load": 1,
+    "props": {
+      "materials": ["Steel x2"]
+    }
+  },
+  {
+    "id": "junk_saucer",
+    "name": "Saucer",
+    "category": "junk",
+    "cost": 1,
+    "load": 0.5,
+    "props": {
+      "materials": ["Ceramic x2"]
+    }
+  },
+  {
+    "id": "junk_saw",
+    "name": "Saw",
+    "category": "junk",
+    "cost": 5,
+    "load": 3,
+    "props": {
+      "materials": ["Steel x3", "Rubber x1"]
+    }
+  },
+  {
+    "id": "junk_scalpel",
+    "name": "Scalpel",
+    "category": "junk",
+    "cost": 1,
+    "load": 0,
+    "props": {
+      "materials": ["Steel x1"]
+    }
+  },
+  {
+    "id": "junk_scissors",
+    "name": "Scissors",
+    "category": "junk",
+    "cost": 2,
+    "load": 0,
+    "props": {
+      "materials": ["Plastic x1", "Steel x1"]
+    }
+  },
+  {
+    "id": "junk_scorchbeast_hide",
+    "name": "Scorchbeast Hide",
+    "category": "junk",
+    "cost": 15,
+    "load": 6,
+    "props": {
+      "materials": ["Leather x4", "Nuclear Material x1"]
+    }
+  },
+  {
+    "id": "junk_scrap_assaultron_head",
+    "name": "Scrap Assaultron Head",
+    "category": "junk",
+    "cost": 27,
+    "load": 8,
+    "props": {
+      "materials": ["Circuitry x3", "Silver x1", "Screw x1"],
+      "notes": "Can be used to craft the Salvaged Assaultron Head."
+    }
+  },
+  {
+    "id": "junk_screwdriver",
+    "name": "Screwdriver",
+    "category": "junk",
+    "cost": 3,
+    "load": 0,
+    "props": {
+      "materials": ["Steel x1", "Wood x1"]
+    }
+  },
+  {
+    "id": "junk_sensor_module",
+    "name": "Sensor Module",
+    "category": "junk",
+    "cost": 23,
+    "load": 1,
+    "props": {
+      "materials": ["Steel x1", "Circuitry x5", "Copper x2"]
+    }
+  },
+  {
+    "id": "junk_shopping_basket",
+    "name": "Shopping Basket",
+    "category": "junk",
+    "cost": 4,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x1", "Steel x3"]
+    }
+  },
+  {
+    "id": "junk_silver_bowl",
+    "name": "Silver Bowl",
+    "category": "junk",
+    "cost": 12,
+    "load": 1,
+    "props": {
+      "materials": ["Silver x2"]
+    }
+  },
+  {
+    "id": "junk_silver_locket",
+    "name": "Silver Locket",
+    "category": "junk",
+    "cost": 12,
+    "load": 0.5,
+    "props": {
+      "materials": ["Silver x2", "Spring x1"]
+    }
+  },
+  {
+    "id": "junk_silver_plate",
+    "name": "Silver Plate",
+    "category": "junk",
+    "cost": 6,
+    "load": 1,
+    "props": {
+      "materials": ["Silver x1"]
+    }
+  },
+  {
+    "id": "junk_silver_pocket_watch",
+    "name": "Silver Pocket Watch",
+    "category": "junk",
+    "cost": 24,
+    "load": 0.5,
+    "props": {
+      "materials": ["Gear x1", "Silver x1", "Spring x1"]
+    }
+  },
+  {
+    "id": "junk_snare_drum",
+    "name": "Snare Drum",
+    "category": "junk",
+    "cost": 30,
+    "load": 2.5,
+    "props": {
+      "materials": ["Plastic x2", "Wood x2", "Screws x1"]
+    }
+  },
+  {
+    "id": "junk_soap",
+    "name": "Soap",
+    "category": "junk",
+    "cost": 4,
+    "load": 0,
+    "props": {
+      "materials": ["Oil x1"]
+    }
+  },
+  {
+    "id": "junk_spray_paint",
+    "name": "Spray Paint",
+    "category": "junk",
+    "cost": 5,
+    "load": 1,
+    "props": {
+      "materials": ["Aluminum x1", "Springs x1", "Paint x2"],
+      "notes": "Can be used to paint a small area with one color 2 times. After each use, it no longer gives x1 paint when scrapped."
+    }
+  },
+  {
+    "id": "junk_steam_gauge_assembly",
+    "name": "Steam Gauge Assembly",
+    "category": "junk",
+    "cost": 8,
+    "load": 5,
+    "props": {
+      "materials": ["Steel x2", "Gears x2", "Glass x1"]
+    }
+  },
+  {
+    "id": "junk_stick",
+    "name": "Stick",
+    "category": "junk",
+    "cost": 0,
+    "load": 1,
+    "props": {
+      "materials": ["Wood x2"]
+    }
+  },
+  {
+    "id": "junk_sticky_tar",
+    "name": "Sticky Tar",
+    "category": "junk",
+    "cost": 11,
+    "load": 0.5,
+    "props": {
+      "materials": ["Oil x2", "Glass x1"]
+    }
+  },
+  {
+    "id": "junk_stingwing_barb",
+    "name": "Stingwing Barb",
+    "category": "junk",
+    "cost": 6,
+    "load": 0.5,
+    "props": {
+      "materials": ["Acid x1"]
+    }
+  },
+  {
+    "id": "junk_straw_pillow",
+    "name": "Straw Pillow",
+    "category": "junk",
+    "cost": 1,
+    "load": 1,
+    "props": {
+      "materials": ["Fertilizer x1"]
+    }
+  },
+  {
+    "id": "junk_teapot",
+    "name": "Teapot",
+    "category": "junk",
+    "cost": 10,
+    "load": 1,
+    "props": {
+      "materials": ["Ceramic x2", "Asbestos x1"]
+    }
+  },
+  {
+    "id": "junk_teddy_bear",
+    "name": "Teddy Bear",
+    "category": "junk",
+    "cost": 5,
+    "load": 1,
+    "props": {
+      "materials": ["Cloth x1", "Leather x2"]
+    }
+  },
+  {
+    "id": "junk_telephone",
+    "name": "Telephone",
+    "category": "junk",
+    "cost": 14,
+    "load": 2,
+    "props": {
+      "materials": ["Circuitry x1", "Copper x1", "Fiberglass x1"]
+    }
+  },
+  {
+    "id": "junk_tin_can",
+    "name": "Tin Can",
+    "category": "junk",
+    "cost": 1,
+    "load": 0.5,
+    "props": {
+      "materials": ["Steel x1", "Lead x1"]
+    }
+  },
+  {
+    "id": "junk_toaster",
+    "name": "Toaster",
+    "category": "junk",
+    "cost": 8,
+    "load": 2.5,
+    "props": {
+      "materials": ["Spring x1", "Steel x2"]
+    }
+  },
+  {
+    "id": "junk_toilet_paper",
+    "name": "Toilet Paper",
+    "category": "junk",
+    "cost": 1,
+    "load": 0,
+    "props": {
+      "materials": ["Cloth x1"]
+    }
+  },
+  {
+    "id": "junk_toothbrush",
+    "name": "Toothbrush",
+    "category": "junk",
+    "cost": 1,
+    "load": 0,
+    "props": {
+      "materials": ["Plastic x1"]
+    }
+  },
+  {
+    "id": "junk_toy_alien",
+    "name": "Toy Alien",
+    "category": "junk",
+    "cost": 5,
+    "load": 0.5,
+    "props": {
+      "materials": ["Plastic x2", "Rubber x2", "Lead x1"]
+    }
+  },
+  {
+    "id": "junk_toy_car",
+    "name": "Toy Car",
+    "category": "junk",
+    "cost": 7,
+    "load": 1,
+    "props": {
+      "materials": ["Screws x1", "Wood x2", "Lead x1"]
+    }
+  },
+  {
+    "id": "junk_toy_truck",
+    "name": "Toy Truck",
+    "category": "junk",
+    "cost": 9,
+    "load": 1.5,
+    "props": {
+      "materials": ["Screws x1", "Plastic x2", "Gears x2", "Lead x1"]
+    }
+  },
+  {
+    "id": "junk_turpentine",
+    "name": "Turpentine",
+    "category": "junk",
+    "cost": 10,
+    "load": 1,
+    "props": {
+      "materials": ["Steel x2", "Antiseptic x2"]
+    }
+  },
+  {
+    "id": "junk_tv_dinner_tray",
+    "name": "TV Dinner Tray",
+    "category": "junk",
+    "cost": 9,
+    "load": 0.5,
+    "props": {
+      "materials": ["Aluminum x2", "Rubber x1"]
+    }
+  },
+  {
+    "id": "junk_typewriter",
+    "name": "Typewriter",
+    "category": "junk",
+    "cost": 24,
+    "load": 5,
+    "props": {
+      "materials": ["Aluminum x2", "Screws x2", "Spring x1", "Gear x1"]
+    }
+  },
+  {
+    "id": "junk_unrefined_gunpowder",
+    "name": "Unrefined Gunpowder",
+    "category": "junk",
+    "cost": 3,
+    "load": 0.5,
+    "props": {
+      "materials": ["Gunpowder x1"]
+    }
+  },
+  {
+    "id": "junk_vacuum_cleaner",
+    "name": "Vacuum Cleaner",
+    "category": "junk",
+    "cost": 10,
+    "load": 5,
+    "props": {
+      "materials": ["Steel x3", "Rubber x2"]
+    }
+  },
+  {
+    "id": "junk_vacuum_tube",
+    "name": "Vacuum Tube",
+    "category": "junk",
+    "cost": 10,
+    "load": 0.5,
+    "props": {
+      "materials": ["Glass x1", "Circuitry x1"]
+    }
+  },
+  {
+    "id": "junk_vase",
+    "name": "Vase",
+    "category": "junk",
+    "cost": 2,
+    "load": 2,
+    "props": {
+      "materials": ["Ceramic x1"]
+    }
+  },
+  {
+    "id": "junk_wonderglue",
+    "name": "Wonderglue",
+    "category": "junk",
+    "cost": 24,
+    "load": 0.5,
+    "props": {
+      "materials": ["Adhesive x2"]
+    }
+  },
+  {
+    "id": "junk_woodchipper",
+    "name": "Woodchipper",
+    "category": "junk",
+    "cost": 5,
+    "load": 6,
+    "props": {
+      "materials": ["Steel x5", "Gears x3"]
     }
   }
 ]

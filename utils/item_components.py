@@ -43,7 +43,7 @@ def render_modifier_builder(key_prefix, mod_list_key):
     mod_categories = {
         "S.P.E.C.I.A.L.": ["STR", "PER", "END", "CHA", "INT", "AGI", "LCK"],
         "Skills": sorted(get_default_character()["skills"].keys()),
-        "Derived Stats": ["Max HP", "Max SP", "Armor Class", "Carry Load", "Combat Sequence", "Action Points", "Radiation DC", "Passive Sense", "Healing Rate"]
+        "Stats": ["Max HP", "Max SP", "Armor Class", "DT", "Carry Load", "Combat Sequence", "Action Points", "Radiation DC", "Passive Sense", "Healing Rate"]
     }
     operator_map = {"Add": "+", "Subtract": "-", "Multiply": "*", "Divide": "/"}
 
@@ -245,7 +245,11 @@ def render_item_form(prefix, current_values, mod_list_key, all_db_items, show_qu
         elif new_category == "gear":
             c1, c2 = st.columns(2)
             c1.text_input("Capacity", value=props.get("capacity", ""), key=f"{prefix}_p_capacity")
-            c2.number_input("Uses", min_value=0, value=int(props.get("uses", 0)), key=f"{prefix}_p_uses")
+            try:
+                uses_val = int(props.get("uses", 0))
+            except (ValueError, TypeError):
+                uses_val = 0
+            c2.number_input("Uses", min_value=0, value=uses_val, key=f"{prefix}_p_uses")
             
             st.text_area("Function/Special", value="\n".join(props.get("special", [])) if isinstance(props.get("special"), list) else props.get("function", ""), key=f"{prefix}_p_special")
 

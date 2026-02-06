@@ -133,6 +133,13 @@ def render_character_sheet() -> None:
         
         # --- MIGRATION CHECK ---
         migrate_character(char)
+        
+        # Ensure persistence of migrated data (specifically ID) to prevent "Character not found" errors
+        if st.session_state.active_char_idx is not None and 0 <= st.session_state.active_char_idx < len(saved_chars):
+            disk_char = saved_chars[st.session_state.active_char_idx]
+            if char.get("id") and not disk_char.get("id"):
+                saved_chars[st.session_state.active_char_idx] = char
+                save_data(CHARACTERS_FILE, saved_chars)
 
         # --- STATBLOCK VIEW ---
         if st.session_state.char_sheet_view == "Statblock":

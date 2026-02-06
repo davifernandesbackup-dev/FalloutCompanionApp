@@ -370,6 +370,83 @@ def render_move_menu(item, all_items, key_prefix, callback=None):
                     if callback: callback()
                     st.rerun()
 
+def render_group_move_menu(group_items, all_items, key_prefix, callback=None):
+    """Renders dynamic buttons to move a group of items between Root/Stash/Containers."""
+    if not group_items: return
+    
+    representative = group_items[0]
+    
+    # 1. Root/Location Toggle
+    if representative.get("parent_id"):
+        if st.button("🎒 Extract All to Carried", key=f"{key_prefix}_grp_ext_carry", use_container_width=True):
+            for item in group_items:
+                item["parent_id"] = None
+                item["location"] = "carried"
+            if callback: callback()
+            st.rerun()
+        if st.button("📦 Extract All to Stash", key=f"{key_prefix}_grp_ext_stash", use_container_width=True):
+            for item in group_items:
+                item["parent_id"] = None
+                item["location"] = "stash"
+                item["equipped"] = False
+            if callback: callback()
+            st.rerun()
+    else:
+        if representative.get("location") == "carried":
+            if st.button("📦 Move All to Stash", key=f"{key_prefix}_grp_to_stash", use_container_width=True):
+                for item in group_items:
+                    item["location"] = "stash"
+                    item["parent_id"] = None
+                    item["equipped"] = False
+                if callback: callback()
+                st.rerun()
+        else:
+            if st.button("🎒 Move All to Carried", key=f"{key_prefix}_grp_to_carry", use_container_width=True):
+                for item in group_items:
+                    item["location"] = "carried"
+                    item["parent_id"] = None
+                if callback: callback()
+                st.rerun()
+
+    # 2. Move to Container
+    group_ids = [i["id"] for i in group_items]
+    all_descendants = []
+    for i in group_items:
+        all_descendants.extend(get_descendants(i["id"], all_items))
+        
+    valid_containers = [
+        c for c in all_items 
+        if c.get("is_container") 
+        and c["id"] not in group_ids 
+        and c["id"] not in all_descendants
+    ]
+    
+    if valid_containers:
+        st.caption("Move All To:")
+        valid_containers.sort(key=lambda x: x.get("name", ""))
+        
+        if len(valid_containers) > 4:
+            opts = {c["id"]: c.get("name", "Unnamed") for c in valid_containers}
+            sel_id = st.selectbox("Container", options=list(opts.keys()), format_func=lambda x: opts[x], key=f"{key_prefix}_grp_sel_cont", label_visibility="collapsed")
+            if st.button("Move All", key=f"{key_prefix}_grp_go_move", use_container_width=True):
+                target = next((c for c in valid_containers if c["id"] == sel_id), None)
+                if target:
+                    for item in group_items:
+                        item["parent_id"] = target["id"]
+                        item["location"] = target.get("location", "carried")
+                        item["equipped"] = False
+                    if callback: callback()
+                    st.rerun()
+        else:
+            for c in valid_containers:
+                if st.button(f"➡️ {c.get('name')}", key=f"{key_prefix}_grp_mv_{c['id']}", use_container_width=True):
+                    for item in group_items:
+                        item["parent_id"] = c["id"]
+                        item["location"] = c.get("location", "carried")
+                        item["equipped"] = False
+                    if callback: callback()
+                    st.rerun()
+
 @st.dialog("Confirm Deletion")
 def confirm_delete_item_dialog(item, all_items, callback=None):
     st.markdown(f"Are you sure you want to delete **{item.get('name', 'Unknown')}**?")
@@ -1290,12 +1367,16 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
     # Database Selection
     selected_id = st.selectbox(f"Search Database:", [""] + options, format_func=lambda x: labels.get(x, "") if x else "", key=f"{prefix}_select_dlg")
     
-    if st.button(f"Add Selected to {label}", key=f"{prefix}_btn_add_dlg", use_container_width=True):
+    c_qty, c_add = st.columns([1, 3])
+    qty_val = c_qty.number_input("Qty", min_value=1, value=1, step=1, key=f"{prefix}_db_add_qty")
+    
+    if c_add.button(f"Add Selected to {label}", key=f"{prefix}_btn_add_dlg", use_container_width=True):
         if selected_id:
             entry = next((e for e in valid_items if e["id"] == selected_id), None)
             
             # Use shared conversion logic for robust import
             new_item = convert_nested_to_flat(entry)
+            new_item["quantity"] = qty_val
             
             # Apply instance-specific defaults
             is_bag = (entry.get("category") == "bag")
@@ -1333,7 +1414,7 @@ def add_db_item_dialog(label, file_path, char, char_key, session_key, prefix, ca
     
     # Use render_item_form but we need to manage the values manually since it's not bound to an existing item
     # We can pass empty dict and let it use keys
-    render_item_form(prefix + "_dlg", {}, mod_key, data_list, show_quantity=False, is_equipment=(label == "Equipment"))
+    render_item_form(prefix + "_dlg", {}, mod_key, data_list, show_quantity=True, is_equipment=(label == "Equipment"))
 
     if st.button("Create & Add", type="primary", use_container_width=True, key=f"{prefix}_btn_create_dlg"):
         nested_data = get_item_data_from_form(prefix + "_dlg", mod_key)
@@ -1687,29 +1768,8 @@ def render_inventory_management(char, key, label, max_load=None, current_load=No
                         if st.button("Edit", key=f"inv_ed_{item['id']}", use_container_width=True):
                             edit_item_dialog(item, item['id'], items, save_callback, show_load=True)
                         
-                        # Move menu only works for single items for now to avoid complexity, 
-                        # or we iterate. Let's iterate.
-                        # render_move_menu is complex, let's just show it for the representative item for now.
-                        # Moving the representative won't move the others in the group unless we implement bulk move.
-                        # For now, let's just allow moving the representative item to keep it simple, 
-                        # or we can assume the user will move them one by one if they really want to split the stack.
-                        # But wait, if they are grouped, they can't access the others.
-                        # Let's make a simple "Move All" button if it's a group.
-                        
                         if len(group_items) > 1:
-                            if st.button("Move All to Stash", key=f"grp_stash_{item['id']}", use_container_width=True):
-                                for i in group_items:
-                                    i["location"] = "stash"
-                                    i["parent_id"] = None
-                                    i["equipped"] = False
-                                if save_callback: save_callback()
-                                st.rerun()
-                            if st.button("Move All to Carried", key=f"grp_carry_{item['id']}", use_container_width=True):
-                                for i in group_items:
-                                    i["location"] = "carried"
-                                    i["parent_id"] = None
-                                if save_callback: save_callback()
-                                st.rerun()
+                            render_group_move_menu(group_items, items, f"inv_grp_mv_{item['id']}", callback=save_callback)
                         else:
                             render_move_menu(item, items, f"inv_mv_{item['id']}", callback=save_callback)
 
@@ -2041,19 +2101,7 @@ def _render_sb_inventory_content(char, effective_stats, save_callback):
                             edit_item_dialog(item, item['id'], inventory, save_callback, show_load=True)
                         
                         if len(group_items) > 1:
-                            if st.button("Move All to Stash", key=f"sb_grp_stash_{item['id']}", use_container_width=True):
-                                for i in group_items:
-                                    i["location"] = "stash"
-                                    i["parent_id"] = None
-                                    i["equipped"] = False
-                                if save_callback: save_callback()
-                                st.rerun()
-                            if st.button("Move All to Carried", key=f"sb_grp_carry_{item['id']}", use_container_width=True):
-                                for i in group_items:
-                                    i["location"] = "carried"
-                                    i["parent_id"] = None
-                                if save_callback: save_callback()
-                                st.rerun()
+                            render_group_move_menu(group_items, inventory, f"sb_grp_mv_{item['id']}", callback=save_callback)
                         else:
                             render_move_menu(item, inventory, f"sb_mv_{item['id']}", callback=save_callback)
 
@@ -2078,32 +2126,48 @@ def _render_sb_inventory_content(char, effective_stats, save_callback):
 def render_live_inventory(char_id, char_index, label="Equipment"):
     """Fragment to render inventory that auto-updates from disk."""
     # Reload char data
-    try:
-        data = load_data(CHARACTERS_FILE)
-        if data and len(data) > char_index:
-            char = data[char_index]
-            # Verify ID to ensure we have the right char
-            if char.get("id") == char_id:
-                # Calculate stats for load limits
-                _, _, _, effective_stats, _ = calculate_stats(char)
-                
-                def local_save():
-                    # Save changes back to disk
-                    all_chars = load_data(CHARACTERS_FILE)
-                    if all_chars and len(all_chars) > char_index:
-                        all_chars[char_index] = char
-                        save_data(CHARACTERS_FILE, all_chars)
+    data = load_data(CHARACTERS_FILE)
+    if not isinstance(data, list):
+        return
 
-                # Render Inventory
-                render_inventory_management(
-                    char, "inventory", label,
-                    max_load=char.get("carry_load", 0),
-                    current_load=char.get("current_load", 0),
-                    effective_stats=effective_stats,
-                    save_callback=local_save
-                )
-    except Exception:
-        pass
+    char = None
+    # Try index
+    if char_index is not None and 0 <= char_index < len(data):
+        if data[char_index].get("id") == char_id:
+            char = data[char_index]
+    
+    # Fallback ID
+    if not char:
+        char = next((c for c in data if c.get("id") == char_id), None)
+
+    if char:
+        try:
+            # Calculate stats for load limits
+            _, _, _, effective_stats, _ = calculate_stats(char)
+            
+            def local_save():
+                # Save changes back to disk
+                all_chars = load_data(CHARACTERS_FILE)
+                # Find index again
+                t_idx = -1
+                for i, c in enumerate(all_chars):
+                    if c.get("id") == char_id:
+                        t_idx = i
+                        break
+                if t_idx != -1:
+                    all_chars[t_idx] = char
+                    save_data(CHARACTERS_FILE, all_chars)
+
+            # Render Inventory
+            render_inventory_management(
+                char, "inventory", label,
+                max_load=char.get("carry_load", 0),
+                current_load=char.get("current_load", 0),
+                effective_stats=effective_stats,
+                save_callback=local_save
+            )
+        except Exception as e:
+            st.error(f"Inventory Error: {e}")
 
 @st.fragment(run_every=3)
 def render_live_status_row(char_index, char_id=None):
@@ -2290,23 +2354,56 @@ def render_statblock_inventory_fragment(char_id, char_index):
     if file_changed:
         if cache_key not in st.session_state: st.session_state[cache_key] = {}
         st.session_state[cache_key]["mtime"] = mtime
-    try:
-        data = load_data(CHARACTERS_FILE)
-        if data and len(data) > char_index:
-            char = data[char_index]
-            if char.get("id") == char_id:
-                # Calculate stats for range/load
-                _, _, _, effective_stats, _ = calculate_stats(char)
+    
+    # Robust Data Loading
+    data = load_data(CHARACTERS_FILE)
+    if not isinstance(data, list):
+        st.error("Failed to load character data.")
+        return
+
+    char = None
+    
+    # 1. Try by Index (Fastest)
+    if char_index is not None and 0 <= char_index < len(data):
+        candidate = data[char_index]
+        if candidate.get("id") == char_id:
+            char = candidate
+        elif not candidate.get("id"):
+            # Fallback for legacy characters without ID in DB but ID in session
+            char = candidate
+            
+    # 2. Fallback by ID (Robustness against list shifts)
+    if not char:
+        char = next((c for c in data if c.get("id") == char_id), None)
+        
+    if char:
+        try:
+            # Calculate stats for range/load
+            _, _, _, effective_stats, _ = calculate_stats(char)
+            
+            def local_save():
+                all_chars = load_data(CHARACTERS_FILE)
+                # Find index again to ensure we save to correct slot
+                target_idx = -1
+                for i, c in enumerate(all_chars):
+                    if c.get("id") == char_id:
+                        target_idx = i
+                        break
                 
-                def local_save():
-                    all_chars = load_data(CHARACTERS_FILE)
-                    if all_chars and len(all_chars) > char_index:
-                        all_chars[char_index] = char
-                        save_data(CHARACTERS_FILE, all_chars)
+                # Fallback to index if ID not found (Legacy support)
+                if target_idx == -1 and char_index is not None and char_index < len(all_chars):
+                    if not all_chars[char_index].get("id"):
+                        target_idx = char_index
                 
-                _render_sb_inventory_content(char, effective_stats, local_save)
-    except Exception:
-        pass
+                if target_idx != -1:
+                    all_chars[target_idx] = char
+                    save_data(CHARACTERS_FILE, all_chars)
+            
+            _render_sb_inventory_content(char, effective_stats, local_save)
+        except Exception as e:
+            st.error(f"Error rendering inventory: {e}")
+    else:
+        st.warning("Character not found in database.")
 
 def _safe_char_update(char_id, update_func):
     """
