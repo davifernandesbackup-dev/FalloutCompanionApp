@@ -28,22 +28,6 @@
     }
   },
   {
-    "id": "arm_leather",
-    "name": "Leather Armor",
-    "category": "armor",
-    "cost": 175,
-    "load": 15,
-    "strReq": 1,
-    "description": "A jacket, fittings around the arms, knee pads, and boots all fall under leather armor.",
-    "props": {
-      "ac": 11,
-      "dt": 1,
-      "slots": 6,
-      "loadWorn": 7,
-      "type": "Light"
-    }
-  },
-  {
     "id": "pa_t45",
     "name": "T-45 Power Armor",
     "category": "power_armor",
@@ -639,26 +623,6 @@
     }
   },
   {
-    "id": "wpn_bow",
-    "name": "Bow",
-    "category": "weapon",
-    "cost": 120,
-    "load": 5,
-    "strReq": 4,
-    "props": {
-      "weaponType": "archery",
-      "hands": 2,
-      "apCost": 3,
-      "damage": "1d10",
-      "damageType": "piercing",
-      "range": "x5/x8",
-      "critical": "20, x3",
-      "ammoType": "ammo_arrow",
-      "magazineSize": 1,
-      "special": ["Silent", "Charge", "Drawstring"]
-    }
-  },
-  {
     "id": "wpn_compound_bow",
     "name": "Compound Bow",
     "category": "weapon",
@@ -716,17 +680,6 @@
       "ammoType": "ammo_bolt",
       "magazineSize": 4,
       "special": ["Silent", "Durable", "Heavy Reload", "Semi-Automatic"]
-    }
-  },
-  {
-    "id": "ammo_arrow",
-    "name": "Arrow",
-    "category": "ammo",
-    "cost": 2,
-    "load": 0.1,
-    "props": {
-      "packSize": 1,
-      "loadRule": "10 rounds = 1 load"
     }
   },
   {

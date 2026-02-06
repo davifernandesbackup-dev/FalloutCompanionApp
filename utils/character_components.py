@@ -18,12 +18,17 @@ def render_css(compact=True):
     primary = st.session_state.get("theme_primary", "#00ff00")
     secondary = st.session_state.get("theme_secondary", "#00b300")
     
+    is_dark = st.session_state.get("theme_mode", "Dark") == "Dark"
+    bg_color = "#0d1117" if is_dark else "#ffffff"
+    sec_bg_color = "#0d1117" if is_dark else "#f0f2f6"
+    input_bg = "rgba(13, 17, 23, 0.9)" if is_dark else "rgba(255, 255, 255, 0.9)"
+
     st.markdown(f"""
     <style>
         /* Global Font & Colors */
         .stApp {{
             font-family: "Source Sans Pro", sans-serif;
-            background-color: #0d1117;
+            background-color: {bg_color};
             color: {secondary};
         }}
 
@@ -70,7 +75,7 @@ def render_css(compact=True):
         }}
         
         div[data-testid="stSelectbox"] > div > div {{
-            background-color: rgba(13, 17, 23, 0.9) !important;
+            background-color: {input_bg} !important;
             color: {primary} !important;
             border: 1px solid {secondary} !important;
             box-shadow: 0 0 5px {primary}33;
@@ -78,7 +83,7 @@ def render_css(compact=True):
 
         .stat-bar-container {{
             width: 100%;
-            background-color: #0d1117;
+            background-color: {sec_bg_color};
             border: 1px solid {secondary};
             border-radius: 4px;
             height: 38px;
@@ -101,7 +106,7 @@ def render_css(compact=True):
         
         .custom-bar-bg {{
             width: 100%;
-            background-color: #0d1117;
+            background-color: {sec_bg_color};
             border: 1px solid {secondary};
             border-radius: 4px;
             height: 28px;
@@ -201,13 +206,13 @@ def render_css(compact=True):
         /* Data Editor Styling */
         div[data-testid="stDataFrame"] {{
             border: 1px solid {secondary};
-            background-color: rgba(13, 17, 23, 0.9);
+            background-color: {input_bg};
         }}
 
         /* Popover Content Styling */
         div[data-testid="stPopoverButton"] {{
             border: 2px solid {secondary} !important;
-            background-color: #0d1117 !important;
+            background-color: {bg_color} !important;
             color: {secondary} !important;
         }}
 
@@ -216,7 +221,7 @@ def render_css(compact=True):
         div[data-testid="stVerticalBlockBorderWrapper"] {{
             border: 2px solid {secondary} !important;
             border-radius: 8px;
-            background-color: rgba(13, 17, 23, 0.9) !important;
+            background-color: {input_bg} !important;
             box-shadow: 0 0 10px {primary}33 !important;
             padding: 10px !important;
         }}
@@ -252,7 +257,7 @@ def render_css(compact=True):
             text-align: center;
             flex: 1;
             border-right: 1px solid {secondary};
-            background-color: #0d1117;
+            background-color: {bg_color};
         }}
         .special-box:hover {{ background-color: {secondary}33; }}
         .special-box:last-child {{
@@ -2485,13 +2490,18 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
     primary = st.session_state.get("theme_primary", "#00ff00")
     secondary = st.session_state.get("theme_secondary", "#00b300")
     
+    is_dark = st.session_state.get("theme_mode", "Dark") == "Dark"
+    bg_color = "#000000" if is_dark else "#ffffff"
+    input_bg = "#0d1117" if is_dark else "#f0f2f6"
+    btn_bg = "rgba(13, 17, 23, 0.8)" if is_dark else "rgba(240, 242, 246, 0.8)"
+
     # --- FIXED LAYOUT CSS OVERRIDE ---
     st.markdown(f"""
     <style>
         /* Target the Statblock Container */
         div[data-testid="stVerticalBlockBorderWrapper"] {{
             padding: 5px !important;
-            background-color: #000000 !important;
+            background-color: {bg_color} !important;
             border: 2px solid {primary} !important;
         }}
         
@@ -2508,7 +2518,7 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
         
         /* Compact Inputs */
         div[data-testid="stVerticalBlockBorderWrapper"] input {{
-            background-color: #0d1117 !important;
+            background-color: {input_bg} !important;
             border: 1px solid {secondary} !important;
             color: {primary} !important;
             height: 28px !important;
@@ -2526,7 +2536,7 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
         div[data-testid="stVerticalBlockBorderWrapper"] button,
         div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stPopover"] > button {{
             border: 1px solid {secondary} !important;
-            background-color: rgba(13, 17, 23, 0.8) !important;
+            background-color: {btn_bg} !important;
             color: {primary} !important;
             border-radius: 4px !important;
             display: flex !important;
@@ -2550,7 +2560,7 @@ def render_character_statblock(char, save_callback=None, char_index=None, char_i
         
         .stat-bar-container {{
             width: 100%;
-            background-color: #0d1117;
+            background-color: {input_bg};
             border: 1px solid {secondary};
             border-radius: 4px;
             height: 39px;

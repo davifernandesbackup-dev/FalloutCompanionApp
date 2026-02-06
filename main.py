@@ -41,6 +41,12 @@ secondary_color = current_theme["secondary"]
 st.session_state.theme_primary = primary_color
 st.session_state.theme_secondary = secondary_color
 
+# Determine Background Colors based on Mode
+is_dark = st.session_state.get("theme_mode", "Dark") == "Dark"
+bg_color = "#0d1117" if is_dark else "#ffffff"
+sec_bg_color = "#161b22" if is_dark else "#f0f2f6"
+widget_bg_color = "#161b22" if is_dark else "#ffffff"
+input_bg_color = "#161b22" if is_dark else "#f0f2f6"
 
 # --- CUSTOM CSS ---
 st.markdown(f"""
@@ -56,18 +62,18 @@ st.markdown(f"""
         padding-bottom: 1rem !important;
     }}
     .stApp {{
-        background-color: #0d1117;
+        background-color: {bg_color};
         color: {secondary_color};
     }}
     .stButton>button {{
         color: {secondary_color};
-        background-color: #161b22;
+        background-color: {widget_bg_color};
         border-color: {primary_color};
         width: 100%; 
    }}
     .stNumberInput input, .stSelectbox div[data-baseweb="select"] > div {{
         color: {secondary_color};
-        background-color: #161b22;
+        background-color: {input_bg_color};
         -webkit-text-fill-color: {secondary_color};
     }}
     div[data-testid="stCaptionContainer"], 
@@ -79,7 +85,7 @@ st.markdown(f"""
     div[data-testid="column"] {{
         padding: 10px;
         border-radius: 5px;
-        background-color: #161b22; 
+        background-color: {sec_bg_color}; 
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -124,6 +130,10 @@ with st.sidebar:
     app_mode = st.radio("Select Module", ["🏠 Home", "☢️ Scanner", "📖 Bestiary", "🛠️ Utilities", "📝 Character Sheet", "🗃️ Database Editor", "🖥️ DM Screen (WIP)"], key="navigation")
     st.divider()
     st.selectbox("Interface Color", list(THEMES.keys()), key="app_theme")
+    
+    if "theme_mode" not in st.session_state:
+        st.session_state.theme_mode = "Dark"
+    st.radio("Mode", ["Dark", "Light"], horizontal=True, key="theme_mode")
     st.divider()
     
     # --- CLOUD SYNC ---

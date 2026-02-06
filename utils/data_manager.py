@@ -2,6 +2,7 @@ import streamlit as st
 import json
 import os
 import shutil
+import tempfile
 from typing import Any, Union, Dict, List
 from constants import BESTIARY_FILE, SAVED_FILE, CHARACTERS_FILE, ITEM_FILE, PERKS_FILE, RECIPES_FILE
 
@@ -25,17 +26,30 @@ def load_data(filepath: str) -> Union[Dict, List]:
         return {}
 
 def save_data(filepath: str, data: Any) -> None:
+    tmp_path = None
     try:
         # Serialize to string first to prevent file corruption on error
         json_str = json.dumps(data, indent=2)
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(json_str)
+        
+        # Write to a temporary file first to ensure atomicity
+        dir_name = os.path.dirname(filepath)
+        with tempfile.NamedTemporaryFile("w", delete=False, dir=dir_name, encoding="utf-8") as tmp_file:
+            tmp_file.write(json_str)
+            tmp_path = tmp_file.name
+            
+        # Atomic replace of the target file
+        os.replace(tmp_path, filepath)
+        
         # Clear the cache so the next load gets the updated data
         load_data.clear()
     except TypeError as e:
         st.error(f"Serialization Error (Data not saved): {e}")
+        if tmp_path and os.path.exists(tmp_path):
+            os.remove(tmp_path)
     except Exception as e:
         st.error(f"Error saving to {filepath}: {e}")
+        if tmp_path and os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
 # --- CLOUD SYNC (Placeholder) ---
 def push_to_cloud():

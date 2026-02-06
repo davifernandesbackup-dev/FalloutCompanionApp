@@ -92,6 +92,10 @@ def render_statblock(name: str, data: Dict[str, Any], container: Any = st) -> No
     primary = st.session_state.get("theme_primary", "#00ff00")
     secondary = st.session_state.get("theme_secondary", "#00b300")
 
+    is_dark = st.session_state.get("theme_mode", "Dark") == "Dark"
+    bg_color = "rgba(13, 17, 23, 0.9)" if is_dark else "rgba(255, 255, 255, 0.9)"
+    box_bg = "#0d1117" if is_dark else "#f0f2f6"
+
     # --- CSS STYLING ---
     statblock_css = f"""
     <style>
@@ -99,7 +103,7 @@ def render_statblock(name: str, data: Dict[str, Any], container: Any = st) -> No
             border: 2px solid {secondary};
             border-radius: 8px;
             padding: 15px;
-            background-color: rgba(13, 17, 23, 0.9);
+            background-color: {bg_color};
             font-family: "Source Sans Pro", sans-serif;
             box-shadow: 0 0 10px {primary}33;
             margin-bottom: 10px;
@@ -136,7 +140,7 @@ def render_statblock(name: str, data: Dict[str, Any], container: Any = st) -> No
             text-align: center;
             flex: 1;
             border-right: 1px solid {secondary};
-            background-color: #0d1117;
+            background-color: {box_bg};
         }}
         .special-box:last-child {{
             border-right: none;
